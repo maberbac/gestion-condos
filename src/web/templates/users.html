@@ -952,11 +952,31 @@
             return;
         }
         
-        // Simulation de la création
-        alert(`Utilisateur "${userData.username}" créé avec succès!\n\nUn email de bienvenue sera envoyé à ${userData.email}`);
+        if (userData.role === 'resident' && !userData.condo_unit) {
+            alert('L\'unité de condo est requise pour les résidents.');
+            return;
+        }
         
-        // Fermer le modal et réinitialiser
-        hideCreateUserModal();
+        // Envoi vers le serveur
+        fetch('/users/new', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                alert(`Utilisateur "${userData.username}" créé avec succès!\n\nUn email de bienvenue sera envoyé à ${userData.email}`);
+                hideCreateUserModal();
+                // Recharger la page pour afficher le nouvel utilisateur
+                window.location.reload();
+            } else {
+                return response.text().then(text => {
+                    throw new Error(text);
+                });
+            }
+        })
+        .catch(error => {
+            alert('Erreur lors de la création: ' + error.message);
+        });
     }
 
     // Fermer le modal en cliquant à l'extérieur

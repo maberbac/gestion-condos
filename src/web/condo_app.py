@@ -289,12 +289,73 @@ def users():
 def users_new():
     """Création d'un nouvel utilisateur."""
     if request.method == 'POST':
-        return render_template('success.html', 
-                             message="Utilisateur créé avec succès",
-                             return_url="/users",
-                             return_text="Retour aux utilisateurs")
+        try:
+            # Récupération des données du formulaire
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip()
+            password = request.form.get('password', '').strip()
+            full_name = request.form.get('full_name', '').strip()
+            role_str = request.form.get('role', '').strip()
+            condo_unit = request.form.get('condo_unit', '').strip()
+            
+            # Validation de base
+            if not all([username, email, password, full_name, role_str]):
+                logger.warning("Tentative de création d'utilisateur avec données manquantes")
+                return render_template('users_new.html', 
+                                     error="Tous les champs obligatoires doivent être remplis"), 400
+            
+            # Conversion du rôle
+            try:
+                from src.domain.entities.user import UserRole
+                role = UserRole(role_str.lower())
+            except ValueError:
+                logger.warning(f"Rôle invalide: {role_str}")
+                return render_template('users_new.html', 
+                                     error="Rôle invalide"), 400
+            
+            # Utilisation du service de création
+            asyncio.run(create_user_async(username, email, password, full_name, role, condo_unit))
+            
+            logger.info(f"Utilisateur créé avec succès: {username}")
+            return render_template('success.html', 
+                                 message=f"Utilisateur '{username}' créé avec succès",
+                                 return_url="/users",
+                                 return_text="Retour aux utilisateurs")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la création d'utilisateur: {e}")
+            return render_template('users_new.html', 
+                                 error=f"Erreur lors de la création: {str(e)}"), 400
     
     return render_template('users_new.html')
+
+
+async def create_user_async(username, email, password, full_name, role, condo_unit):
+    """Fonction asynchrone pour créer un utilisateur."""
+    try:
+        # Utiliser le repository global
+        global user_repository
+        
+        # Initialiser les services si nécessaire
+        if user_repository is None:
+            init_services()
+        
+        from src.domain.services.user_creation_service import UserCreationService
+        user_creation_service = UserCreationService(user_repository)
+        
+        # Créer l'utilisateur
+        await user_creation_service.create_user(
+            username=username,
+            email=email,
+            password=password,
+            full_name=full_name,
+            role=role,
+            condo_unit=condo_unit if condo_unit else None
+        )
+        
+    except Exception as e:
+        logger.error(f"Erreur dans create_user_async: {e}")
+        raise
 
 @app.route('/api/user/<username>')
 def api_user(username):
@@ -421,8 +482,8 @@ def change_password():
             return render_template('success.html',
                                  title="Mot de passe modifié",
                                  message="Votre mot de passe a été modifié avec succès.",
-                                 redirect_url=url_for('profile'),
-                                 redirect_text="Retour au profil")
+                                 return_url=url_for('profile'),
+                                 return_text="Retour au profil")
         else:
             return render_template('change_password.html', 
                                  error="Échec de la modification du mot de passe")

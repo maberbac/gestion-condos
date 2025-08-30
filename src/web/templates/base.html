@@ -214,6 +214,7 @@
                         <a href="{{ url_for('finance') }}">Finance</a>
                         <a href="{{ url_for('users') }}">Utilisateurs</a>
                     {% endif %}
+                    <a href="{{ url_for('profile') }}">Profil</a>
                     <a href="{{ url_for('logout') }}">Déconnexion ({{ session.user_id }})</a>
                 {% else %}
                     <a href="{{ url_for('login') }}">Connexion</a>

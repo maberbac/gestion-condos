@@ -51,57 +51,6 @@
                 <span class="btn-text">Accueil</span>
             </a>
         </div>
-
-        <div class="success-next-steps">
-            <h3>Prochaines étapes suggérées</h3>
-            <div class="steps-grid">
-                <div class="step-item" data-url="{{ url_for('condos') }}">
-                    <div class="step-icon">🏢</div>
-                    <div class="step-content">
-                        <div class="step-title">Gérer les condos</div>
-                        <div class="step-desc">Voir et modifier vos unités</div>
-                    </div>
-                </div>
-                
-                <div class="step-item" data-url="{{ url_for('finance') }}">
-                    <div class="step-icon">💰</div>
-                    <div class="step-content">
-                        <div class="step-title">Finances</div>
-                        <div class="step-desc">Consulter les rapports financiers</div>
-                    </div>
-                </div>
-                
-                <div class="step-item" data-url="{{ url_for('users') }}">
-                    <div class="step-icon">👥</div>
-                    <div class="step-content">
-                        <div class="step-title">Utilisateurs</div>
-                        <div class="step-desc">Gérer les comptes et permissions</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="success-feedback">
-            <h4>Comment s'est passée votre expérience ?</h4>
-            <div class="feedback-buttons">
-                <button class="feedback-btn excellent" onclick="submitFeedback('excellent')">
-                    <span class="feedback-icon">🌟</span>
-                    <span class="feedback-text">Excellent</span>
-                </button>
-                <button class="feedback-btn good" onclick="submitFeedback('good')">
-                    <span class="feedback-icon">👍</span>
-                    <span class="feedback-text">Bien</span>
-                </button>
-                <button class="feedback-btn average" onclick="submitFeedback('average')">
-                    <span class="feedback-icon">👌</span>
-                    <span class="feedback-text">Moyen</span>
-                </button>
-                <button class="feedback-btn poor" onclick="submitFeedback('poor')">
-                    <span class="feedback-icon">👎</span>
-                    <span class="feedback-text">Décevant</span>
-                </button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -288,140 +237,6 @@
         text-decoration: none;
     }
 
-    /* Next Steps */
-    .success-next-steps {
-        text-align: left;
-        background: #f8f9fa;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 30px;
-    }
-
-    .success-next-steps h3 {
-        color: #333;
-        font-size: 1.3rem;
-        margin-bottom: 20px;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-
-    .success-next-steps h3::before {
-        content: '🎯';
-        font-size: 1.5rem;
-    }
-
-    .steps-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-    }
-
-    .step-item {
-        background: white;
-        border-radius: 10px;
-        padding: 15px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border: 2px solid transparent;
-    }
-
-    .step-item:hover {
-        border-color: #28a745;
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .step-icon {
-        font-size: 1.5rem;
-        opacity: 0.8;
-    }
-
-    .step-content {
-        text-align: left;
-    }
-
-    .step-title {
-        font-weight: 600;
-        color: #333;
-        font-size: 0.9rem;
-        margin-bottom: 3px;
-    }
-
-    .step-desc {
-        color: #666;
-        font-size: 0.8rem;
-    }
-
-    /* Success Feedback */
-    .success-feedback {
-        background: #e7f5e7;
-        border-radius: 15px;
-        padding: 25px;
-        text-align: center;
-    }
-
-    .success-feedback h4 {
-        color: #333;
-        font-size: 1.1rem;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-
-    .success-feedback h4::before {
-        content: '📝';
-        font-size: 1.3rem;
-    }
-
-    .feedback-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .feedback-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        padding: 12px 15px;
-        background: white;
-        border: 2px solid #dee2e6;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        min-width: 80px;
-    }
-
-    .feedback-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .feedback-btn.excellent:hover { border-color: #ffc107; background: #fff3cd; }
-    .feedback-btn.good:hover { border-color: #28a745; background: #d4edda; }
-    .feedback-btn.average:hover { border-color: #17a2b8; background: #d1ecf1; }
-    .feedback-btn.poor:hover { border-color: #dc3545; background: #f8d7da; }
-
-    .feedback-icon {
-        font-size: 1.5rem;
-    }
-
-    .feedback-text {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #333;
-    }
-
     /* Responsive */
     @media (max-width: 768px) {
         .success-content {
@@ -441,19 +256,6 @@
         .btn-primary, .btn-secondary {
             width: 100%;
             max-width: 300px;
-        }
-
-        .steps-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .feedback-buttons {
-            justify-content: space-around;
-        }
-
-        .feedback-btn {
-            min-width: 70px;
-            padding: 10px 12px;
         }
     }
 
@@ -484,20 +286,6 @@
             text-align: center;
         }
     }
-
-    /* Animation for feedback submission */
-    .feedback-submitted {
-        background: #d4edda !important;
-        border-color: #28a745 !important;
-        transform: scale(1.1);
-        animation: feedbackSuccess 0.5s ease-out;
-    }
-
-    @keyframes feedbackSuccess {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.2); }
-        100% { transform: scale(1.1); }
-    }
 </style>
 
 <script>
@@ -508,40 +296,7 @@
         
         // Ajouter un effet confetti après le chargement
         setTimeout(createConfetti, 500);
-        
-        // Gérer les clics sur les étapes suivantes
-        document.querySelectorAll('.step-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const url = this.getAttribute('data-url');
-                if (url) {
-                    window.location.href = url;
-                }
-            });
-        });
     });
-
-    function submitFeedback(rating) {
-        const btn = event.target.closest('.feedback-btn');
-        
-        // Animation de confirmation
-        btn.classList.add('feedback-submitted');
-        
-        // Simuler l'envoi du feedback
-        setTimeout(() => {
-            alert(`Merci pour votre retour ! Évaluation : ${rating}`);
-            
-            // Désactiver tous les boutons de feedback
-            const allBtns = document.querySelectorAll('.feedback-btn');
-            allBtns.forEach(button => {
-                button.disabled = true;
-                button.style.opacity = '0.5';
-                button.style.cursor = 'not-allowed';
-            });
-            
-            // Garder le bouton sélectionné visible
-            btn.style.opacity = '1';
-        }, 500);
-    }
 
     function createConfetti() {
         const colors = ['#ffc107', '#28a745', '#17a2b8', '#fd7e14', '#e83e8c', '#6f42c1'];
