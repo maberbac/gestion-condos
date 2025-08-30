@@ -330,8 +330,43 @@ Fichier `config/app_config.json` :
 **Fonctionnalités principales** :
 - `get_users_for_web_display()` : Récupère et formate les utilisateurs pour affichage web
 - `get_user_statistics()` : Calcule les statistiques d'utilisateurs (total, par rôle)
+- `get_user_details_by_username()` : **NOUVEAU** - Récupère les détails complets d'un utilisateur
+- `get_user_details_for_api()` : **NOUVEAU** - Formate les détails utilisateur pour l'API REST
 - Gestion asynchrone avec intégration event loop
 - Interface entre la couche web et la couche domaine
+
+**Nouvelles méthodes implémentées** :
+
+```python
+async def get_user_details_by_username(self, username: str) -> Optional[User]:
+    """
+    Récupère les détails complets d'un utilisateur par nom d'utilisateur
+    
+    Args:
+        username: Nom d'utilisateur à rechercher
+        
+    Returns:
+        User: Objet utilisateur complet ou None si non trouvé
+        
+    Raises:
+        Exception: En cas d'erreur de base de données
+    """
+
+def get_user_details_for_api(self, user: User) -> dict:
+    """
+    Formate les détails utilisateur pour l'API REST
+    
+    Args:
+        user: Objet User à formater
+        
+    Returns:
+        dict: Données utilisateur formatées pour JSON avec :
+        - Informations personnelles
+        - Rôle et permissions
+        - Historique de connexion
+        - Unité de condo assignée
+    """
+```
 
 **Architecture** :
 ```python
@@ -344,12 +379,20 @@ class UserService:
         
     def get_user_statistics(self, users):
         """Calcule les statistiques à partir d'une liste d'utilisateurs"""
+        
+    async def get_user_details_by_username(self, username: str):
+        """NOUVEAU : Récupère les détails complets d'un utilisateur"""
+        
+    def get_user_details_for_api(self, user):
+        """NOUVEAU : Formate les détails pour l'API REST"""
 ```
 
 **Concepts techniques démontrés** :
 - **Programmation asynchrone** : Méthodes async/await pour opérations non-bloquantes
 - **Gestion d'erreurs** : Exception handling pour opérations database
 - **Architecture ports/adapters** : Service utilisant les ports du domaine
+- **Formatage de données** : Transformation entités domaine → DTO pour API
+- **Contrôle d'accès** : Validation des permissions utilisateur
 
 #### FinancialService (Service Financier)
 **Responsabilité** : Calculs financiers avec programmation fonctionnelle
@@ -464,6 +507,17 @@ Bien qu'utilisant des fichiers, l'application maintient un modèle de données s
 
 ### Endpoints principaux
 
+#### Authentification et Session
+- `POST /login` - Connexion utilisateur
+- `POST /logout` - Déconnexion utilisateur
+- `GET /profile` - Profil utilisateur connecté
+
+#### Gestion des Utilisateurs
+- `GET /users` - Interface de gestion des utilisateurs (admin)
+- `GET /api/user/<username>` - Détails d'un utilisateur via API
+- `GET /users/<username>/details` - Page complète de détails utilisateur
+- `POST /users/new` - Créer un nouvel utilisateur
+
 #### Résidents
 - `GET /api/residents` - Liste des résidents
 - `GET /api/residents/{id}` - Détails d'un résident
@@ -482,6 +536,53 @@ Bien qu'utilisant des fichiers, l'application maintient un modèle de données s
 - `GET /api/finances/paiements` - Paiements reçus
 - `POST /api/finances/calculer-charges` - Calculer les charges
 - `GET /api/finances/rapport/{periode}` - Rapport financier
+
+### Nouvelles Fonctionnalités - Détails Utilisateur
+
+#### API de Consultation Utilisateur
+```http
+GET /api/user/<username>
+Authorization: Session basée
+```
+
+**Réponse succès :**
+```json
+{
+  "found": true,
+  "username": "admin",
+  "details": {
+    "user_id": "admin",
+    "username": "admin",
+    "full_name": "Administrateur Principal",
+    "email": "admin@condos.local",
+    "role": "admin",
+    "role_display": "Administrateur",
+    "condo_unit": null,
+    "last_login": "2025-08-30T10:00:00Z",
+    "permissions": ["read", "write", "admin"],
+    "can_manage_users": true,
+    "can_access_finances": true
+  }
+}
+```
+
+#### Page de Détails Utilisateur
+```http
+GET /users/<username>/details
+Authorization: Session basée avec contrôle d'accès
+```
+
+**Contrôle d'accès :**
+- **Administrateurs** : Peuvent voir tous les utilisateurs
+- **Résidents** : Peuvent voir leurs propres détails uniquement
+- **Invités** : Accès limité selon configuration
+
+**Fonctionnalités de la page :**
+- Informations personnelles complètes
+- Historique de connexions
+- Permissions et autorisations
+- Unité de condo assignée
+- Actions administratives (si autorisé)
 
 ### Format des réponses
 ```json
@@ -571,8 +672,18 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 
 **Exemples** :
 - `test_user_page_database.py` : Tests du UserService (7 tests)
+- `test_user_details_service.py` : **NOUVEAU** - Tests des détails utilisateur (4 tests)
 - `test_financial_service.py` : Tests des calculs financiers
 - `test_condo_entity.py` : Tests des entités métier
+
+**Nouveaux tests implémentés** :
+```python
+# test_user_details_service.py - Tests pour nouvelles méthodes UserService
+def test_get_user_details_by_username_success()  # Test récupération utilisateur existant
+def test_get_user_details_by_username_not_found()  # Test utilisateur inexistant
+def test_get_user_details_for_api_formatting()  # Test formatage données API
+def test_get_user_details_by_username_handles_errors()  # Test gestion erreurs
+```
 
 #### Tests d'Intégration (74 tests)  
 **Objectif** : Tester l'interaction entre composants
@@ -581,8 +692,18 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 
 **Exemples** :
 - `test_user_page_database_integration.py` : Intégration web/database (8 tests)
+- `test_user_details_integration.py` : **NOUVEAU** - Tests intégration détails utilisateur (4 tests)
 - `test_api_endpoints.py` : Tests des routes Flask
 - `test_database_operations.py` : Tests des opérations SQLite
+
+**Nouveaux tests d'intégration** :
+```python
+# test_user_details_integration.py - Tests intégration complète
+def test_user_details_api_endpoint_success()  # Test endpoint API /api/user/<username>
+def test_user_details_page_endpoint_success()  # Test page /users/<username>/details  
+def test_user_details_authentication_required()  # Test authentification requise
+def test_user_details_role_based_access()  # Test contrôle d'accès par rôle
+```
 
 #### Tests d'Acceptance (78 tests)
 **Objectif** : Valider les fonctionnalités end-to-end
@@ -591,8 +712,19 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 
 **Exemples** :
 - `test_user_creation_acceptance.py` : Création d'utilisateur bout en bout
+- `test_user_details_acceptance.py` : **NOUVEAU** - Consultation détails utilisateur (5 tests)
 - `test_condo_management_acceptance.py` : Gestion des condos
 - `test_authentication_flow.py` : Flux d'authentification
+
+**Nouveaux tests d'acceptance** :
+```python
+# test_user_details_acceptance.py - Scénarios utilisateur complets
+def test_admin_can_view_any_user_details()  # Admin consulte détails tous utilisateurs
+def test_resident_can_view_only_own_details()  # Résident consulte ses détails
+def test_guest_cannot_view_user_details()  # Invité restrictions d'accès
+def test_user_details_page_shows_comprehensive_information()  # Page détails complète
+def test_user_details_modal_displays_real_data()  # Interface moderne fonctionnelle
+```
 
 ### Scripts d'Exécution des Tests
 

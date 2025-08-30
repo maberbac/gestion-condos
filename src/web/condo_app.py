@@ -306,6 +306,47 @@ def users():
         # En cas d'erreur, afficher une liste vide plutôt que planter
         return render_template('users.html', users=[])
 
+@app.route('/users/<username>/details')
+@require_login
+def user_details(username):
+    """Page de détails d'un utilisateur."""
+    from src.application.services.user_service import UserService
+    
+    try:
+        # Contrôle d'accès par rôle
+        current_user_role = session.get('user_role')
+        current_username = session.get('user_id')
+        
+        # Vérifier les permissions
+        if current_user_role == 'admin' or current_user_role == 'ADMIN':
+            # Les admins peuvent voir tous les utilisateurs
+            pass
+        elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
+            # Les résidents ne peuvent voir que leurs propres détails
+            if current_username != username:
+                flash('Vous ne pouvez consulter que vos propres détails.', 'error')
+                return redirect(url_for('users'))
+        else:
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            flash('Accès non autorisé aux détails d\'utilisateur.', 'error')
+            return redirect(url_for('dashboard'))
+        
+        # Récupérer les détails de l'utilisateur
+        user_service = UserService()
+        user_details = user_service.get_user_details_by_username(username)
+        
+        if not user_details:
+            flash(f'Utilisateur "{username}" non trouvé.', 'error')
+            return redirect(url_for('users'))
+        
+        logger.info(f"Affichage des détails de l'utilisateur '{username}' par {current_username}")
+        return render_template('user_details.html', user=user_details, current_user=current_username)
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de l'affichage des détails de '{username}': {e}")
+        flash('Erreur lors du chargement des détails utilisateur.', 'error')
+        return redirect(url_for('users'))
+
 @app.route('/users/new', methods=['GET', 'POST'])
 @require_admin
 def users_new():
@@ -380,18 +421,41 @@ async def create_user_async(username, email, password, full_name, role, condo_un
         raise
 
 @app.route('/api/user/<username>')
+@require_login
 def api_user(username):
     """API pour récupérer les informations d'un utilisateur."""
+    from src.application.services.user_service import UserService
+    
     try:
-        # Simulation de données utilisateur
-        user_data = {
-            'username': username,
-            'email': f'{username}@example.com',
-            'full_name': f'User {username}',
-            'role': session.get('user_role', 'GUEST'),
-            'condo_unit': 'A-101'
-        }
+        # Contrôle d'accès par rôle
+        current_user_role = session.get('user_role')
+        current_username = session.get('user_id')
         
+        # Vérifier les permissions
+        if current_user_role == 'admin' or current_user_role == 'ADMIN':
+            # Les admins peuvent voir tous les utilisateurs
+            pass
+        elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
+            # Les résidents ne peuvent voir que leurs propres détails
+            if current_username != username:
+                logger.warning(f"Tentative d'accès non autorisé: {current_username} -> {username}")
+                return jsonify({'error': 'Accès non autorisé'}), 403
+        else:
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            logger.warning(f"Tentative d'accès invité non autorisé: {current_username} -> {username}")
+            return jsonify({'error': 'Accès non autorisé'}), 403
+        
+        # Initialiser le service utilisateur
+        user_service = UserService()
+        
+        # Récupérer les détails de l'utilisateur
+        user_data = user_service.get_user_details_for_api(username)
+        
+        if not user_data.get('found', False):
+            logger.debug(f"Utilisateur '{username}' non trouvé via API")
+            return jsonify({'error': 'Utilisateur non trouvé'}), 404
+        
+        logger.info(f"Détails utilisateur '{username}' récupérés via API par {current_username}")
         return jsonify(user_data)
         
     except Exception as e:

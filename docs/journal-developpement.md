@@ -367,3 +367,147 @@ tests/integration/
 2. **Architecture Ports/Adapters** : Service layer respectant l'isolation du domaine
 3. **Tests Automatisés** : TDD strict avec couverture complète
 4. **Gestion d'Erreurs** : Exception handling approprié pour opérations asynchrones
+
+---
+
+## 30 Août 2025 : Implémentation Consultation Détails Utilisateur
+
+### Contexte et Objectif
+**Objectif** : Implémenter une fonctionnalité complète de consultation des détails utilisateur en remplaçant une fonction JavaScript non-fonctionnelle par un système complet avec interface moderne, API REST et contrôle d'accès.
+
+**Méthodologie** : TDD stricte avec cycle Red-Green-Refactor complet
+
+### Phase RED : Création des Tests qui Échouent
+
+#### Tests Unitaires (4 nouveaux tests)
+**Fichier** : `tests/unit/test_user_details_service.py`
+- `test_get_user_details_by_username_success()` : Récupération utilisateur existant
+- `test_get_user_details_by_username_not_found()` : Utilisateur inexistant  
+- `test_get_user_details_for_api_formatting()` : Formatage données API
+- `test_get_user_details_by_username_handles_errors()` : Gestion erreurs base
+
+#### Tests d'Intégration (4 nouveaux tests)
+**Fichier** : `tests/integration/test_user_details_integration.py`
+- `test_user_details_api_endpoint_success()` : Endpoint API `/api/user/<username>`
+- `test_user_details_page_endpoint_success()` : Page `/users/<username>/details`
+- `test_user_details_authentication_required()` : Authentification obligatoire
+- `test_user_details_role_based_access()` : Contrôle d'accès par rôle
+
+#### Tests d'Acceptance (5 nouveaux tests)
+**Fichier** : `tests/acceptance/test_user_details_acceptance.py`
+- `test_admin_can_view_any_user_details()` : Admin consulte tous utilisateurs
+- `test_resident_can_view_only_own_details()` : Résident ses propres détails
+- `test_guest_cannot_view_user_details()` : Invité restrictions d'accès
+- `test_user_details_page_shows_comprehensive_information()` : Page complète
+- `test_user_details_modal_displays_real_data()` : Interface moderne
+
+### Phase GREEN : Implémentation Minimale
+
+#### Extension UserService
+**Fichier** : `src/application/services/user_service.py`
+
+**Nouvelles méthodes** :
+```python
+async def get_user_details_by_username(self, username: str) -> Optional[User]:
+    """Récupère les détails complets d'un utilisateur"""
+
+def get_user_details_for_api(self, user: User) -> dict:
+    """Formate les détails utilisateur pour l'API REST"""
+```
+
+#### Routes Flask Étendues
+**Fichier** : `src/web/condo_app.py`
+
+**Nouvelles routes** :
+- `GET /api/user/<username>` : API REST pour détails utilisateur
+- `GET /users/<username>/details` : Page complète de détails
+
+#### Template HTML Moderne
+**Fichier** : `src/web/templates/user_details.html`
+- Interface responsive avec gradients et animations
+- Informations personnelles complètes
+- Permissions et autorisations
+- Actions contextuelles selon rôle
+
+#### JavaScript Fonctionnel
+**Fichier** : `src/web/templates/users.html`
+```javascript
+function viewUserDetails(username) {
+    // Remplacement de l'alert() par redirection vers page dédiée
+    window.location.href = `/users/${username}/details`;
+}
+```
+
+### Phase REFACTOR : Amélioration et Optimisation
+
+#### Corrections d'Authentification
+- **Compatibilité rôles** : Support 'admin'/'ADMIN' dans les contrôleurs
+- **Session validation** : Vérification robuste des permissions
+- **Tests utilisateurs existants** : Utilisation d'utilisateurs réels de la base
+
+#### Interface Utilisateur Moderne
+- **Thème cohérent** : Application du design system avec gradients standardisés
+- **Responsive design** : Adaptation mobile et tablette
+- **Animations fluides** : Micro-interactions et transitions
+
+#### Architecture Robuste
+- **Séparation HTML/Python** : Tous templates dans fichiers .html séparés
+- **Contrôle d'accès granulaire** : Permissions par rôle et propriété
+- **Gestion d'erreurs complète** : Exception handling sur tous niveaux
+
+### Résultats Finaux
+
+#### Tests Complets (13 nouveaux tests)
+- **Tests unitaires** : 139 tests total (+4 nouveaux)
+- **Tests intégration** : 74 tests total (+4 nouveaux)
+- **Tests acceptance** : 78 tests total (+5 nouveaux)
+- **Résultat** : **291/291 tests passent** ✅
+
+#### Fonctionnalités Livrées
+1. **API REST** `/api/user/<username>` avec données réelles SQLite
+2. **Page détails** `/users/<username>/details` avec interface moderne
+3. **Contrôle d'accès** basé sur rôles et propriété des données
+4. **JavaScript fonctionnel** remplaçant l'ancienne fonction alert()
+5. **Architecture extensible** pour futures fonctionnalités
+
+#### Concepts Techniques Renforcés
+1. **Architecture Hexagonale** : Extension cohérente du service layer
+2. **TDD Méthodologie** : Cycle Red-Green-Refactor respecté intégralement
+3. **Programmation Asynchrone** : Opérations database non-bloquantes
+4. **Sécurité Web** : Authentification et autorisation robustes
+5. **Design Moderne** : Interface responsive et accessible
+
+### Impact sur l'Architecture
+
+```
+Nouvelle architecture étendue :
+
+UserService (Application Layer)
+├── get_users_for_web_display()      # Existant
+├── get_user_statistics()            # Existant  
+├── get_user_details_by_username()   # NOUVEAU
+└── get_user_details_for_api()       # NOUVEAU
+
+Flask Controllers (Presentation)
+├── /users                           # Existant - Liste utilisateurs
+├── /api/user/<username>             # NOUVEAU - API REST
+└── /users/<username>/details        # NOUVEAU - Page détails
+
+Templates HTML (UI)
+├── users.html                       # Existant - Amélioré (JavaScript)
+└── user_details.html               # NOUVEAU - Page détails moderne
+```
+
+### Documentation Créée
+- **Documentation technique** mise à jour avec nouvelles fonctionnalités
+- **Guide spécifique** : `docs/fonctionnalites-details-utilisateur.md`
+- **Architecture étendue** : Diagrammes et flux de données
+- **Exemples d'usage** : Code samples pour développeurs
+
+### Perspective d'Évolution
+Cette implémentation établit les fondations pour :
+- **Modification en ligne** des profils utilisateur
+- **Historique d'activité** détaillé par utilisateur  
+- **Notifications** et alertes administratives
+- **Export PDF/Excel** des données utilisateur
+- **API versionnée** pour intégrations externes

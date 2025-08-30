@@ -1,0 +1,607 @@
+{% extends "base.html" %}
+
+{% block title %}Détails - {{ user.full_name }} - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="user-details-container">
+    <!-- Header Section -->
+    <div class="user-details-header">
+        <div class="header-content">
+            <div class="user-avatar-large">
+                <div class="avatar-circle-large {{ user.role }}">
+                    {% if user.role == 'admin' %}👑
+                    {% elif user.role == 'resident' %}🏠
+                    {% else %}👤{% endif %}
+                </div>
+                <div class="user-status {% if user.last_login and user.last_login != 'Jamais connecté' %}active{% else %}inactive{% endif %}"></div>
+            </div>
+            <div class="header-info">
+                <h1>{{ user.full_name }}</h1>
+                <p class="user-username">@{{ user.username }}</p>
+                <div class="user-role-badge-large">
+                    <span class="role-badge {{ user.role }}">
+                        {% if user.role == 'admin' %}
+                            🛡️ {{ user.role_display }}
+                        {% elif user.role == 'resident' %}
+                            🏠 {{ user.role_display }}
+                        {% else %}
+                            👤 {{ user.role_display }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button onclick="history.back()" class="back-btn">
+                <span class="btn-icon">←</span>
+                <span class="btn-text">Retour</span>
+            </button>
+            {% if current_user == user.username or session.user_role == 'ADMIN' %}
+            <button onclick="editUser('{{ user.username }}')" class="edit-btn">
+                <span class="btn-icon">✏️</span>
+                <span class="btn-text">Modifier</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="details-grid">
+        <!-- Personal Information Card -->
+        <div class="detail-card personal">
+            <div class="card-header">
+                <div class="card-icon">👤</div>
+                <h3>Informations Personnelles</h3>
+            </div>
+            <div class="card-content">
+                <div class="detail-row">
+                    <span class="detail-label">Nom complet</span>
+                    <span class="detail-value">{{ user.full_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nom d'utilisateur</span>
+                    <span class="detail-value">{{ user.username }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Adresse email</span>
+                    <span class="detail-value">{{ user.email }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Rôle système</span>
+                    <span class="detail-value">{{ user.role_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Property Information Card -->
+        <div class="detail-card property">
+            <div class="card-header">
+                <div class="card-icon">🏠</div>
+                <h3>Informations Propriété</h3>
+            </div>
+            <div class="card-content">
+                <div class="detail-row">
+                    <span class="detail-label">Unité de condo</span>
+                    <span class="detail-value {% if not user.has_condo_unit %}no-unit{% endif %}">
+                        {{ user.condo_unit }}
+                        {% if not user.has_condo_unit %}
+                            <span class="status-badge warning">Non assigné</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Statut propriété</span>
+                    <span class="detail-value">
+                        {% if user.has_condo_unit %}
+                            <span class="status-badge success">Propriétaire</span>
+                        {% else %}
+                            <span class="status-badge neutral">Sans unité</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Information Card -->
+        <div class="detail-card activity">
+            <div class="card-header">
+                <div class="card-icon">📊</div>
+                <h3>Activité du Compte</h3>
+            </div>
+            <div class="card-content">
+                <div class="detail-row">
+                    <span class="detail-label">Dernière connexion</span>
+                    <span class="detail-value">
+                        {{ user.last_login }}
+                        {% if user.last_login and user.last_login != 'Jamais connecté' %}
+                            <span class="status-badge success">Actif</span>
+                        {% else %}
+                            <span class="status-badge warning">Inactif</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Compte créé</span>
+                    <span class="detail-value">{{ user.created_at }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Statut général</span>
+                    <span class="detail-value">
+                        <span class="status-badge success">{{ user.status }}</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions Card -->
+        <div class="detail-card permissions">
+            <div class="card-header">
+                <div class="card-icon">🔐</div>
+                <h3>Permissions & Accès</h3>
+            </div>
+            <div class="card-content">
+                <div class="permission-list">
+                    {% if user.role == 'admin' %}
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Administration complète</span>
+                        </div>
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Gestion financière</span>
+                        </div>
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Gestion utilisateurs</span>
+                        </div>
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Accès aux rapports</span>
+                        </div>
+                    {% elif user.role == 'resident' %}
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Consultation condos</span>
+                        </div>
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Profil personnel</span>
+                        </div>
+                        <div class="permission-item denied">
+                            <span class="permission-icon">❌</span>
+                            <span class="permission-text">Gestion financière</span>
+                        </div>
+                        <div class="permission-item denied">
+                            <span class="permission-icon">❌</span>
+                            <span class="permission-text">Administration</span>
+                        </div>
+                    {% else %}
+                        <div class="permission-item granted">
+                            <span class="permission-icon">✅</span>
+                            <span class="permission-text">Informations publiques</span>
+                        </div>
+                        <div class="permission-item denied">
+                            <span class="permission-icon">❌</span>
+                            <span class="permission-text">Consultation condos</span>
+                        </div>
+                        <div class="permission-item denied">
+                            <span class="permission-icon">❌</span>
+                            <span class="permission-text">Gestion financière</span>
+                        </div>
+                        <div class="permission-item denied">
+                            <span class="permission-icon">❌</span>
+                            <span class="permission-text">Administration</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    {% if session.user_role == 'ADMIN' and current_user != user.username %}
+    <div class="action-section">
+        <h3>Actions Administrateur</h3>
+        <div class="admin-actions">
+            <button onclick="resetPassword('{{ user.username }}')" class="action-btn warning">
+                <span class="btn-icon">🔑</span>
+                <span class="btn-text">Réinitialiser mot de passe</span>
+            </button>
+            <button onclick="toggleUserStatus('{{ user.username }}')" class="action-btn secondary">
+                <span class="btn-icon">🔄</span>
+                <span class="btn-text">Changer statut</span>
+            </button>
+            <button onclick="confirmDeleteUser('{{ user.username }}')" class="action-btn danger">
+                <span class="btn-icon">🗑️</span>
+                <span class="btn-text">Supprimer utilisateur</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .user-details-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header */
+    .user-details-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 25px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+    }
+
+    .user-avatar-large {
+        position: relative;
+    }
+
+    .avatar-circle-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3.5rem;
+        color: white;
+        font-weight: bold;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .avatar-circle-large.admin { background: linear-gradient(135deg, #dc3545, #c82333); }
+    .avatar-circle-large.resident { background: linear-gradient(135deg, #28a745, #20c997); }
+    .avatar-circle-large.guest { background: linear-gradient(135deg, #6c757d, #495057); }
+
+    .user-status {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 4px solid white;
+    }
+
+    .user-status.active { background: #28a745; }
+    .user-status.inactive { background: #6c757d; }
+
+    .header-info h1 {
+        margin: 0 0 10px 0;
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+        border: none;
+    }
+
+    .user-username {
+        margin: 0 0 15px 0;
+        opacity: 0.9;
+        font-size: 1.3rem;
+        font-weight: 500;
+    }
+
+    .user-role-badge-large {
+        margin-top: 10px;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+
+    .role-badge.admin { background: rgba(220, 53, 69, 0.2); color: white; }
+    .role-badge.resident { background: rgba(40, 167, 69, 0.2); color: white; }
+    .role-badge.guest { background: rgba(108, 117, 125, 0.2); color: white; }
+
+    .header-actions {
+        display: flex;
+        gap: 15px;
+        flex-direction: column;
+    }
+
+    .back-btn, .edit-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .back-btn:hover, .edit-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-3px);
+    }
+
+    /* Details Grid */
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .detail-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .detail-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .detail-card.personal { border-left: 5px solid #667eea; }
+    .detail-card.property { border-left: 5px solid #28a745; }
+    .detail-card.activity { border-left: 5px solid #17a2b8; }
+    .detail-card.permissions { border-left: 5px solid #ffc107; }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+
+    .card-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .detail-value {
+        color: #333;
+        font-weight: 500;
+        text-align: right;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .detail-value.no-unit {
+        color: #999;
+        font-style: italic;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.success { background: #d4edda; color: #155724; }
+    .status-badge.warning { background: #fff3cd; color: #856404; }
+    .status-badge.neutral { background: #f8f9fa; color: #495057; }
+
+    /* Permissions */
+    .permission-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .permission-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        border-radius: 10px;
+        transition: background 0.3s ease;
+    }
+
+    .permission-item.granted {
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .permission-item.denied {
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .permission-icon {
+        font-size: 1.2rem;
+    }
+
+    .permission-text {
+        font-weight: 500;
+        color: #333;
+    }
+
+    /* Action Section */
+    .action-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-section h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .admin-actions {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn.warning {
+        background: linear-gradient(135deg, #ffc107, #ffca2c);
+        color: #212529;
+    }
+
+    .action-btn.secondary {
+        background: #f8f9fa;
+        color: #495057;
+        border: 2px solid #dee2e6;
+    }
+
+    .action-btn.danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .user-details-container {
+            padding: 15px;
+        }
+
+        .user-details-header {
+            flex-direction: column;
+            gap: 25px;
+            text-align: center;
+        }
+
+        .header-content {
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .avatar-circle-large {
+            width: 100px;
+            height: 100px;
+            font-size: 3rem;
+        }
+
+        .header-info h1 {
+            font-size: 2.5rem;
+        }
+
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    function editUser(username) {
+        alert(`Modification de l'utilisateur "${username}" - Fonctionnalité en développement`);
+        // Navigation vers page d'édition
+        // window.location.href = `/users/${username}/edit`;
+    }
+
+    function resetPassword(username) {
+        if (confirm(`Réinitialiser le mot de passe pour "${username}" ?\n\nUn nouveau mot de passe temporaire sera généré et envoyé par email.`)) {
+            alert(`Réinitialisation du mot de passe pour "${username}" - Fonctionnalité en développement`);
+            // Implémentation de la réinitialisation
+        }
+    }
+
+    function toggleUserStatus(username) {
+        if (confirm(`Changer le statut de l'utilisateur "${username}" ?\n\nCeci peut affecter l'accès au système.`)) {
+            alert(`Changement de statut pour "${username}" - Fonctionnalité en développement`);
+            // Implémentation du changement de statut
+        }
+    }
+
+    function confirmDeleteUser(username) {
+        if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible et supprimera toutes les données associées.`)) {
+            if (confirm(`CONFIRMATION FINALE : Supprimer définitivement "${username}" ?`)) {
+                alert(`Suppression de "${username}" - Fonctionnalité en développement`);
+                // Implémentation de la suppression
+            }
+        }
+    }
+
+    // Animation d'entrée
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.detail-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

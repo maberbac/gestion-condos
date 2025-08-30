@@ -892,34 +892,8 @@
     }
 
     function viewUserDetails(username) {
-        // Simulation de récupération des détails utilisateur
-        const userCard = document.querySelector(`.user-card:has(.user-username:contains("@${username}"))`);
-        if (userCard) {
-            const userName = userCard.querySelector('.user-name').textContent;
-            const userEmail = userCard.querySelector('.detail-text').textContent;
-            const userRole = userCard.querySelector('.role-badge').textContent;
-            
-            alert(`Détails de l'utilisateur ${username}:\n\nNom: ${userName}\nEmail: ${userEmail}\nRôle: ${userRole}`);
-        } else {
-            // Fallback vers API
-            fetch(`/api/user/${username}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('Erreur: ' + data.error);
-                    } else {
-                        const details = `Détails de l'utilisateur ${username}:\n\n` +
-                                      `Nom complet: ${data.full_name}\n` +
-                                      `Email: ${data.email}\n` +
-                                      `Rôle: ${data.role}\n` +
-                                      `Unité: ${data.condo_unit || 'Non assigné'}`;
-                        alert(details);
-                    }
-                })
-                .catch(error => {
-                    alert('Erreur lors du chargement des détails: ' + error);
-                });
-        }
+        // Redirection vers la page de détails
+        window.location.href = `/users/${username}/details`;
     }
 
     function editUser(username) {

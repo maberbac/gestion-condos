@@ -176,3 +176,111 @@ class UserService:
         except Exception as e:
             logger.error(f"Erreur lors de la recherche de l'utilisateur '{username}': {e}")
             return None
+    
+    def get_user_details_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Récupère les détails complets d'un utilisateur par son nom d'utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à rechercher
+            
+        Returns:
+            Dictionnaire avec les détails formatés ou None si non trouvé
+        """
+        try:
+            user = self._run_async_operation(
+                self.user_repository.get_user_by_username, username
+            )
+            
+            if not user:
+                logger.debug(f"Utilisateur '{username}' non trouvé pour détails")
+                return None
+            
+            # Formatage des détails pour l'affichage
+            details = {
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'role': user.role.value,
+                'role_display': self._get_role_display_name(user.role),
+                'condo_unit': user.condo_unit or 'Non assigné',
+                'last_login': getattr(user, 'last_login', None) or 'Jamais connecté',
+                'created_at': getattr(user, 'created_at', None) or 'Non disponible',
+                'status': 'Actif',  # Par défaut
+                'has_condo_unit': bool(user.condo_unit)
+            }
+            
+            logger.debug(f"Détails récupérés pour l'utilisateur '{username}'")
+            return details
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des détails pour '{username}': {e}")
+            return None
+    
+    def get_user_details_for_api(self, username: str) -> Dict[str, Any]:
+        """
+        Récupère les détails d'un utilisateur formatés pour l'API JSON.
+        
+        Args:
+            username: Nom d'utilisateur à rechercher
+            
+        Returns:
+            Dictionnaire formaté pour JSON ou dictionnaire d'erreur
+        """
+        try:
+            user = self._run_async_operation(
+                self.user_repository.get_user_by_username, username
+            )
+            
+            if not user:
+                logger.debug(f"Utilisateur '{username}' non trouvé pour API")
+                return {
+                    'error': 'Utilisateur non trouvé',
+                    'username': username,
+                    'found': False
+                }
+            
+            # Formatage pour JSON API
+            api_data = {
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'role': user.role.value,
+                'condo_unit': user.condo_unit,
+                'last_login': getattr(user, 'last_login', None),
+                'created_at': getattr(user, 'created_at', None),
+                'found': True,
+                'details': {
+                    'role_display': self._get_role_display_name(user.role),
+                    'has_condo_unit': bool(user.condo_unit),
+                    'status': 'Actif'
+                }
+            }
+            
+            logger.debug(f"Données API préparées pour l'utilisateur '{username}'")
+            return api_data
+            
+        except Exception as e:
+            logger.error(f"Erreur API pour l'utilisateur '{username}': {e}")
+            return {
+                'error': 'Erreur système lors de la récupération des données',
+                'username': username,
+                'found': False
+            }
+    
+    def _get_role_display_name(self, role: UserRole) -> str:
+        """
+        Retourne le nom d'affichage du rôle avec icône.
+        
+        Args:
+            role: Rôle utilisateur
+            
+        Returns:
+            Chaîne formatée pour l'affichage
+        """
+        role_names = {
+            UserRole.ADMIN: "Administrateur",
+            UserRole.RESIDENT: "Résident", 
+            UserRole.GUEST: "Invité"
+        }
+        return role_names.get(role, "Inconnu")
