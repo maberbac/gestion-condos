@@ -462,6 +462,46 @@ def api_user(username):
         logger.error(f"Erreur API utilisateur {username}: {e}")
         return jsonify({'error': 'Erreur système'}), 500
 
+@app.route('/api/user/<username>', methods=['DELETE'])
+@require_login
+def api_delete_user(username):
+    """API pour supprimer un utilisateur."""
+    from src.application.services.user_service import UserService
+    
+    try:
+        # Contrôle d'accès - seuls les admins peuvent supprimer
+        current_user_role = session.get('user_role')
+        current_username = session.get('user_id')
+        
+        if current_user_role not in ['admin', 'ADMIN']:
+            logger.warning(f"Tentative de suppression non autorisée par {current_username} (rôle: {current_user_role})")
+            return jsonify({'success': False, 'error': 'Accès non autorisé - Seuls les administrateurs peuvent supprimer des utilisateurs'}), 403
+        
+        # Initialiser le service utilisateur
+        user_service = UserService()
+        
+        # Vérifier l'auto-suppression
+        if not user_service.can_delete_user(username, current_username):
+            logger.warning(f"Tentative d'auto-suppression refusée: {current_username}")
+            return jsonify({'success': False, 'error': 'Impossible de supprimer votre propre compte'}), 400
+        
+        # Supprimer l'utilisateur
+        result = user_service.delete_user_by_username(username)
+        
+        if result:
+            logger.info(f"Utilisateur '{username}' supprimé avec succès par {current_username}")
+            return jsonify({
+                'success': True, 
+                'message': f"Utilisateur '{username}' supprimé avec succès"
+            })
+        else:
+            logger.warning(f"Utilisateur '{username}' non trouvé pour suppression")
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
+        
+    except Exception as e:
+        logger.error(f"Erreur suppression utilisateur {username}: {e}")
+        return jsonify({'success': False, 'error': 'Erreur système lors de la suppression'}), 500
+
 @app.route('/profile')
 @require_login
 def profile():

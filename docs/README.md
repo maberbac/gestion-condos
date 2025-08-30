@@ -12,11 +12,13 @@ docs/
 ├── architecture.md                   # Architecture technique hexagonale
 ├── conception-extensibilite.md       # Conception pour extensions futures
 ├── documentation-technique.md        # Documentation technique complète
-├── fonctionnalites-details-utilisateur.md  # NOUVEAU - Guide détaillé consultation utilisateur
+├── fonctionnalites-details-utilisateur.md  # Guide détaillé consultation utilisateur
 ├── guide-demarrage.md                # Guide de démarrage rapide
 ├── guide-logging.md                  # Documentation du système de logging
+├── guide-tests-mocking.md            # NOUVEAU - Guide complet des tests avec mocking
 ├── journal-developpement.md          # Journal de développement et roadmap
-├── methodologie.md                   # Méthodologie TDD et développement
+├── methodologie.md                   # Méthodologie TDD et développement (MIS À JOUR)
+├── mise-a-jour-mocking-30-aout.md    # NOUVEAU - Documentation consignes de mocking
 └── status-success.md                 # Statut de réussite du projet
 ```
 
@@ -25,6 +27,11 @@ docs/
 ### Architecture et Conception
 - **[Architecture](architecture.md)** - Architecture hexagonale, patterns et décisions techniques
 - **[Conception Extensibilité](conception-extensibilite.md)** - Préparation aux extensions futures
+
+### Méthodologie et Tests
+- **[Méthodologie TDD](methodologie.md)** - ⭐ **MIS À JOUR** - Cycle TDD avec consignes de mocking strictes
+- **[Guide Tests avec Mocking](guide-tests-mocking.md)** - ⭐ **NOUVEAU** - Standards complets de test isolé
+- **[Mise à Jour Mocking](mise-a-jour-mocking-30-aout.md)** - ⭐ **NOUVEAU** - Documentation des nouvelles consignes
 
 ### Fonctionnalités et Guides
 - **[Guide de Démarrage](guide-demarrage.md)** - Installation et premiers pas

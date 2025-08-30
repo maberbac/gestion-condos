@@ -284,3 +284,62 @@ class UserService:
             UserRole.GUEST: "Invité"
         }
         return role_names.get(role, "Inconnu")
+
+    def delete_user_by_username(self, username: str) -> bool:
+        """
+        Supprime un utilisateur par nom d'utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à supprimer
+            
+        Returns:
+            bool: True si suppression réussie, False si utilisateur non trouvé
+            
+        Raises:
+            Exception: En cas d'erreur de base de données
+        """
+        return self._run_async_operation(self._delete_user_by_username_async, username)
+    
+    async def _delete_user_by_username_async(self, username: str) -> bool:
+        """
+        Implémentation asynchrone de la suppression d'utilisateur.
+        """
+        logger.debug(f"Tentative de suppression de l'utilisateur: {username}")
+        
+        # Vérifier que l'utilisateur existe
+        user = await self.user_repository.get_user_by_username(username)
+        if user is None:
+            logger.warning(f"Utilisateur non trouvé pour suppression: {username}")
+            return False
+        
+        # Supprimer l'utilisateur
+        try:
+            result = await self.user_repository.delete_user(username)
+            if result:
+                logger.info(f"Utilisateur supprimé avec succès: {username}")
+            else:
+                logger.warning(f"Échec de la suppression de l'utilisateur: {username}")
+            return result
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression de {username}: {str(e)}")
+            raise
+
+    def can_delete_user(self, target_username: str, current_user_id: str) -> bool:
+        """
+        Vérifie si un utilisateur peut en supprimer un autre.
+        
+        Args:
+            target_username: Nom d'utilisateur à supprimer
+            current_user_id: ID de l'utilisateur courant
+            
+        Returns:
+            bool: True si suppression autorisée, False sinon
+        """
+        # Empêcher l'auto-suppression
+        if target_username == current_user_id:
+            logger.warning(f"Tentative d'auto-suppression refusée: {current_user_id}")
+            return False
+        
+        # Pour l'instant, tout autre utilisateur peut être supprimé
+        # (la logique des rôles sera gérée au niveau Flask)
+        return True

@@ -490,6 +490,16 @@ tests/
 - **Tests d'Acceptance** : Toutes les fonctionnalités utilisateur validées
 - **Validation** : Tous les tests doivent passer avant tout commit
 
+### OBLIGATION STRICTE DE MOCKING DES BASES DE DONNÉES
+- **TESTS UNITAIRES** : TOUJOURS mocker les appels à la base de données (UserRepository, etc.)
+- **TESTS D'INTÉGRATION** : TOUJOURS utiliser une base de données de test isolée ou des mocks
+- **TESTS D'ACCEPTANCE** : TOUJOURS créer/restaurer des données de test avant chaque test
+- **JAMAIS** utiliser la base de données de production dans les tests
+- **JAMAIS** laisser des tests modifier de façon permanente les données de base
+- **TOUJOURS** utiliser `@patch` ou `@mock.patch` pour isoler les couches de persistance
+- **OBLIGATION** : Chaque test doit être complètement indépendant des autres
+- **RÈGLE** : Les tests doivent pouvoir s'exécuter dans n'importe quel ordre sans effet de bord
+
 ### INTERDICTION STRICTE DE NOUVEAUX RUNNERS DE TESTS
 - **JAMAIS** créer de nouveaux runners de tests (run_*_tests.py)
 - **JAMAIS** ajouter des scripts d'exécution supplémentaires
@@ -504,13 +514,16 @@ tests/
 - **ÉVOLUTION** : Modifier les runners existants pour ajouter des fonctionnalités
 - **MAINTENANCE** : Corriger les bugs dans les runners actuels sans en créer de nouveaux
 
-## Checklist Obligatoire
+### Checklist Obligatoire
 
 Avant toute implémentation de code, vérifier :
 - [ ] **ÉCRIRE LES TESTS EN PREMIER** (méthodologie Red-Green-Refactor obligatoire mais transparente)
 - [ ] Créer les tests unitaires pour la nouvelle fonctionnalité
 - [ ] Créer les tests d'intégration si nécessaire
 - [ ] Créer les tests d'acceptance pour les fonctionnalités utilisateur
+- [ ] **VÉRIFIER que TOUS les appels base de données sont mockés dans les tests unitaires**
+- [ ] **S'ASSURER que les tests d'intégration utilisent une base de test isolée**
+- [ ] **CONFIRMER que les tests d'acceptance restaurent les données avant chaque test**
 - [ ] S'assurer qu'aucune référence à la méthodologie TDD n'apparaît dans le code
 - [ ] Lire et intégrer automatiquement tous les fichiers .md du projet
 - [ ] Comprendre l'exigence spécifique et son contexte
@@ -542,6 +555,9 @@ Après toute implémentation de code, s'assurer que :
 - [ ] La couverture de tests est maintenue ou améliorée
 - [ ] Le cycle méthodologique Red-Green-Refactor a été respecté (sans traces dans le code)
 - [ ] Aucune référence à la méthodologie TDD n'apparaît dans les commentaires ou noms
+- [ ] **VALIDATION MOCKING** : Aucun test unitaire n'accède directement à la base de données
+- [ ] **ISOLATION TESTS** : Les tests peuvent s'exécuter dans n'importe quel ordre
+- [ ] **DONNÉES DE TEST** : Aucune modification permanente des données de base
 - [ ] Le code suit les conventions et meilleures pratiques du langage
 - [ ] Les commentaires expliquent le POURQUOI, pas seulement le QUOI
 - [ ] La gestion d'erreurs est implémentée de manière appropriée
@@ -570,6 +586,8 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
 - [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
 - [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**
+- [ ] **SUPPRIMER toute mention "NOUVEAU", "RÉCENT", ou indicateur temporel de la documentation**
+- [ ] **MAINTENIR documentation intemporelle et professionnelle sans marqueurs de nouveauté**
 
 ## Standards de Documentation
 
@@ -578,6 +596,16 @@ Après toute implémentation de code, s'assurer que :
 - **Arborescences README** : Maintenir en temps réel l'arborescence dans tous les README.md
 - **Cohérence .md** : Synchroniser automatiquement tous les fichiers de documentation lors d'ajouts d'instructions
 - **Validation** : Vérifier que la documentation reste cohérente avec la structure réelle du projet
+
+### INTERDICTION STRICTE DES MENTIONS TEMPORELLES
+- **JAMAIS** ajouter de mentions "NOUVEAU", "RÉCENT", "MISE À JOUR" dans la documentation
+- **JAMAIS** utiliser des marqueurs temporels comme "⭐ NOUVEAU", "📝 RÉCENT", "🔄 MIS À JOUR"
+- **JAMAIS** inclure des dates ou des indications de nouveauté dans les titres ou descriptions
+- **JAMAIS** créer de sections "Nouveautés" ou "Dernières modifications"
+- **TOUJOURS** maintenir une documentation intemporelle et professionnelle
+- **OBLIGATION** : La documentation doit être neutre et ne pas référencer quand les éléments ont été ajoutés
+- **PRINCIPE** : Les mentions de nouveauté deviennent rapidement obsolètes et polluent la documentation
+- **STANDARD** : Documentation factuelle sans références temporelles
 
 ### Commentaires de Code
 - Utiliser des commentaires clairs et concis expliquant la logique métier

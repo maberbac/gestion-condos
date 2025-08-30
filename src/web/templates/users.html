@@ -904,8 +904,114 @@
 
     function confirmDeleteUser(username) {
         if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible.`)) {
-            alert(`Suppression de "${username}" en cours...`);
-            // Implémentation de la suppression
+            // Afficher un indicateur de chargement
+            const loadingMessage = `Suppression de "${username}" en cours...`;
+            
+            // Créer un élément de notification temporaire
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; 
+                top: 20px; 
+                right: 20px; 
+                background: #ffc107; 
+                color: #000; 
+                padding: 15px 20px; 
+                border-radius: 5px; 
+                z-index: 9999;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            `;
+            notification.textContent = loadingMessage;
+            document.body.appendChild(notification);
+            
+            // Appel AJAX pour supprimer l'utilisateur
+            fetch(`/api/user/${username}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Supprimer la notification de chargement
+                document.body.removeChild(notification);
+                
+                if (data.success) {
+                    // Succès - notification verte
+                    const successNotification = document.createElement('div');
+                    successNotification.style.cssText = `
+                        position: fixed; 
+                        top: 20px; 
+                        right: 20px; 
+                        background: #28a745; 
+                        color: white; 
+                        padding: 15px 20px; 
+                        border-radius: 5px; 
+                        z-index: 9999;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    `;
+                    successNotification.textContent = data.message || `Utilisateur "${username}" supprimé avec succès`;
+                    document.body.appendChild(successNotification);
+                    
+                    // Recharger la page après 2 secondes pour mettre à jour la liste
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    // Erreur - notification rouge
+                    const errorNotification = document.createElement('div');
+                    errorNotification.style.cssText = `
+                        position: fixed; 
+                        top: 20px; 
+                        right: 20px; 
+                        background: #dc3545; 
+                        color: white; 
+                        padding: 15px 20px; 
+                        border-radius: 5px; 
+                        z-index: 9999;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    `;
+                    errorNotification.textContent = data.error || 'Erreur lors de la suppression';
+                    document.body.appendChild(errorNotification);
+                    
+                    // Supprimer la notification d'erreur après 5 secondes
+                    setTimeout(() => {
+                        if (document.body.contains(errorNotification)) {
+                            document.body.removeChild(errorNotification);
+                        }
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                // Supprimer la notification de chargement
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+                
+                // Erreur réseau - notification rouge
+                const networkErrorNotification = document.createElement('div');
+                networkErrorNotification.style.cssText = `
+                    position: fixed; 
+                    top: 20px; 
+                    right: 20px; 
+                    background: #dc3545; 
+                    color: white; 
+                    padding: 15px 20px; 
+                    border-radius: 5px; 
+                    z-index: 9999;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                `;
+                networkErrorNotification.textContent = `Erreur réseau lors de la suppression de "${username}"`;
+                document.body.appendChild(networkErrorNotification);
+                
+                // Supprimer la notification d'erreur après 5 secondes
+                setTimeout(() => {
+                    if (document.body.contains(networkErrorNotification)) {
+                        document.body.removeChild(networkErrorNotification);
+                    }
+                }, 5000);
+                
+                console.error('Erreur lors de la suppression:', error);
+            });
         }
     }
 

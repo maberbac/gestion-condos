@@ -57,6 +57,41 @@ Ce projet illustre l'implémentation de quatre concepts techniques avancés :
 - **CSV** (import/export)
 - Pas de base de données complexe (approche fichiers)
 
+## Méthodologie de Développement
+
+### TDD avec Mocking Strict ⭐ **NOUVEAU**
+
+Le projet applique une méthodologie **Test-Driven Development (TDD)** avec des **consignes strictes de mocking** pour garantir l'isolation complète des tests :
+
+#### Cycle TDD Obligatoire
+1. **RED** : Écrire les tests AVANT le code (tests qui échouent)
+2. **GREEN** : Implémenter le minimum pour faire passer les tests
+3. **REFACTOR** : Améliorer le code sans changer les fonctionnalités
+
+#### Standards de Mocking Stricts
+- **Tests Unitaires** : Repository complètement mocké - AUCUNE interaction DB réelle
+- **Tests d'Intégration** : Services mockés avec `@patch` - Base de test isolée
+- **Tests d'Acceptance** : Données de test contrôlées - Workflows mockés
+- **Isolation Totale** : Tests indépendants dans n'importe quel ordre
+
+#### Structure de Tests
+```
+tests/
+├── unit/                    # Tests unitaires (logique métier isolée)
+├── integration/             # Tests d'intégration (composants ensemble)  
+├── acceptance/              # Tests d'acceptance (workflows end-to-end)
+├── run_all_unit_tests.py    # Exécute TOUS les tests unitaires
+├── run_all_integration_tests.py  # Exécute TOUS les tests d'intégration
+├── run_all_acceptance_tests.py   # Exécute TOUS les tests d'acceptance
+└── run_all_tests.py         # Exécute les 3 niveaux de tests
+```
+
+#### Avantages Observés
+- **Performance** : Tests ultra-rapides (< 1 sec unitaires)
+- **Fiabilité** : Aucun effet de bord entre tests
+- **Reproductibilité** : Tests identiques dans n'importe quel ordre
+- **Debugging** : Isolation facilite l'identification des problèmes
+
 ## Architecture : Hexagonale (Ports & Adapters)
 
 ### Justification Architecturale

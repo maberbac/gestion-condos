@@ -5,9 +5,10 @@
 2. [Cycle TDD adapté](#cycle-tdd-adapté)
 3. [Processus par concept technique](#processus-par-concept-technique)
 4. [Standards de test](#standards-de-test)
-5. [Gestion des priorités](#gestion-des-priorités)
-6. [Outils et environnement](#outils-et-environnement)
-7. [Validation des concepts](#validation-des-concepts)
+5. [Consignes de Mocking Strictes](#consignes-de-mocking-strictes)
+6. [Gestion des priorités](#gestion-des-priorités)
+7. [Outils et environnement](#outils-et-environnement)
+8. [Validation des concepts](#validation-des-concepts)
 
 ---
 
@@ -24,10 +25,13 @@
 - **Documentation vivante** : Les tests servent de spécification
 - **Confiance** : Code fonctionnel garanti à chaque étape
 - **Simplicité** : Only code what's needed to pass the tests
+- **Isolation stricte** : Tests complètement indépendants avec mocking
 
 ### Avantages pour notre contexte
 - **Rapidité** : Détection immédiate des problèmes
 - **Qualité** : Code testé par design
+- **Isolation** : Aucun effet de bord entre tests
+- **Reproductibilité** : Tests fiables dans n'importe quel ordre
 - **Concepts clairs** : Chaque concept technique validé par ses tests
 - **Maintenance** : Refactoring sécurisé grâce aux tests
 
@@ -95,6 +99,121 @@
 2. **Optimiser** : Performance et structure
 3. **Documenter** : Commentaires et explications
 4. **Valider** : Tous les tests continuent de passer
+
+---
+
+## Consignes de Mocking Strictes
+
+### Principe Fondamental : Isolation Complète des Tests
+
+#### Obligations Strictes de Mocking
+- **TESTS UNITAIRES** : TOUJOURS mocker les appels à la base de données (UserRepository, etc.)
+- **TESTS D'INTÉGRATION** : TOUJOURS utiliser une base de données de test isolée ou des mocks
+- **TESTS D'ACCEPTANCE** : TOUJOURS créer/restaurer des données de test avant chaque test
+- **JAMAIS** utiliser la base de données de production dans les tests
+- **JAMAIS** laisser des tests modifier de façon permanente les données de base
+- **TOUJOURS** utiliser `@patch` ou `@mock.patch` pour isoler les couches de persistance
+
+#### Règles d'Isolation
+- **OBLIGATION** : Chaque test doit être complètement indépendant des autres
+- **RÈGLE** : Les tests doivent pouvoir s'exécuter dans n'importe quel ordre sans effet de bord
+- **VALIDATION** : Aucun test ne doit dépendre de l'état laissé par un autre test
+- **PERFORMANCE** : Tests rapides sans accès réseau ou base de données réelle
+
+### Techniques de Mocking par Type de Test
+
+#### Tests Unitaires - Mock Complet
+```python
+from unittest.mock import Mock, AsyncMock
+from src.application.services.user_service import UserService
+
+class TestUserService:
+    def setup_method(self):
+        # MOCK COMPLET du repository - Aucune interaction DB réelle
+        self.mock_repository = Mock()
+        self.user_service = UserService(self.mock_repository)
+    
+    def test_delete_user_success(self):
+        # Arrange - Mock des données
+        self.mock_repository.get_user_by_username = AsyncMock(return_value=mock_user)
+        self.mock_repository.delete_user = AsyncMock(return_value=True)
+        
+        # Act - Appel avec repository mocké
+        result = self.user_service.delete_user_by_username("test_user")
+        
+        # Assert - Validation sans interaction DB réelle
+        assert result is True
+        self.mock_repository.delete_user.assert_called_once_with("test_user")
+```
+
+#### Tests d'Intégration - Mock des Services
+```python
+from unittest.mock import patch
+
+class TestUserDeletionIntegration:
+    @patch('src.web.condo_app.user_service')
+    def test_delete_api_endpoint(self, mock_user_service):
+        # Mock du service pour éviter interaction base de données
+        mock_user_service.delete_user_by_username.return_value = True
+        
+        # Test de l'API avec service complètement mocké
+        response = self.client.delete('/api/user/test_user')
+        
+        # Validation sans toucher la base
+        assert response.status_code == 200
+        mock_user_service.delete_user_by_username.assert_called_once()
+```
+
+#### Tests d'Acceptance - Données Isolées
+```python
+class TestUserDeletionAcceptance:
+    @patch('src.web.condo_app.user_service')
+    def test_complete_workflow(self, mock_user_service):
+        # Mock des données pour workflow complet
+        mock_users = [User(...), User(...)]  # Données contrôlées
+        mock_user_service.get_all_users.return_value = mock_users
+        mock_user_service.delete_user_by_username.return_value = True
+        
+        # Test du workflow avec données isolées
+        response = self.client.delete('/api/user/test_user')
+        
+        # Validation avec données predictibles
+        assert response.status_code == 200
+```
+
+### Checklist de Validation Mocking
+
+#### Avant Chaque Test
+- [ ] **VÉRIFIER** que TOUS les appels base de données sont mockés dans les tests unitaires
+- [ ] **S'ASSURER** que les tests d'intégration utilisent une base de test isolée
+- [ ] **CONFIRMER** que les tests d'acceptance restaurent les données avant chaque test
+- [ ] **VALIDER** qu'aucun test n'accède à la base de production
+
+#### Après Chaque Test
+- [ ] **VALIDATION MOCKING** : Aucun test unitaire n'accède directement à la base de données
+- [ ] **ISOLATION TESTS** : Les tests peuvent s'exécuter dans n'importe quel ordre
+- [ ] **DONNÉES DE TEST** : Aucune modification permanente des données de base
+- [ ] **PERFORMANCE** : Tests rapides sans I/O externe
+
+### Exemples d'Anti-Patterns à Éviter
+
+#### ❌ INTERDIT : Test avec base réelle
+```python
+def test_delete_user_bad():
+    # MAUVAIS : Utilise la vraie base de données
+    user_service = UserService()  # Repository réel
+    result = user_service.delete_user_by_username("test_user")  # Suppression réelle
+    assert result is True  # Test dépendant des données existantes
+```
+
+#### ✅ CORRECT : Test avec mock
+```python
+def test_delete_user_good(self):
+    # BON : Repository complètement mocké
+    self.mock_repository.delete_user = AsyncMock(return_value=True)
+    result = self.user_service.delete_user_by_username("test_user")
+    assert result is True  # Test prévisible et isolé
+```
 
 ---
 
