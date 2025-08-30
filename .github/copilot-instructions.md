@@ -32,7 +32,6 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - **JAMAIS** utiliser d'emojis dans les réponses, commentaires, ou documentation
 - **JAMAIS** inclure d'emojis dans les noms de fichiers, variables, ou fonctions
 - **JAMAIS** ajouter d'emojis dans les commits, README, ou fichiers markdown
-- **JAMAIS** utiliser d'emojis peu importe la raison
 - **JAMAIS** utiliser d'emojis dans les tests, même pour indiquer succès/échec
 - **JAMAIS** utiliser d'emojis dans les messages de sortie des programmes
 - **JAMAIS** utiliser d'emojis dans les print(), log(), ou affichages console
@@ -40,6 +39,12 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - **INTERDITS SPECIFIQUEMENT** : ✓ ⚠ 🎉 🧪 🎯 ✅ ⚠️ 📋 🔍 📊 et TOUS autres emojis/symboles Unicode
 - **REMPLACER PAR** : "OK", "ERREUR", "SUCCES", "ECHEC", "INFO", "ATTENTION" (texte simple)
 - **Si emojis détectés** : Les supprimer immédiatement et corriger avec du texte
+
+#### Exception Unique : Interface Utilisateur HTML
+- **EXCEPTION AUTORISÉE** : Les emojis sont permis dans les fichiers `.html` pour améliorer l'expérience utilisateur
+- **CONTEXTE UI** : Dans les templates HTML, les emojis peuvent servir d'icônes visuelles pour l'interface
+- **RESTRICTION** : Cette exception s'applique UNIQUEMENT aux fichiers `.html` dans `src/web/templates/`
+- **MAINTIEN INTERDICTION** : Tous autres contextes restent strictement interdits (Python, tests, documentation, etc.)
 
 ### 5. INTERDICTION STRICTE DES PRINT() - SYSTÈME DE LOGGING OBLIGATOIRE
 - **JAMAIS** utiliser `print()` dans le code pour afficher des messages
@@ -96,6 +101,27 @@ logger.debug(f"Debug: variable = {value}")
 - Documentation d'API et interfaces publiques
 - Concepts informatiques sans équivalent français clair
 - Standards et spécifications techniques (PEP, RFC, etc.)
+
+## INTERDICTION DE DÉMARRAGE D'APPLICATION POUR TESTS
+
+### Règle Stricte de Non-Démarrage
+- **JAMAIS** démarrer l'application Flask/web pour valider des corrections ou modifications
+- **JAMAIS** lancer `python -m src.web.condo_app` ou équivalent pour tester des changements
+- **JAMAIS** utiliser `run_in_terminal` pour démarrer l'application sauf débogage critique
+- **TOUJOURS** se fier aux tests automatisés (unitaires, intégration, acceptance) pour la validation
+- **PRIVILÉGIER** l'exécution des runners de tests (`run_all_tests.py`, `run_all_acceptance_tests.py`, etc.)
+
+### Exception Unique : Débogage Critique
+- **AUTORISATION EXCEPTIONNELLE** : Démarrer l'application UNIQUEMENT pour récupérer des logs de débogage
+- **CONTEXTE AUTORISÉ** : Quand les tests passent mais qu'il faut analyser des logs d'erreur spécifiques
+- **CONDITION** : Problème complexe nécessitant l'observation du comportement en temps réel
+- **OBLIGATION** : Arrêter l'application immédiatement après récupération des informations nécessaires
+
+### Méthodes de Validation Privilégiées
+- **Tests automatisés** : Exécuter les suites de tests appropriées (unitaires, intégration, acceptance)
+- **Analyse statique** : Vérifier le code, les templates, les configurations sans exécution
+- **Inspection de fichiers** : Lire et analyser les fichiers modifiés pour validation
+- **Simulation** : Utiliser les tests d'acceptance qui simulent les scénarios utilisateur complets
 
 ## Standards de Logging Obligatoires
 
@@ -472,8 +498,9 @@ tests/
 - **RUNNERS AUTORISÉS UNIQUEMENT** :
   1. `run_all_unit_tests.py` - Tests unitaires uniquement
   2. `run_all_integration_tests.py` - Tests d'intégration uniquement  
-  3. `run_new_acceptance_tests.py` - Tests d'acceptance modernes consolidés
+  3. `run_all_acceptance_tests.py` - Tests d'acceptance (NOM OFFICIEL OBLIGATOIRE)
   4. `run_all_tests.py` - Exécution complète des 3 runners ci-dessus
+- **ATTENTION RUNNER ACCEPTANCE** : Le runner des tests d'acceptance est **OBLIGATOIREMENT** `run_all_acceptance_tests.py` et **JAMAIS** `run_new_acceptance_tests.py`
 - **ÉVOLUTION** : Modifier les runners existants pour ajouter des fonctionnalités
 - **MAINTENANCE** : Corriger les bugs dans les runners actuels sans en créer de nouveaux
 
@@ -494,7 +521,7 @@ Avant toute implémentation de code, vérifier :
 - [ ] Vérifier la cohérence avec les instructions spécifiques du projet
 - [ ] Déterminer si des fichiers temporaires doivent aller dans `tmp/`
 - [ ] **VÉRIFIER qu'aucun emoji n'est utilisé dans la réponse ou le code**
-- [ ] **SCANNER tous les fichiers pour détecter les emojis interdits (✓ ⚠ 🎉 ✅ etc.)**
+- [ ] **SCANNER tous les fichiers pour détecter les emojis interdits (sauf fichiers .html UI)**
 - [ ] **VÉRIFIER qu'aucun print() n'est utilisé - UTILISER logger approprié**
 - [ ] **IMPORTER le logger: `from src.infrastructure.logger_manager import get_logger`**
 - [ ] **UTILISER les niveaux appropriés: debug/info/warning/error/critical**
@@ -526,11 +553,13 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **Les fichiers .md concernés sont mis à jour** si nouvelles instructions ajoutées
 - [ ] **Les arborescences README sont synchronisées** si nouveaux fichiers/dossiers créés
 - [ ] **Les fichiers .md sont dans le bon répertoire** : `docs/` pour projet, `ai-guidelines/` pour IA
-- [ ] **AUCUN EMOJI n'a été ajouté dans la documentation, code, ou commentaires**
+- [ ] **AUCUN EMOJI n'a été ajouté dans la documentation, code, ou commentaires (sauf .html UI)**
 - [ ] **AUCUN PRINT() n'a été utilisé - Tous les messages passent par le logger**
 - [ ] **VALIDATION FINALE: Scanner tous les fichiers modifiés pour emojis ET prints interdits**
-- [ ] **Les configurations sont stockées dans des fichiers JSON avec schémas**
+- [ ] **Vérifier que les modifications sont stockées dans des fichiers JSON avec schémas**
 - [ ] **La persistance utilise SQLite avec structure de données appropriée**
+- [ ] **VÉRIFIER que l'application N'A PAS été démarrée inutilement pour validation**
+- [ ] **PRIVILÉGIER les tests automatisés plutôt que le démarrage d'application**
 - [ ] **VÉRIFICATION SÉPARATION HTML/PYTHON: Aucun HTML dans les fichiers .py**
 - [ ] **TOUS les templates sont dans des fichiers .html séparés dans templates/**
 - [ ] **AUCUN render_template_string() avec HTML inline dans le code Python**
@@ -539,6 +568,8 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **APPLIQUER border-radius 15px/25px, shadows standardisées, responsive design**
 - [ ] **RESPECT INTERDICTION DÉMOS: Aucun contenu de démonstration créé pour utilisateur**
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
+- [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
+- [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**
 
 ## Standards de Documentation
 

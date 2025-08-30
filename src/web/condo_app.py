@@ -353,6 +353,87 @@ def profile():
     
     return render_template('profile.html', **profile_data)
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@require_login
+def change_password():
+    """Page de modification du mot de passe."""
+    if request.method == 'GET':
+        return render_template('change_password.html')
+    
+    # Traitement POST - changement de mot de passe
+    try:
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validation côté serveur
+        if not current_password:
+            return render_template('change_password.html', 
+                                 error="Le mot de passe actuel est requis")
+        
+        if not new_password:
+            return render_template('change_password.html', 
+                                 error="Le nouveau mot de passe est requis")
+        
+        if new_password != confirm_password:
+            return render_template('change_password.html', 
+                                 error="Les nouveaux mots de passe ne correspondent pas")
+        
+        if len(new_password) < 6:
+            return render_template('change_password.html', 
+                                 error="Le nouveau mot de passe doit contenir au moins 6 caractères")
+        
+        # Récupérer le nom d'utilisateur de la session (user_id contient le username, pas user_name qui contient le full_name)
+        username = session.get('user_id') or session.get('username')
+        if not username:
+            flash('Session expirée. Veuillez vous reconnecter.', 'error')
+            return redirect(url_for('login'))
+        
+        # Importer et utiliser le service de changement de mot de passe
+        from src.domain.services.password_change_service import PasswordChangeService, PasswordChangeError
+        
+        # Utiliser le service global d'authentification - initialiser si nécessaire
+        if not auth_service or not user_repository:
+            logger.warning("Services non initialisés pour changement mot de passe, réinitialisation...")
+            init_services()
+            
+        # Vérifier à nouveau après l'initialisation
+        if not auth_service or not user_repository:
+            logger.error("Impossible d'initialiser les services pour changement mot de passe")
+            return render_template('change_password.html', 
+                                 error="Service non disponible. Réessayez plus tard.")
+        
+        password_service = PasswordChangeService(
+            user_repository=user_repository,
+            authentication_service=auth_service
+        )
+        
+        # Exécuter le changement de mot de passe de manière asynchrone
+        async def change_password_async():
+            return await password_service.change_password(
+                username, current_password, new_password
+            )
+        
+        result = asyncio.run(change_password_async())
+        
+        if result:
+            # Rediriger vers une page de succès
+            return render_template('success.html',
+                                 title="Mot de passe modifié",
+                                 message="Votre mot de passe a été modifié avec succès.",
+                                 redirect_url=url_for('profile'),
+                                 redirect_text="Retour au profil")
+        else:
+            return render_template('change_password.html', 
+                                 error="Échec de la modification du mot de passe")
+        
+    except PasswordChangeError as e:
+        return render_template('change_password.html', error=str(e))
+    except Exception as e:
+        logger.error(f"Erreur lors du changement de mot de passe pour {username}: {e}")
+        return render_template('change_password.html', 
+                             error="Une erreur système s'est produite. Réessayez plus tard.")
+
 # === ROUTES ADMIN ===
 @app.route('/admin')
 @require_admin

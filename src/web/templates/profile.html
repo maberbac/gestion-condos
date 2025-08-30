@@ -159,6 +159,10 @@
                         <span class="action-text">Finances</span>
                     </a>
                     {% endif %}
+                    <a href="{{ url_for('change_password') }}" class="quick-action-btn">
+                        <span class="action-icon">🔑</span>
+                        <span class="action-text">Modifier mot de passe</span>
+                    </a>
                     <a href="/logout" class="quick-action-btn logout-btn">
                         <span class="action-icon">🚪</span>
                         <span class="action-text">Déconnexion</span>
@@ -564,13 +568,14 @@
 
 <script>
     function editProfile() {
-        // Fonction pour éditer le profil
-        alert('Fonctionnalité de modification du profil en développement');
+        // Fonction pour éditer le profil - redirect vers une page d'édition si elle existe
+        // Pour l'instant, affichage d'un message informatif
+        alert('Fonctionnalité de modification du profil en cours de développement');
     }
 
     function changePassword() {
-        // Fonction pour changer le mot de passe
-        alert('Fonctionnalité de changement de mot de passe en développement');
+        // Redirection vers la page de changement de mot de passe
+        window.location.href = "{{ url_for('change_password') }}";
     }
 
     // Animation au chargement

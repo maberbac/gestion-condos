@@ -239,6 +239,8 @@ class UserFileAdapter(UserRepositoryPort):
             )
             
             await self.save_user(updated_user)
+            # Invalider le cache pour forcer le rechargement
+            self._cache_dirty = True
             logger.info(f"Mot de passe mis à jour pour {username}")
             return True
             
