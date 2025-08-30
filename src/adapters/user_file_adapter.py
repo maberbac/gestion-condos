@@ -248,6 +248,63 @@ class UserFileAdapter(UserRepositoryPort):
             logger.error(f"Erreur lors de la mise à jour du mot de passe pour {username}: {e}")
             raise UserAuthenticationError(f"Impossible de mettre à jour le mot de passe: {e}")
     
+    async def update_user_by_username(self, username: str, updates: Dict[str, Any]) -> bool:
+        """
+        Met à jour les informations d'un utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à mettre à jour
+            updates: Dictionnaire des champs à mettre à jour
+            
+        Returns:
+            True si la mise à jour a réussi, False sinon
+            
+        Raises:
+            UserAuthenticationError: En cas d'erreur lors de la mise à jour
+        """
+        try:
+            user = await self.get_user_by_username(username)
+            if not user:
+                logger.warning(f"Tentative de mise à jour d'un utilisateur inexistant: {username}")
+                return False
+            
+            # Créer un nouvel utilisateur avec les modifications
+            user_data = {
+                'username': updates.get('username', user.username),
+                'email': updates.get('email', user.email),
+                'password_hash': updates.get('password_hash', user.password_hash),
+                'role': UserRole(updates.get('role', user.role.value)) if 'role' in updates else user.role,
+                'full_name': updates.get('full_name', user.full_name),
+                'condo_unit': updates.get('condo_unit', user.condo_unit),
+                'phone': updates.get('phone', user.phone),
+                'is_active': updates.get('is_active', user.is_active),
+                'created_at': user.created_at,
+                'last_login': user.last_login
+            }
+            
+            updated_user = User(
+                username=user_data['username'],
+                email=user_data['email'],
+                password_hash=user_data['password_hash'],
+                role=user_data['role'],
+                full_name=user_data['full_name'],
+                condo_unit=user_data['condo_unit'],
+                phone=user_data['phone'],
+                is_active=user_data['is_active'],
+                created_at=user_data['created_at'],
+                last_login=user_data['last_login']
+            )
+            
+            await self.save_user(updated_user)
+            # Invalider le cache pour forcer le rechargement
+            self._cache_dirty = True
+            logger.info(f"Utilisateur mis à jour: {username}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de l'utilisateur {username}: {e}")
+            raise UserAuthenticationError(f"Impossible de mettre à jour l'utilisateur: {e}")
+    
     async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
         Authentifie un utilisateur avec son nom d'utilisateur et mot de passe.

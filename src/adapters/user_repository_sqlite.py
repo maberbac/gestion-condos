@@ -364,6 +364,77 @@ class UserRepositorySQLite(UserRepositoryPort):
         except Exception as e:
             logger.error(f"Erreur lors de la mise à jour du mot de passe de {username}: {e}")
             raise UserRepositorySQLiteError(f"Erreur de mise à jour mot de passe: {e}")
+
+    async def update_user_by_username(self, username: str, user_data: Dict[str, Any]) -> bool:
+        """
+        Met à jour un utilisateur complet par nom d'utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à mettre à jour
+            user_data: Dictionnaire avec les nouvelles données utilisateur
+            
+        Returns:
+            bool: True si la mise à jour a réussi, False sinon
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Construire la requête de mise à jour dynamiquement
+                update_fields = []
+                update_values = []
+                
+                # Mapper les champs
+                field_mapping = {
+                    'username': 'username',
+                    'email': 'email',
+                    'full_name': 'full_name',
+                    'role': 'role',
+                    'condo_unit': 'condo_unit'
+                }
+                
+                for field, db_column in field_mapping.items():
+                    if field in user_data:
+                        update_fields.append(f"{db_column} = ?")
+                        if field == 'role':
+                            # Convertir l'enum en string si nécessaire
+                            role_value = user_data[field]
+                            if hasattr(role_value, 'value'):
+                                update_values.append(role_value.value)
+                            else:
+                                update_values.append(str(role_value))
+                        else:
+                            update_values.append(user_data[field])
+                
+                # Gérer le mot de passe séparément
+                if 'password' in user_data and user_data['password']:
+                    from src.domain.entities.user import User
+                    password_hash = User.hash_password(user_data['password'])
+                    update_fields.append("password_hash = ?")
+                    update_values.append(password_hash)
+                
+                if not update_fields:
+                    logger.warning(f"Aucun champ à mettre à jour pour l'utilisateur: {username}")
+                    return False
+                
+                # Construire et exécuter la requête
+                query = f"UPDATE users SET {', '.join(update_fields)} WHERE username = ?"
+                update_values.append(username)  # Ajouter le username pour la clause WHERE
+                
+                cursor.execute(query, update_values)
+                updated_count = cursor.rowcount
+                conn.commit()
+                
+                if updated_count > 0:
+                    logger.info(f"Utilisateur mis à jour avec succès: {username}")
+                    return True
+                else:
+                    logger.warning(f"Utilisateur introuvable pour mise à jour: {username}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de l'utilisateur {username}: {e}")
+            raise UserRepositorySQLiteError(f"Erreur de mise à jour utilisateur: {e}")
     
     async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """

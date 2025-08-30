@@ -87,7 +87,7 @@
                         
                         <div class="detail-item">
                             <span class="detail-icon">🕒</span>
-                            <span class="detail-text">{{ user.last_login if user.last_login else 'Jamais connecté' }}</span>
+                            <span class="detail-text">{{ user.last_login.strftime('%d/%m/%Y à %H:%M') if user.last_login else 'Jamais connecté' }}</span>
                         </div>
                     </div>
 
@@ -240,6 +240,62 @@
             <div class="modal-actions">
                 <button type="button" class="modal-btn secondary" onclick="hideCreateUserModal()">Annuler</button>
                 <button type="submit" class="modal-btn primary">Créer l'utilisateur</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier l'utilisateur</h3>
+            <button class="modal-close" onclick="hideEditUserModal()">&times;</button>
+        </div>
+        
+        <form id="editUserForm" onsubmit="updateUser(event)">
+            <input type="hidden" id="edit_original_username" name="original_username">
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_username">Nom d'utilisateur</label>
+                    <input type="text" id="edit_username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_email">Adresse email</label>
+                    <input type="email" id="edit_email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_full_name">Nom complet</label>
+                    <input type="text" id="edit_full_name" name="full_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_role">Rôle</label>
+                    <select id="edit_role" name="role" required>
+                        <option value="admin">👑 Administrateur</option>
+                        <option value="resident">🏠 Résident</option>
+                        <option value="guest">👤 Invité</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_password">Nouveau mot de passe</label>
+                    <input type="password" id="edit_password" name="password" placeholder="Laisser vide pour ne pas changer">
+                    <small>Laisser vide pour conserver le mot de passe actuel</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_condo_unit">Unité de condo</label>
+                    <input type="text" id="edit_condo_unit" name="condo_unit" placeholder="ex: 101 (optionnel)">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="modal-btn secondary" onclick="hideEditUserModal()">Annuler</button>
+                <button type="submit" class="modal-btn primary">Mettre à jour</button>
             </div>
         </form>
     </div>
@@ -891,15 +947,47 @@
         document.getElementById('createUserForm').reset();
     }
 
+    function showEditUserModal(username) {
+        // Récupérer les données de l'utilisateur
+        fetch(`/api/user/${username}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const user = data.user;
+                
+                // Remplir le formulaire avec les données existantes
+                document.getElementById('edit_original_username').value = user.username;
+                document.getElementById('edit_username').value = user.username;
+                document.getElementById('edit_email').value = user.email;
+                document.getElementById('edit_full_name').value = user.full_name;
+                document.getElementById('edit_role').value = user.role;
+                document.getElementById('edit_condo_unit').value = user.condo_unit || '';
+                
+                // Afficher la popup
+                document.getElementById('editUserModal').style.display = 'block';
+            } else {
+                alert('Erreur lors du chargement des données utilisateur: ' + (data.error || 'Erreur inconnue'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement:', error);
+            alert('Erreur réseau lors du chargement des données utilisateur');
+        });
+    }
+
+    function hideEditUserModal() {
+        document.getElementById('editUserModal').style.display = 'none';
+        document.getElementById('editUserForm').reset();
+    }
+
     function viewUserDetails(username) {
         // Redirection vers la page de détails
         window.location.href = `/users/${username}/details`;
     }
 
     function editUser(username) {
-        alert(`Modification de l'utilisateur "${username}" - Fonctionnalité en développement`);
-        // Navigation vers page d'édition
-        // window.location.href = `/users/${username}/edit`;
+        // Ouvrir la popup d'édition d'utilisateur
+        showEditUserModal(username);
     }
 
     function confirmDeleteUser(username) {
@@ -1059,11 +1147,61 @@
         });
     }
 
+    function updateUser(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const userData = Object.fromEntries(formData.entries());
+        const originalUsername = userData.original_username;
+        
+        // Validation basique
+        if (!userData.username || !userData.email || !userData.full_name || !userData.role) {
+            alert('Veuillez remplir tous les champs obligatoires.');
+            return;
+        }
+        
+        if (userData.password && userData.password.length < 6) {
+            alert('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+            return;
+        }
+        
+        if (userData.role === 'resident' && !userData.condo_unit) {
+            if (!confirm('Aucune unité de condo spécifiée pour un résident. Continuer ?')) {
+                return;
+            }
+        }
+        
+        // Envoi vers le serveur
+        fetch(`/api/user/${originalUsername}`, {
+            method: 'PUT',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Utilisateur "${userData.username}" mis à jour avec succès!`);
+                hideEditUserModal();
+                // Recharger la page pour afficher les modifications
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la mise à jour: ' + (data.error || 'Erreur inconnue'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la mise à jour:', error);
+            alert('Erreur réseau lors de la mise à jour de l\'utilisateur');
+        });
+    }
+
     // Fermer le modal en cliquant à l'extérieur
     window.onclick = function(event) {
-        const modal = document.getElementById('createUserModal');
-        if (event.target === modal) {
+        const createModal = document.getElementById('createUserModal');
+        const editModal = document.getElementById('editUserModal');
+        
+        if (event.target === createModal) {
             hideCreateUserModal();
+        } else if (event.target === editModal) {
+            hideEditUserModal();
         }
     }
 
@@ -1085,6 +1223,16 @@
                 bar.style.width = width;
             }, 500);
         });
+
+        // Vérifier si on doit ouvrir la popup d'édition (paramètre URL)
+        const urlParams = new URLSearchParams(window.location.search);
+        const editUsername = urlParams.get('edit');
+        if (editUsername) {
+            // Nettoyer l'URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Ouvrir la popup d'édition
+            showEditUserModal(editUsername);
+        }
     });
 
     function animateCounter(element, target) {

@@ -173,6 +173,23 @@ class UserRepositoryPort(ABC):
         pass
     
     @abstractmethod
+    async def update_user_by_username(self, username: str, user_data: Dict[str, Any]) -> bool:
+        """
+        Met à jour un utilisateur complet par nom d'utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à mettre à jour
+            user_data: Dictionnaire avec les nouvelles données utilisateur
+            
+        Returns:
+            True si mis à jour, False si utilisateur introuvable
+            
+        Raises:
+            Exception: En cas d'erreur de mise à jour
+        """
+        pass
+    
+    @abstractmethod
     async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
         Authentifie un utilisateur avec son nom d'utilisateur et mot de passe.

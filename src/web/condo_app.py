@@ -439,11 +439,11 @@ def api_user(username):
             # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
                 logger.warning(f"Tentative d'accès non autorisé: {current_username} -> {username}")
-                return jsonify({'error': 'Accès non autorisé'}), 403
+                return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         else:
             # Les invités ne peuvent pas voir de détails d'utilisateur
             logger.warning(f"Tentative d'accès invité non autorisé: {current_username} -> {username}")
-            return jsonify({'error': 'Accès non autorisé'}), 403
+            return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         
         # Initialiser le service utilisateur
         user_service = UserService()
@@ -453,14 +453,24 @@ def api_user(username):
         
         if not user_data.get('found', False):
             logger.debug(f"Utilisateur '{username}' non trouvé via API")
-            return jsonify({'error': 'Utilisateur non trouvé'}), 404
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
         
         logger.info(f"Détails utilisateur '{username}' récupérés via API par {current_username}")
-        return jsonify(user_data)
+        # Retourner une structure cohérente avec success: true et les données utilisateur
+        return jsonify({
+            'success': True,
+            'user': {
+                'username': user_data.get('username', ''),
+                'full_name': user_data.get('full_name', ''),
+                'email': user_data.get('email', ''),
+                'role': user_data.get('role', ''),
+                'condo_unit': user_data.get('condo_unit', '') or ''
+            }
+        })
         
     except Exception as e:
         logger.error(f"Erreur API utilisateur {username}: {e}")
-        return jsonify({'error': 'Erreur système'}), 500
+        return jsonify({'success': False, 'error': 'Erreur système'}), 500
 
 @app.route('/api/user/<username>', methods=['DELETE'])
 @require_login
@@ -501,6 +511,71 @@ def api_delete_user(username):
     except Exception as e:
         logger.error(f"Erreur suppression utilisateur {username}: {e}")
         return jsonify({'success': False, 'error': 'Erreur système lors de la suppression'}), 500
+
+@app.route('/api/user/<username>', methods=['PUT'])
+@require_login
+def api_update_user(username):
+    """API pour mettre à jour un utilisateur."""
+    from src.application.services.user_service import UserService
+    
+    try:
+        # Contrôle d'accès par rôle
+        current_user_role = session.get('user_role')
+        current_username = session.get('user_id')
+        
+        # Vérifier les permissions
+        if current_user_role not in ['admin', 'ADMIN']:
+            # Les non-admins ne peuvent modifier que leur propre profil
+            if current_username != username:
+                logger.warning(f"Tentative de modification non autorisée: {current_username} -> {username}")
+                return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+        
+        # Récupérer les données du formulaire
+        new_username = request.form.get('username')
+        email = request.form.get('email')
+        full_name = request.form.get('full_name')
+        role = request.form.get('role')
+        password = request.form.get('password')  # Optionnel
+        condo_unit = request.form.get('condo_unit')
+        
+        # Validation basique
+        if not all([new_username, email, full_name, role]):
+            return jsonify({'success': False, 'error': 'Tous les champs obligatoires doivent être remplis'}), 400
+        
+        # Initialiser le service utilisateur
+        user_service = UserService()
+        
+        # Préparer les données de mise à jour
+        update_data = {
+            'username': new_username,
+            'email': email,
+            'full_name': full_name,
+            'role': role,
+            'condo_unit': condo_unit
+        }
+        
+        # Ajouter le mot de passe seulement s'il est fourni
+        if password and password.strip():
+            if len(password) < 6:
+                return jsonify({'success': False, 'error': 'Le mot de passe doit contenir au moins 6 caractères'}), 400
+            update_data['password'] = password
+        
+        # Mettre à jour l'utilisateur
+        result = user_service.update_user_by_username(username, update_data)
+        
+        if result.get('success', False):
+            logger.info(f"Utilisateur '{username}' mis à jour avec succès par {current_username}")
+            return jsonify({
+                'success': True, 
+                'message': f"Utilisateur '{new_username}' mis à jour avec succès"
+            })
+        else:
+            logger.warning(f"Erreur lors de la mise à jour de '{username}': {result.get('error', 'Erreur inconnue')}")
+            return jsonify({'success': False, 'error': result.get('error', 'Erreur lors de la mise à jour')}), 400
+        
+    except Exception as e:
+        logger.error(f"Erreur mise à jour utilisateur {username}: {e}")
+        return jsonify({'success': False, 'error': 'Erreur système lors de la mise à jour'}), 500
 
 @app.route('/profile')
 @require_login

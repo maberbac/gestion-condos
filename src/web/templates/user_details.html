@@ -36,7 +36,7 @@
                 <span class="btn-icon">←</span>
                 <span class="btn-text">Retour</span>
             </button>
-            {% if current_user == user.username or session.user_role == 'ADMIN' %}
+            {% if current_user == user.username or session.user_role == 'admin' %}
             <button onclick="editUser('{{ user.username }}')" class="edit-btn">
                 <span class="btn-icon">✏️</span>
                 <span class="btn-text">Modifier</span>
@@ -199,7 +199,7 @@
     </div>
 
     <!-- Action Buttons -->
-    {% if session.user_role == 'ADMIN' and current_user != user.username %}
+    {% if session.user_role == 'admin' and current_user != user.username %}
     <div class="action-section">
         <h3>Actions Administrateur</h3>
         <div class="admin-actions">
@@ -562,9 +562,8 @@
 
 <script>
     function editUser(username) {
-        alert(`Modification de l'utilisateur "${username}" - Fonctionnalité en développement`);
-        // Navigation vers page d'édition
-        // window.location.href = `/users/${username}/edit`;
+        // Redirection vers la page de gestion des utilisateurs pour éditer
+        window.location.href = `/users?edit=${username}`;
     }
 
     function resetPassword(username) {

@@ -119,7 +119,11 @@ class UserService:
                     'full_name': user.full_name,
                     'email': user.email,
                     'role': {'value': user.role.value},  # Format compatible template
+                    'condo_unit': user.condo_unit,
+                    'phone': getattr(user, 'phone', None),
+                    'is_active': getattr(user, 'is_active', True),
                     'created_at': user.created_at,
+                    'last_login': user.last_login,  # Champ manquant ajouté
                     'status': 'Actif'  # Par défaut, peut être étendu plus tard
                 }
                 formatted_users.append(formatted_user)
@@ -343,3 +347,90 @@ class UserService:
         # Pour l'instant, tout autre utilisateur peut être supprimé
         # (la logique des rôles sera gérée au niveau Flask)
         return True
+
+    def update_user_by_username(self, username: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Met à jour un utilisateur par nom d'utilisateur.
+        
+        Args:
+            username: Nom d'utilisateur à mettre à jour
+            update_data: Données de mise à jour
+            
+        Returns:
+            Dictionnaire avec le résultat de l'opération
+        """
+        try:
+            # Récupérer l'utilisateur existant
+            existing_user = self._run_async_operation(
+                self.user_repository.get_user_by_username, username
+            )
+            
+            if not existing_user:
+                logger.warning(f"Utilisateur à mettre à jour non trouvé: {username}")
+                return {
+                    'success': False,
+                    'error': 'Utilisateur non trouvé'
+                }
+            
+            # Vérifier si le nouveau nom d'utilisateur existe déjà (si changé)
+            new_username = update_data.get('username', username)
+            if new_username != username:
+                existing_new_user = self._run_async_operation(
+                    self.user_repository.get_user_by_username, new_username
+                )
+                if existing_new_user:
+                    logger.warning(f"Le nom d'utilisateur '{new_username}' existe déjà")
+                    return {
+                        'success': False,
+                        'error': f"Le nom d'utilisateur '{new_username}' existe déjà"
+                    }
+            
+            # Préparer les données de mise à jour
+            from src.domain.entities.user import UserRole
+            updated_user_data = {
+                'username': new_username,
+                'email': update_data.get('email', existing_user.email),
+                'full_name': update_data.get('full_name', existing_user.full_name),
+                'role': UserRole(update_data.get('role', existing_user.role.value)),
+                'condo_unit': update_data.get('condo_unit', existing_user.condo_unit)
+            }
+            
+            # Gérer le mot de passe (optionnel)
+            if 'password' in update_data and update_data['password']:
+                updated_user_data['password'] = update_data['password']
+            else:
+                # Conserver le mot de passe existant
+                updated_user_data['password'] = getattr(existing_user, 'password', None)
+            
+            # Effectuer la mise à jour
+            result = self._run_async_operation(
+                self.user_repository.update_user_by_username, 
+                username, 
+                updated_user_data
+            )
+            
+            if result:
+                logger.info(f"Utilisateur '{username}' mis à jour vers '{new_username}' avec succès")
+                return {
+                    'success': True,
+                    'message': f"Utilisateur mis à jour avec succès"
+                }
+            else:
+                logger.error(f"Échec de la mise à jour de l'utilisateur: {username}")
+                return {
+                    'success': False,
+                    'error': 'Échec de la mise à jour'
+                }
+                
+        except ValueError as e:
+            logger.error(f"Erreur de validation lors de la mise à jour de {username}: {str(e)}")
+            return {
+                'success': False,
+                'error': f"Erreur de validation: {str(e)}"
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de {username}: {str(e)}")
+            return {
+                'success': False,
+                'error': 'Erreur système lors de la mise à jour'
+            }
