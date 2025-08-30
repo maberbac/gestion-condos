@@ -14,7 +14,7 @@ from flask.testing import FlaskClient
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 
-from src.web.condo_app import create_app
+from src.web.condo_app import app
 from src.adapters.user_file_adapter import UserFileAdapter
 from src.domain.entities.user import UserRole
 
@@ -29,13 +29,15 @@ class TestUserCreationAcceptance:
         self.users_file = os.path.join(self.temp_dir, "test_users.json")
         
         # Configurer l'application Flask pour les tests
-        self.app = create_app(testing=True, users_file=self.users_file)
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        self.app = app
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
         
         # Créer un utilisateur admin pour les tests
-        self.admin_username = "test_admin"
+        self.admin_username = "admin"
         self.admin_password = "admin123"
     
     def teardown_method(self):

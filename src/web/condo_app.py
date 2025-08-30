@@ -53,6 +53,45 @@ logger = logging.getLogger(__name__)
 # Stockage temporaire pour simuler la persistance des modifications
 condo_modifications = {}
 
+def calculate_relative_time(dt):
+    """Calcule le temps relatif par rapport à maintenant."""
+    if not dt:
+        return "Jamais"
+    
+    if isinstance(dt, str):
+        try:
+            # Essayer de parser différents formats de date
+            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
+                try:
+                    dt = datetime.strptime(dt, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return dt  # Retourner la chaîne originale si parsing échoue
+        except:
+            return dt
+    
+    now = datetime.now()
+    diff = now - dt
+    
+    if diff.days > 365:
+        years = diff.days // 365
+        return f"Il y a {years} an{'s' if years > 1 else ''}"
+    elif diff.days > 30:
+        months = diff.days // 30
+        return f"Il y a {months} mois"
+    elif diff.days > 0:
+        return f"Il y a {diff.days} jour{'s' if diff.days > 1 else ''}"
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f"Il y a {hours}h"
+    elif diff.seconds > 60:
+        minutes = diff.seconds // 60
+        return f"Il y a {minutes}min"
+    else:
+        return "À l'instant"
+
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
     global auth_service, repository, user_repository
@@ -381,8 +420,56 @@ def api_user(username):
 def profile():
     """Page de profil utilisateur."""
     # Récupérer les informations de session
-    user_name = session.get('user_name') or session.get('user_id')
+    username = session.get('user_id')  # Le vrai username pour la recherche en base
+    user_display_name = session.get('user_name')  # Le nom d'affichage (full_name)
     user_role_value = session.get('user_role') or session.get('role')
+    
+    # Initialiser les services si nécessaire
+    global user_repository
+    if user_repository is None:
+        init_services()
+    
+    # Récupérer les vraies données utilisateur depuis la base de données
+    try:
+        async def get_user_data():
+            return await user_repository.get_user_by_username(username)
+        
+        user_data = asyncio.run(get_user_data())
+        
+        logger.info(f"Données utilisateur récupérées pour {username}: {user_data is not None}")
+        if user_data:
+            logger.info(f"User data trouvé: username={user_data.username}, last_login={user_data.last_login}")
+            # Utiliser les vraies données
+            full_name = user_data.full_name
+            email = user_data.email
+            member_since = user_data.created_at.strftime('%Y-%m-%d') if user_data.created_at else datetime.now().strftime('%Y-%m-%d')
+            # Utiliser la vraie dernière connexion ou l'heure actuelle si c'est la première connexion
+            if user_data.last_login:
+                last_login = user_data.last_login.strftime('%Y-%m-%d %H:%M:%S')
+                logger.debug(f"Vraie dernière connexion trouvée: {last_login}")
+            else:
+                # Si pas de dernière connexion enregistrée, utiliser l'heure actuelle (première connexion)
+                last_login = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                logger.debug(f"Pas de dernière connexion, utilisation heure actuelle: {last_login}")
+            condo_unit = user_data.condo_unit or 'Non assigné'
+        else:
+            # Fallback si l'utilisateur n'est pas trouvé
+            logger.info(f"Utilisateur {username} non trouvé en base, utilisation fallback")
+            full_name = user_display_name or f'Utilisateur {username}'
+            email = f'{username}@condos.com'
+            member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
+            last_login = 'Jamais'
+            condo_unit = session.get('condo_unit', 'A-101')
+            
+    except Exception as e:
+        logger.error(f"Erreur récupération données utilisateur {username}: {e}")
+        logger.info(f"Utilisation fallback d'erreur pour {username}")
+        # Fallback en cas d'erreur
+        full_name = user_display_name or f'Utilisateur {username}'
+        email = f'{username}@condos.com'
+        member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
+        last_login = 'Jamais'
+        condo_unit = session.get('condo_unit', 'A-101')
     
     # Normaliser le rôle pour l'affichage
     if user_role_value == 'admin':
@@ -395,16 +482,18 @@ def profile():
         role_display = 'Invité'
         role_description = 'Accès limité aux informations publiques'
     
-    # Données du profil
+    # Données du profil avec vraies données
+    logger.debug(f"Données profil pour {username}: last_login='{last_login}', member_since='{member_since}'")
     profile_data = {
-        'username': user_name,
-        'full_name': session.get('full_name') or f'Utilisateur {user_name}',
-        'email': f'{user_name}@condos.com',
+        'username': username,
+        'full_name': full_name,
+        'email': email,
         'role_display': role_display,
         'role_description': role_description,
-        'condo_unit': session.get('condo_unit', 'A-101'),
-        'last_login': '2024-12-01 09:30:00',
-        'member_since': '2024-01-15',
+        'condo_unit': condo_unit,
+        'last_login': last_login,
+        'last_login_relative': calculate_relative_time(last_login) if last_login != 'Jamais' else last_login,
+        'member_since': member_since,
         'permissions': {
             'view_condos': user_role_value in ['admin', 'resident'],
             'manage_finance': user_role_value == 'admin',
