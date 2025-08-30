@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2025-08-29T08:50:46.228379",
+    "total_users": 3
+  },
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@condos.local",
+      "password_hash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+      "role": "admin",
+      "full_name": "Administrateur Principal",
+      "condo_unit": null,
+      "is_active": true,
+      "created_at": "2025-08-28T18:21:03.336539",
+      "last_login": "2025-08-29T08:50:46.228258"
+    },
+    {
+      "username": "guest",
+      "email": "guest@condos.local",
+      "password_hash": "6b93ccba414ac1d0ae1e77f3fac560c748a6701ed6946735a49d463351518e16",
+      "role": "guest",
+      "full_name": "Visiteur Invité",
+      "condo_unit": null,
+      "is_active": true,
+      "created_at": "2025-08-28T18:21:03.343895",
+      "last_login": null
+    },
+    {
+      "username": "resident",
+      "email": "resident@condos.local",
+      "password_hash": "2a2b8801afe2d9e5f47c5b786d8d349ce3d0b46f94c84bd5608abe1c2c75bb84",
+      "role": "resident",
+      "full_name": "Jean Résident",
+      "condo_unit": "101",
+      "is_active": true,
+      "created_at": "2025-08-28T18:30:24.065573",
+      "last_login": "2025-08-29T08:50:11.338511"
+    }
+  ]
+}

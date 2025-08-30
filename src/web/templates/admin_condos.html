@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestion Condos - Admin{% endblock %}
+
+{% block page_title %}Gestion des Condos{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Recherche et filtres</div>
+    <div class="card-body">
+        <form method="get">
+            <input type="text" name="search" placeholder="Rechercher par numéro d'unité ou propriétaire..." value="{{ request.args.get('search', '') }}">
+            <select name="status">
+                <option value="">Tous les statuts</option>
+                <option value="occupied" {% if request.args.get('status') == 'occupied' %}selected{% endif %}>Occupé</option>
+                <option value="available" {% if request.args.get('status') == 'available' %}selected{% endif %}>Disponible</option>
+            </select>
+            <input type="submit" value="Rechercher" class="btn-primary">
+        </form>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="card-header">Total condos</div>
+        <div class="card-body">
+            <h3>{{ total_condos }}</h3>
+            <p>Unités au total</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="card-header">Occupés</div>
+        <div class="card-body">
+            <h3>{{ occupied_condos }}</h3>
+            <p>Avec propriétaire</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="card-header">Disponibles</div>
+        <div class="card-body">
+            <h3>{{ available_condos }}</h3>
+            <p>Sans propriétaire</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">{{ header_info }}</div>
+    <div class="card-body">
+        {% if condos_list %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Unité</th>
+                    <th>Propriétaire</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for condo in condos_list %}
+                <tr>
+                    <td>{{ condo.unit_number }}</td>
+                    <td>{{ condo.owner or 'Non assigné' }}</td>
+                    <td>
+                        {% if condo.owner %}
+                            <span class="badge-success">Occupé</span>
+                        {% else %}
+                            <span class="badge-secondary">Disponible</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/admin/condos/{{ condo.id }}" class="btn-link">Détails</a>
+                        <a href="/admin/condos/{{ condo.id }}/edit" class="btn-link">Éditer</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>Aucun condo trouvé.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin/condos/new" class="btn-link">Ajouter un nouveau condo</a></p>
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

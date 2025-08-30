@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Succès{% endblock %}
+
+{% block page_title %}Succès{% endblock %}
+
+{% block content %}
+<div class="alert alert-success">
+    <strong>Succès:</strong> Avis générés avec succès
+</div>
+
+<div class="card">
+    <div class="card-header">Succès</div>
+    <div class="card-body">
+        <h1>Succès</h1>
+        <p>Avis générés avec succès</p>
+        <p><a href="/admin/financial/notices/pending" class="btn-link">Voir les avis en attente</a></p>
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

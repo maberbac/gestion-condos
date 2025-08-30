@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+
+{% block title %}État des Revenus{% endblock %}
+
+{% block page_title %}État des Revenus{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">Revenus annuels</div>
+        <div class="card-body">
+            <p><strong>Frais de condo:</strong> 180 000 $</p>
+            <p><strong>Stationnement:</strong> 9 000 $</p>
+            <p><strong>Cotisations spéciales:</strong> 15 000 $</p>
+            <p><strong>Total:</strong> 204 000 $</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Dépenses annuelles</div>
+        <div class="card-body">
+            <p><strong>Entretien:</strong> 102 000 $</p>
+            <p><strong>Services publics:</strong> 34 800 $</p>
+            <p><strong>Assurances:</strong> 12 000 $</p>
+            <p><strong>Administration:</strong> 8 000 $</p>
+            <p><strong>Total:</strong> 156 800 $</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Résultat net</div>
+    <div class="card-body">
+        <h3 class="text-success">+47 200 $</h3>
+        <p>Excédent pour l'année en cours</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

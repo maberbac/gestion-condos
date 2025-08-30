@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header de bienvenue -->
+    <div class="welcome-header">
+        <div class="welcome-content">
+            <div class="welcome-avatar">
+                <div class="avatar-circle">
+                    <span class="avatar-initials">{{ user_name[0].upper() }}{{ user_name[1:2].upper() if user_name|length > 1 else '' }}</span>
+                </div>
+            </div>
+            <div class="welcome-info">
+                <h1 class="welcome-title">Bienvenue, {{ user_name }} !</h1>
+                <div class="user-details">
+                    <span class="role-badge role-{{ user_role }}">{{ user_role.upper() }}</span>
+                    {% if user_role == 'resident' and condo_unit %}
+                    <span class="unit-info">Unité {{ condo_unit }}</span>
+                    {% endif %}
+                </div>
+                <p class="welcome-subtitle">Votre tableau de bord personnel</p>
+            </div>
+        </div>
+        <div class="quick-stats">
+            <div class="stat-item">
+                <span class="stat-number">{{ permissions|length }}</span>
+                <span class="stat-label">Permissions</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ user_role.upper() }}</span>
+                <span class="stat-label">Niveau d'accès</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des actions principales -->
+    <div class="dashboard-grid">
+        {% if permissions.condos %}
+        <div class="action-card condos-card">
+            <div class="card-icon">🏢</div>
+            <div class="card-content">
+                <h3>Gestion des Condos</h3>
+                <p>Consulter et gérer les unités de condominiums</p>
+                <div class="card-stats">
+                    <span class="stat">5 unités actives</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('condos') }}" class="btn-card-primary">
+                    <span class="btn-icon">👁️</span>
+                    Voir les condos
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if permissions.finance %}
+        <div class="action-card finance-card">
+            <div class="card-icon">💰</div>
+            <div class="card-content">
+                <h3>Finances</h3>
+                <p>Suivi financier et gestion des paiements</p>
+                <div class="card-stats">
+                    <span class="stat">Revenus mensuels: 15,000$</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('finance') }}" class="btn-card-primary">
+                    <span class="btn-icon">📊</span>
+                    Voir finances
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if permissions.users %}
+        <div class="action-card users-card">
+            <div class="card-icon">👥</div>
+            <div class="card-content">
+                <h3>Utilisateurs</h3>
+                <p>Gestion des résidents et administrateurs</p>
+                <div class="card-stats">
+                    <span class="stat">10 utilisateurs actifs</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('users') }}" class="btn-card-primary">
+                    <span class="btn-icon">⚙️</span>
+                    Gérer utilisateurs
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Carte profil toujours visible -->
+        <div class="action-card profile-card">
+            <div class="card-icon">👤</div>
+            <div class="card-content">
+                <h3>Mon Profil</h3>
+                <p>Gérer vos informations personnelles</p>
+                <div class="card-stats">
+                    <span class="stat">Dernière connexion: aujourd'hui</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('profile') }}" class="btn-card-primary">
+                    <span class="btn-icon">✏️</span>
+                    Mon profil
+                </a>
+            </div>
+        </div>
+
+        <!-- Carte d'activité récente -->
+        <div class="action-card activity-card">
+            <div class="card-icon">📈</div>
+            <div class="card-content">
+                <h3>Activité Récente</h3>
+                <p>Vos dernières actions sur la plateforme</p>
+                <div class="activity-timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-time">09:30</span>
+                        <span class="timeline-action">Connexion au système</span>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-time">09:15</span>
+                        <span class="timeline-action">Consultation tableau de bord</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte de notifications -->
+        <div class="action-card notifications-card">
+            <div class="card-icon">🔔</div>
+            <div class="card-content">
+                <h3>Notifications</h3>
+                <p>Messages et alertes importantes</p>
+                <div class="notifications-list">
+                    <div class="notification-item">
+                        <span class="notification-type info">Info</span>
+                        <span class="notification-text">Système mis à jour</span>
+                    </div>
+                    <div class="notification-item">
+                        <span class="notification-type success">Succès</span>
+                        <span class="notification-text">Connexion sécurisée</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header de bienvenue */
+    .welcome-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-content {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        flex: 1;
+    }
+
+    .welcome-avatar .avatar-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    .avatar-initials {
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+    }
+
+    .welcome-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        color: white;
+        border: none;
+    }
+
+    .user-details {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .role-badge {
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .role-admin {
+        background: rgba(255, 193, 7, 0.9);
+        color: #856404;
+    }
+
+    .role-resident {
+        background: rgba(40, 167, 69, 0.9);
+        color: #155724;
+    }
+
+    .role-guest {
+        background: rgba(108, 117, 125, 0.9);
+        color: #495057;
+    }
+
+    .unit-info {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 6px 12px;
+        border-radius: 15px;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+
+    .welcome-subtitle {
+        font-size: 1rem;
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .quick-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .stat-item {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 20px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        min-width: 100px;
+    }
+
+    .stat-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    /* Grille des actions */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-icon {
+        font-size: 3rem;
+        text-align: center;
+        padding: 25px 20px 10px 20px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 0;
+    }
+
+    .condos-card .card-icon {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .finance-card .card-icon {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .users-card .card-icon {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .profile-card .card-icon {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    }
+
+    .activity-card .card-icon {
+        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    }
+
+    .notifications-card .card-icon {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    }
+
+    .card-content {
+        padding: 25px;
+    }
+
+    .card-content h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .card-content p {
+        margin: 0 0 15px 0;
+        color: #666;
+        line-height: 1.5;
+    }
+
+    .card-stats {
+        margin-bottom: 15px;
+    }
+
+    .stat {
+        font-size: 0.9rem;
+        color: #888;
+        background: #f8f9fa;
+        padding: 6px 12px;
+        border-radius: 15px;
+        display: inline-block;
+    }
+
+    .card-actions {
+        padding: 0 25px 25px 25px;
+    }
+
+    .btn-card-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-card-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Timeline d'activité */
+    .activity-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .timeline-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 3px solid #667eea;
+    }
+
+    .timeline-time {
+        font-weight: 600;
+        color: #667eea;
+        font-size: 0.9rem;
+    }
+
+    .timeline-action {
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    /* Notifications */
+    .notifications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .notification-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .notification-type {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .notification-type.info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .notification-type.success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .notification-text {
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .welcome-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 20px;
+            padding: 30px 20px;
+        }
+
+        .welcome-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .quick-stats {
+            justify-content: center;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .welcome-title {
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-container {
+            padding: 10px;
+        }
+
+        .welcome-header {
+            padding: 20px 15px;
+        }
+
+        .card-content, .card-actions {
+            padding: 20px;
+        }
+    }
+</style>
+
+<script>
+    // Animation au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.action-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Statut des Paiements{% endblock %}
+
+{% block page_title %}Statut des Paiements{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Suivi des paiements par unité</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Unité</th>
+                    <th>Propriétaire</th>
+                    <th>Montant dû</th>
+                    <th>Statut</th>
+                    <th>Dernier paiement</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>A-101</td>
+                    <td>Jean Dupont</td>
+                    <td>0 $</td>
+                    <td class="text-success">À jour</td>
+                    <td>1er août 2025</td>
+                </tr>
+                <tr>
+                    <td>A-102</td>
+                    <td>Marie Martin</td>
+                    <td>475 $</td>
+                    <td class="text-warning">En retard</td>
+                    <td>1er juillet 2025</td>
+                </tr>
+                <tr>
+                    <td>B-201</td>
+                    <td>Pierre Tremblay</td>
+                    <td>0 $</td>
+                    <td class="text-success">À jour</td>
+                    <td>1er août 2025</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <form method="post" action="/admin/financial/payments/record">
+            <select name="unit" required>
+                <option value="">Sélectionner une unité</option>
+                <option value="A-101">A-101</option>
+                <option value="A-102">A-102</option>
+                <option value="B-201">B-201</option>
+            </select>
+            <input type="number" name="amount" placeholder="Montant" step="0.01" required>
+            <input type="submit" value="Enregistrer paiement" class="btn-primary">
+        </form>
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

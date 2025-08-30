@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Résident {{ username }} - Admin{% endblock %}
+
+{% block page_title %}Résident {{ username }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Détails du résident</div>
+    <div class="card-body">
+        <p>Informations du résident {{ username }}</p>
+        <p><a href="/admin/residents" class="btn-link">← Retour aux résidents</a></p>
+    </div>
+</div>
+{% endblock %}

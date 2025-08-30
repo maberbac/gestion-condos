@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Rapport Mensuel - Admin{% endblock %}
+
+{% block page_title %}Rapport Mensuel{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">Revenus du mois</div>
+        <div class="card-body">
+            <p><strong>Frais de condo:</strong> 15 000 $</p>
+            <p><strong>Frais de stationnement:</strong> 750 $</p>
+            <p><strong>Total:</strong> 15 750 $</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Dépenses du mois</div>
+        <div class="card-body">
+            <p><strong>Entretien:</strong> 8 500 $</p>
+            <p><strong>Services publics:</strong> 2 900 $</p>
+            <p><strong>Assurances:</strong> 1 000 $</p>
+            <p><strong>Total:</strong> 12 400 $</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin/financial/budget-analysis" class="btn-link">Analyse budgétaire</a></p>
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

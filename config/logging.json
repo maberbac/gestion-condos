@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "global": {
+    "enabled": true,
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "date_format": "%Y-%m-%d %H:%M:%S"
+  },
+  "handlers": {
+    "console": {
+      "enabled": true,
+      "level": "INFO",
+      "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    },
+    "file": {
+      "enabled": true,
+      "level": "DEBUG",
+      "filename": "logs/application.log",
+      "max_bytes": 10485760,
+      "backup_count": 5,
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+    },
+    "error_file": {
+      "enabled": true,
+      "level": "ERROR",
+      "filename": "logs/errors.log",
+      "max_bytes": 5242880,
+      "backup_count": 3,
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+    }
+  },
+  "loggers": {
+    "app": {
+      "level": "INFO",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    },
+    "src.domain.services.authentication_service": {
+      "level": "DEBUG",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    },
+    "src.adapters.sqlite_adapter": {
+      "level": "WARNING",
+      "handlers": [
+        "console",
+        "file",
+        "error_file"
+      ]
+    },
+    "src.web.condo_app": {
+      "level": "INFO",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    },
+    "tests": {
+      "level": "CRITICAL",
+      "handlers": [
+        "console"
+      ]
+    },
+    "run_app": {
+      "level": "INFO",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    },
+    "src.infrastructure.config_manager": {
+      "level": "DEBUG",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    },
+    "__main__": {
+      "level": "INFO",
+      "handlers": [
+        "console",
+        "file"
+      ]
+    }
+  }
+}

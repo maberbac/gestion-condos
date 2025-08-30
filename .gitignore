@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Temporary files and AI utilities
+tmp/
+
 # Distribution / packaging
 .Python
 build/

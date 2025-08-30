@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Analyse Budgétaire - Admin{% endblock %}
+
+{% block page_title %}Analyse Budgétaire{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Budget annuel</div>
+    <div class="card-body">
+        <p><strong>Budget prévisionnel:</strong> 180 000 $</p>
+        <p><strong>Budget réalisé:</strong> 165 750 $</p>
+        <p><strong>Écart:</strong> -14 250 $ (7.9% sous budget)</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">Revenus détaillés</div>
+        <div class="card-body">
+            <p><strong>Frais de condo:</strong> 180 000 $</p>
+            <p><strong>Stationnement:</strong> 9 000 $</p>
+            <p><strong>Autres revenus:</strong> 2 500 $</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Dépenses détaillées</div>
+        <div class="card-body">
+            <p><strong>Entretien:</strong> 102 000 $</p>
+            <p><strong>Services publics:</strong> 34 800 $</p>
+            <p><strong>Assurances:</strong> 12 000 $</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

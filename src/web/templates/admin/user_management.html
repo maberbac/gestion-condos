@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestion des Utilisateurs{% endblock %}
+
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Utilisateurs enregistrés</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom d'utilisateur</th>
+                    <th>Nom complet</th>
+                    <th>Email</th>
+                    <th>Rôle</th>
+                    <th>Unité</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>admin</td>
+                    <td>Administrateur Système</td>
+                    <td>admin@condos.com</td>
+                    <td class="text-danger">Admin</td>
+                    <td>-</td>
+                    <td class="text-success">Actif</td>
+                    <td>
+                        <button class="btn-small">Modifier</button>
+                        <button class="btn-small btn-danger">Suspendre</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>jean.dupont</td>
+                    <td>Jean Dupont</td>
+                    <td>jean@email.com</td>
+                    <td>Résident</td>
+                    <td>A-101</td>
+                    <td class="text-success">Actif</td>
+                    <td>
+                        <button class="btn-small">Modifier</button>
+                        <button class="btn-small btn-danger">Suspendre</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>marie.martin</td>
+                    <td>Marie Martin</td>
+                    <td>marie@email.com</td>
+                    <td>Résident</td>
+                    <td>A-102</td>
+                    <td class="text-warning">Suspendu</td>
+                    <td>
+                        <button class="btn-small">Modifier</button>
+                        <button class="btn-small btn-success">Activer</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Ajouter un utilisateur</div>
+    <div class="card-body">
+        <form method="post">
+            <label>Nom d'utilisateur:</label>
+            <input type="text" name="username" required>
+            
+            <label>Mot de passe:</label>
+            <input type="password" name="password" required>
+            
+            <label>Nom complet:</label>
+            <input type="text" name="full_name" required>
+            
+            <label>Email:</label>
+            <input type="email" name="email" required>
+            
+            <label>Rôle:</label>
+            <select name="role" required>
+                <option value="resident">Résident</option>
+                <option value="admin">Administrateur</option>
+            </select>
+            
+            <label>Unité (si résident):</label>
+            <input type="text" name="unit" placeholder="ex: A-101">
+            
+            <input type="submit" value="Créer l'utilisateur" class="btn-primary">
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

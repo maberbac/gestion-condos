@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestion des Résidents - Admin{% endblock %}
+
+{% block page_title %}Gestion des Résidents{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="card-header">Total résidents</div>
+        <div class="card-body">
+            <h3>1</h3>
+            <p>Résidents enregistrés</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="card-header">Unités occupées</div>
+        <div class="card-body">
+            <h3>1</h3>
+            <p>Avec propriétaire</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="card-header">Unités libres</div>
+        <div class="card-body">
+            <h3>4</h3>
+            <p>Disponibles</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Liste des résidents</div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Unité</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Pierre Gagnon</td>
+                    <td>A-101</td>
+                    <td>pierre@email.com</td>
+                    <td>
+                        <a href="/admin/residents/pierre" class="btn-link">Détails</a>
+                        <a href="/admin/residents/pierre/edit" class="btn-link">Modifier</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin/residents/new" class="btn-link">Ajouter un nouveau résident</a></p>
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

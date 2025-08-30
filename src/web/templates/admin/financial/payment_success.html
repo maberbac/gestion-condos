@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Succès{% endblock %}
+
+{% block page_title %}Succès{% endblock %}
+
+{% block content %}
+<div class="alert alert-success">
+    <strong>Succès:</strong> Paiement enregistré avec succès
+</div>
+
+<div class="card">
+    <div class="card-header">Succès</div>
+    <div class="card-body">
+        <h1>Succès</h1>
+        <p>Paiement enregistré avec succès</p>
+        <p><a href="/admin/financial/payment-status" class="btn-link">← Retour aux paiements</a></p>
+    </div>
+</div>
+{% endblock %}

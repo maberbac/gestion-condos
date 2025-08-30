@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Rapports de Maintenance{% endblock %}
+
+{% block page_title %}Rapports de Maintenance{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Rapports récents</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Unité</th>
+                    <th>Statut</th>
+                    <th>Priorité</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>28 août 2025</td>
+                    <td>Plomberie</td>
+                    <td>Fuite dans la salle de bain</td>
+                    <td>A-302</td>
+                    <td>En cours</td>
+                    <td class="text-danger">Urgent</td>
+                </tr>
+                <tr>
+                    <td>27 août 2025</td>
+                    <td>Électricité</td>
+                    <td>Prise défectueuse dans la cuisine</td>
+                    <td>B-101</td>
+                    <td>Résolu</td>
+                    <td class="text-warning">Moyen</td>
+                </tr>
+                <tr>
+                    <td>25 août 2025</td>
+                    <td>Chauffage</td>
+                    <td>Radiateur ne fonctionne pas</td>
+                    <td>C-205</td>
+                    <td>Planifié</td>
+                    <td class="text-success">Normal</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Nouveau rapport</div>
+    <div class="card-body">
+        <form method="post">
+            <label>Type de problème:</label>
+            <select name="type" required>
+                <option value="">Sélectionner le type</option>
+                <option value="plomberie">Plomberie</option>
+                <option value="electricite">Électricité</option>
+                <option value="chauffage">Chauffage</option>
+                <option value="general">Général</option>
+            </select>
+            
+            <label>Description:</label>
+            <textarea name="description" required placeholder="Décrivez le problème..."></textarea>
+            
+            <label>Unité concernée:</label>
+            <input type="text" name="unit" placeholder="ex: A-101" required>
+            
+            <label>Priorité:</label>
+            <select name="priority" required>
+                <option value="normal">Normal</option>
+                <option value="moyen">Moyen</option>
+                <option value="urgent">Urgent</option>
+            </select>
+            
+            <input type="submit" value="Soumettre le rapport" class="btn-primary">
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,900 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard-container">
+    <!-- Header Section -->
+    <div class="admin-header">
+        <div class="header-content">
+            <div class="header-icon">👑</div>
+            <div class="header-text">
+                <h1>Tableau de Bord Administrateur</h1>
+                <p class="header-subtitle">Vue d'ensemble et contrôle total du système</p>
+            </div>
+        </div>
+        <div class="admin-level-badge">
+            <span class="badge-icon">🛡️</span>
+            <span class="badge-text">ADMINISTRATEUR</span>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card condos">
+            <div class="metric-header">
+                <div class="metric-icon">🏢</div>
+                <div class="metric-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+3</span>
+                </div>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ total_condos or 0 }}</div>
+                <div class="metric-label">Condos gérés</div>
+                <div class="metric-subtitle">Unités dans le système</div>
+            </div>
+            <div class="metric-action">
+                <a href="/condos" class="metric-link">Voir détails</a>
+            </div>
+        </div>
+
+        <div class="metric-card users">
+            <div class="metric-header">
+                <div class="metric-icon">👥</div>
+                <div class="metric-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+2</span>
+                </div>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ total_users or 0 }}</div>
+                <div class="metric-label">Utilisateurs</div>
+                <div class="metric-subtitle">Comptes actifs</div>
+            </div>
+            <div class="metric-action">
+                <a href="/users" class="metric-link">Gérer utilisateurs</a>
+            </div>
+        </div>
+
+        <div class="metric-card revenue">
+            <div class="metric-header">
+                <div class="metric-icon">💰</div>
+                <div class="metric-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+5.2%</span>
+                </div>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">${{ "%.2f"|format(monthly_revenue or 0) }}</div>
+                <div class="metric-label">Revenus mensuels</div>
+                <div class="metric-subtitle">Performance financière</div>
+            </div>
+            <div class="metric-action">
+                <a href="/finance" class="metric-link">Voir finances</a>
+            </div>
+        </div>
+
+        <div class="metric-card maintenance">
+            <div class="metric-header">
+                <div class="metric-icon">⚠️</div>
+                <div class="metric-trend {% if maintenance_requests > 0 %}warning{% else %}neutral{% endif %}">
+                    <span class="trend-icon">{% if maintenance_requests > 0 %}⚠️{% else %}✅{% endif %}</span>
+                    <span class="trend-text">{% if maintenance_requests > 0 %}En attente{% else %}À jour{% endif %}</span>
+                </div>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ maintenance_requests or 0 }}</div>
+                <div class="metric-label">Demandes maintenance</div>
+                <div class="metric-subtitle">Requêtes en cours</div>
+            </div>
+            <div class="metric-action">
+                <a href="/admin/maintenance" class="metric-link">Traiter demandes</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Panel -->
+    <div class="actions-panel">
+        <h3>Actions Rapides</h3>
+        <div class="actions-grid">
+            <div class="action-card primary" onclick="location.href='/users'">
+                <div class="action-icon">👥</div>
+                <div class="action-content">
+                    <div class="action-title">Gérer les Utilisateurs</div>
+                    <div class="action-desc">Ajouter, modifier ou supprimer des comptes</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="action-card primary" onclick="location.href='/condos'">
+                <div class="action-icon">🏢</div>
+                <div class="action-content">
+                    <div class="action-title">Gérer les Condos</div>
+                    <div class="action-desc">Configuration des unités et propriétés</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="action-card primary" onclick="location.href='/finance'">
+                <div class="action-icon">💰</div>
+                <div class="action-content">
+                    <div class="action-title">Finances</div>
+                    <div class="action-desc">Suivi des revenus et rapports financiers</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="action-card secondary" onclick="location.href='/admin/maintenance'">
+                <div class="action-icon">🔧</div>
+                <div class="action-content">
+                    <div class="action-title">Maintenance</div>
+                    <div class="action-desc">Gestion des demandes et interventions</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="action-card secondary" onclick="location.href='/admin/reports'">
+                <div class="action-icon">📊</div>
+                <div class="action-content">
+                    <div class="action-title">Rapports</div>
+                    <div class="action-desc">Génération de rapports détaillés</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="action-card secondary" onclick="location.href='/admin/settings'">
+                <div class="action-icon">⚙️</div>
+                <div class="action-content">
+                    <div class="action-title">Paramètres Système</div>
+                    <div class="action-desc">Configuration et préférences</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity and Alerts -->
+    <div class="info-panels">
+        <div class="activity-panel">
+            <div class="panel-header">
+                <h3>Activité Récente</h3>
+                <button class="refresh-btn" onclick="refreshActivity()">🔄</button>
+            </div>
+            <div class="activity-content">
+                {% if recent_activities %}
+                <div class="activity-list">
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="activity-avatar">📋</div>
+                        <div class="activity-details">
+                            <div class="activity-description">{{ activity.description }}</div>
+                            <div class="activity-date">{{ activity.date }}</div>
+                        </div>
+                        <div class="activity-status">✓</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-activity">
+                    <div class="no-activity-icon">📭</div>
+                    <div class="no-activity-text">Aucune activité récente</div>
+                    <div class="no-activity-desc">Les actions administratives apparaîtront ici</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="alerts-panel">
+            <div class="panel-header">
+                <h3>Alertes Système</h3>
+                <span class="alerts-count">{{ maintenance_requests or 0 }}</span>
+            </div>
+            <div class="alerts-content">
+                {% if maintenance_requests and maintenance_requests > 0 %}
+                <div class="alert-item warning">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-content">
+                        <div class="alert-title">Demandes de maintenance</div>
+                        <div class="alert-desc">{{ maintenance_requests }} demande(s) en attente de traitement</div>
+                    </div>
+                    <button class="alert-action" onclick="location.href='/admin/maintenance'">Traiter</button>
+                </div>
+                {% endif %}
+
+                <div class="alert-item info">
+                    <div class="alert-icon">💡</div>
+                    <div class="alert-content">
+                        <div class="alert-title">Sauvegarde automatique</div>
+                        <div class="alert-desc">Dernière sauvegarde effectuée avec succès</div>
+                    </div>
+                    <button class="alert-action" onclick="showBackupInfo()">Détails</button>
+                </div>
+
+                <div class="alert-item success">
+                    <div class="alert-icon">✅</div>
+                    <div class="alert-content">
+                        <div class="alert-title">Système opérationnel</div>
+                        <div class="alert-desc">Tous les services fonctionnent normalement</div>
+                    </div>
+                    <button class="alert-action" onclick="showSystemHealth()">Statut</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health Overview -->
+    <div class="health-overview">
+        <h3>État du Système</h3>
+        <div class="health-grid">
+            <div class="health-item">
+                <div class="health-indicator online"></div>
+                <div class="health-label">Base de données</div>
+                <div class="health-status">En ligne</div>
+            </div>
+            
+            <div class="health-item">
+                <div class="health-indicator online"></div>
+                <div class="health-label">Serveur Web</div>
+                <div class="health-status">Opérationnel</div>
+            </div>
+            
+            <div class="health-item">
+                <div class="health-indicator online"></div>
+                <div class="health-label">Authentification</div>
+                <div class="health-status">Sécurisé</div>
+            </div>
+            
+            <div class="health-item">
+                <div class="health-indicator warning"></div>
+                <div class="health-label">Stockage</div>
+                <div class="health-status">78% utilisé</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header */
+    .admin-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="admin-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23admin-grid)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .header-icon {
+        font-size: 3rem;
+        opacity: 0.9;
+    }
+
+    .header-text h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        border: none;
+    }
+
+    .header-subtitle {
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+        font-size: 1.1rem;
+    }
+
+    .admin-level-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 12px 20px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 2;
+    }
+
+    .badge-icon {
+        font-size: 1.2rem;
+    }
+
+    .badge-text {
+        font-weight: 700;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .metric-card.condos::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+    .metric-card.users::before { background: linear-gradient(90deg, #f093fb, #f5576c); }
+    .metric-card.revenue::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+    .metric-card.maintenance::before { background: linear-gradient(90deg, #fd7e14, #e55100); }
+
+    .metric-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .metric-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    .metric-trend {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .metric-trend.positive {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .metric-trend.warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .metric-trend.neutral {
+        background: #f8f9fa;
+        color: #495057;
+    }
+
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .metric-label {
+        font-size: 1.2rem;
+        color: #555;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .metric-subtitle {
+        font-size: 0.9rem;
+        color: #888;
+        margin-bottom: 15px;
+    }
+
+    .metric-action {
+        margin-top: 15px;
+    }
+
+    .metric-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: color 0.3s ease;
+    }
+
+    .metric-link:hover {
+        color: #764ba2;
+        text-decoration: none;
+    }
+
+    .metric-link::after {
+        content: '→';
+        transition: transform 0.3s ease;
+    }
+
+    .metric-link:hover::after {
+        transform: translateX(3px);
+    }
+
+    /* Actions Panel */
+    .actions-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 40px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .actions-panel h3 {
+        margin: 0 0 25px 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .action-card {
+        background: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 15px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .action-card.primary {
+        border-color: #e9ecef;
+    }
+
+    .action-card.secondary {
+        border-color: #e9ecef;
+    }
+
+    .action-card:hover {
+        border-color: #667eea;
+        background: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .action-content {
+        flex: 1;
+    }
+
+    .action-title {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+    }
+
+    .action-desc {
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .action-arrow {
+        font-size: 1.5rem;
+        color: #999;
+        transition: all 0.3s ease;
+    }
+
+    .action-card:hover .action-arrow {
+        color: #667eea;
+        transform: translateX(5px);
+    }
+
+    /* Info Panels */
+    .info-panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .activity-panel, .alerts-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .refresh-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+        opacity: 1;
+        transform: rotate(90deg);
+    }
+
+    .alerts-count {
+        background: #fd7e14;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Activity List */
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .activity-avatar {
+        width: 40px;
+        height: 40px;
+        background: #667eea;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .activity-details {
+        flex: 1;
+    }
+
+    .activity-description {
+        font-weight: 500;
+        color: #333;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+    }
+
+    .activity-date {
+        color: #666;
+        font-size: 0.8rem;
+    }
+
+    .activity-status {
+        color: #28a745;
+        font-size: 1.2rem;
+    }
+
+    .no-activity {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+    }
+
+    .no-activity-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+
+    .no-activity-text {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+    }
+
+    .no-activity-desc {
+        font-size: 0.9rem;
+    }
+
+    /* Alerts */
+    .alerts-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .alert-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid;
+    }
+
+    .alert-item.warning {
+        background: #fff3cd;
+        border-left-color: #fd7e14;
+    }
+
+    .alert-item.info {
+        background: #d1ecf1;
+        border-left-color: #17a2b8;
+    }
+
+    .alert-item.success {
+        background: #d4edda;
+        border-left-color: #28a745;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+    }
+
+    .alert-desc {
+        color: #666;
+        font-size: 0.8rem;
+    }
+
+    .alert-action {
+        padding: 6px 12px;
+        background: rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .alert-action:hover {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* Health Overview */
+    .health-overview {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .health-overview h3 {
+        margin: 0 0 25px 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .health-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .health-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        text-align: center;
+    }
+
+    .health-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+    }
+
+    .health-indicator.online {
+        background: #28a745;
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+    }
+
+    .health-indicator.warning {
+        background: #ffc107;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+    }
+
+    .health-indicator.offline {
+        background: #dc3545;
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+    }
+
+    .health-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .health-status {
+        color: #666;
+        font-size: 0.8rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .admin-dashboard-container {
+            padding: 15px;
+        }
+
+        .admin-header {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+        }
+
+        .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .info-panels {
+            grid-template-columns: 1fr;
+        }
+
+        .health-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .health-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    function refreshActivity() {
+        alert('Actualisation de l\'activité...');
+        // Implémentation future : recharger les données d'activité
+    }
+
+    function showBackupInfo() {
+        alert('Informations de sauvegarde:\n\nDernière sauvegarde: Aujourd\'hui 03:00\nTaille: 15.2 MB\nStatut: Succès');
+    }
+
+    function showSystemHealth() {
+        alert('État du système:\n\nBase de données: En ligne\nServeur Web: Opérationnel\nAuthentification: Sécurisé\nStockage: 78% utilisé (OK)');
+    }
+
+    // Animation des métriques au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        const metricValues = document.querySelectorAll('.metric-value');
+        
+        metricValues.forEach(metric => {
+            const finalValue = metric.textContent;
+            const isMonetary = finalValue.includes('$');
+            
+            if (isMonetary) {
+                const numericValue = parseFloat(finalValue.replace(/[$,]/g, ''));
+                animateMonetaryValue(metric, numericValue);
+            } else if (!isNaN(parseInt(finalValue))) {
+                animateCounter(metric, parseInt(finalValue));
+            }
+        });
+    });
+
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = Math.ceil(target / 30);
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = target;
+                clearInterval(timer);
+            } else {
+                element.textContent = current;
+            }
+        }, 50);
+    }
+
+    function animateMonetaryValue(element, target) {
+        let current = 0;
+        const increment = target / 40;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = `$${target.toFixed(2)}`;
+                clearInterval(timer);
+            } else {
+                element.textContent = `$${current.toFixed(0)}`;
+            }
+        }, 30);
+    }
+</script>
+{% endblock %}

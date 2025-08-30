@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Actions en Lot{% endblock %}
+
+{% block page_title %}Actions en Lot sur les Condos{% endblock %}
+
+{% block content %}
+<div class="alert alert-success">
+    <strong>Succès:</strong> Action en lot exécutée avec succès
+</div>
+
+<div class="card">
+    <div class="card-header">Résultat de l'opération</div>
+    <div class="card-body">
+        <h1>Opération en lot terminée</h1>
+        <p>L'action en lot a été exécutée sur les condos sélectionnés.</p>
+        <p><strong>Condos traités :</strong> {{ condos_count|default(0) }}</p>
+        <p><strong>Action :</strong> {{ action|default('Non spécifiée') }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin/condos" class="btn-link">← Retour à la gestion des condos</a></p>
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

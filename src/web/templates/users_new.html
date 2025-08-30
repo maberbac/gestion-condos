@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvel Utilisateur - Gestion Condos{% endblock %}
+
+{% block content %}
+<h1>Nouvel Utilisateur</h1>
+
+<div class="card">
+    <div class="card-header">Créer un nouvel utilisateur</div>
+    <div class="card-body">
+        <form method="post">
+            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Mot de passe" required>
+            <select name="role" required>
+                <option value="">Sélectionner un rôle</option>
+                <option value="admin">Administrateur</option>
+                <option value="resident">Résident</option>
+                <option value="guest">Invité</option>
+            </select>
+            <input type="submit" value="Créer l'utilisateur" class="btn-primary">
+        </form>
+        <p><a href="/users" class="btn-link">← Annuler</a></p>
+    </div>
+</div>
+{% endblock %}

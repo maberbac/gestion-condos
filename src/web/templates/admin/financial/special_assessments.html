@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Cotisations Spéciales - Admin{% endblock %}
+
+{% block page_title %}Cotisations Spéciales{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Projets en cours</div>
+    <div class="card-body">
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-header">Réfection du toit</div>
+                <div class="card-body">
+                    <p><strong>Coût total:</strong> 45 000 $</p>
+                    <p><strong>Par unité:</strong> 900 $</p>
+                    <p><strong>Statut:</strong> En collecte</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">Rénovation hall d'entrée</div>
+                <div class="card-body">
+                    <p><strong>Coût total:</strong> 15 000 $</p>
+                    <p><strong>Par unité:</strong> 300 $</p>
+                    <p><strong>Statut:</strong> Planifié</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <form method="post">
+            <input type="text" name="project_name" placeholder="Nom du projet" required>
+            <input type="number" name="total_cost" placeholder="Coût total" required>
+            <input type="submit" value="Créer nouvelle cotisation" class="btn-primary">
+        </form>
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Calculs Fiscaux{% endblock %}
+
+{% block page_title %}Calculs Fiscaux{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Taxes et impôts pour l'année fiscale</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type de taxe</th>
+                    <th>Base imposable</th>
+                    <th>Taux</th>
+                    <th>Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Taxes municipales</td>
+                    <td>2 500 000 $</td>
+                    <td>1.2%</td>
+                    <td>30 000 $</td>
+                </tr>
+                <tr>
+                    <td>Taxes scolaires</td>
+                    <td>2 500 000 $</td>
+                    <td>0.8%</td>
+                    <td>20 000 $</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Déductions et crédits</div>
+    <div class="card-body">
+        <p><strong>Déduction pour amortissement:</strong> 15 000 $</p>
+        <p><strong>Crédit pour rénovations écoénergétiques:</strong> 2 500 $</p>
+        <p><strong>Total des économies fiscales:</strong> 17 500 $</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

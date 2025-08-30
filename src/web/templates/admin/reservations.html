@@ -1,0 +1,73 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestion des Réservations{% endblock %}
+
+{% block page_title %}Gestion des Réservations{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Réservations en cours</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Espace</th>
+                    <th>Réservé par</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2025-09-15</td>
+                    <td>18:00-22:00</td>
+                    <td>Salle commune</td>
+                    <td>Marie Dubois (A-201)</td>
+                    <td>Confirmée</td>
+                </tr>
+                <tr>
+                    <td>2025-09-20</td>
+                    <td>14:00-16:00</td>
+                    <td>Salle de conférence</td>
+                    <td>Jean Martin (B-102)</td>
+                    <td>En attente</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Nouvelle réservation</div>
+    <div class="card-body">
+        <form method="post">
+            <label>Espace:</label>
+            <select name="space" required>
+                <option value="">Sélectionner un espace</option>
+                <option value="salle_commune">Salle commune</option>
+                <option value="salle_conference">Salle de conférence</option>
+                <option value="terrasse">Terrasse</option>
+            </select>
+            
+            <label>Date:</label>
+            <input type="date" name="date" required>
+            
+            <label>Heure de début:</label>
+            <input type="time" name="start_time" required>
+            
+            <label>Heure de fin:</label>
+            <input type="time" name="end_time" required>
+            
+            <input type="submit" value="Réserver" class="btn-primary">
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

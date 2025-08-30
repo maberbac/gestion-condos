@@ -1,0 +1,90 @@
+# ==================== GESTION CONDOS - DÉPENDANCES ====================
+# Architecture Hexagonale avec Standards JSON + SQLite
+# Dépendances pour implémentation complète des 4 concepts techniques
+
+# ==================== Framework Web et Serveur ====================
+# [CONCEPT: Programmation Asynchrone]
+fastapi==0.104.1           # Framework web moderne avec support async natif
+uvicorn[standard]==0.24.0  # Serveur ASGI pour applications async
+starlette==0.27.0          # Framework async sous-jacent à FastAPI
+
+# ==================== Base de Données SQLite ====================
+# [STANDARD OBLIGATOIRE: SQLite + Migrations]
+aiosqlite==0.19.0          # Driver SQLite asynchrone pour async/await
+sqlite-migrate==0.1.0     # Gestion des migrations SQLite (optionnel)
+
+# ==================== Configuration JSON ====================
+# [STANDARD OBLIGATOIRE: Configuration JSON + Validation]
+jsonschema==4.20.0         # Validation des schémas JSON obligatoires
+pydantic==2.5.0            # Validation de données et settings
+pydantic-settings==2.1.0   # Gestion avancée des configurations
+
+# ==================== Développement et Tests ====================
+# [CONCEPT: Tests Unitaires avec TDD]
+pytest==7.4.3             # Framework de tests principal
+pytest-asyncio==0.21.1    # Support tests asynchrones
+pytest-cov==4.1.0         # Couverture de code
+
+# ==================== Programmation Fonctionnelle ====================
+# [CONCEPT: Programmation Fonctionnelle]
+toolz==0.12.0             # Utilitaires fonctionnels (map, filter, reduce avancés)
+funcy==2.0                 # Fonctions utilitaires style fonctionnel
+more-itertools==10.1.0    # Extensions pour itertools
+
+# ==================== Manipulation de Données ====================
+# [CONCEPT: File Reading et Data Processing]
+pandas>=2.0.0             # Manipulation de données CSV/Excel
+openpyxl>=3.1.0          # Support fichiers Excel
+aiofiles>=23.1.0         # Lecture/écriture asynchrone de fichiers
+
+# ==================== Logging et Monitoring ====================
+structlog>=23.1.0         # Logging structuré pour JSON
+colorlog>=6.7.0           # Logs colorés pour développement
+python-json-logger>=2.0.7 # Formatage JSON pour logs standard
+
+# ==================== Validation et Types ====================
+typing-extensions>=4.7.0  # Extensions pour annotations de types
+python-dateutil>=2.8.0    # Manipulation dates avancée
+
+# ==================== Utilitaires de Développement ====================
+python-dotenv>=1.0.0      # Variables d'environnement
+click>=8.1.0               # Interface ligne de commande
+rich>=13.4.0               # Interface terminal riche (debugging)
+
+# ==================== Développement et Qualité Code ====================
+# Formatage et linting
+black>=23.7.0             # Formatage automatique du code
+flake8>=6.0.0             # Linting et vérification style
+mypy>=1.5.0               # Vérification de types statique
+isort>=5.12.0             # Tri automatique des imports
+
+# Tests avancés
+pytest-mock>=3.11.0      # Mocking pour tests
+factory-boy>=3.3.0       # Création de données de test
+faker>=20.1.0             # Génération de données factices
+
+# Documentation
+sphinx>=7.1.0            # Génération documentation
+sphinx-rtd-theme>=1.3.0  # Thème Read the Docs
+
+# Sécurité
+bandit>=1.7.0            # Analyse sécurité du code
+safety>=2.3.0            # Vérification vulnérabilités dépendances
+
+# ==================== NOTES IMPORTANTES ====================
+# Installation recommandée:
+# pip install -r requirements.txt
+#
+# Version Python minimum: 3.8+
+# Version Python recommandée: 3.11+
+#
+# Architecture testée avec:
+# - Windows 10/11 + PowerShell
+# - Python 3.11.x
+# - SQLite 3.35+
+
+# Création d'un environnement virtuel:
+# python -m venv venv
+# source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate     # Windows
+# pip install -r requirements.txt

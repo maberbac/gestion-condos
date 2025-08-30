@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="index-container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-logo">
+                <div class="logo-animation">
+                    <span class="logo-building">🏢</span>
+                </div>
+            </div>
+            <h1 class="hero-title">Gestion Condos</h1>
+            <p class="hero-subtitle">Plateforme moderne de gestion immobilière</p>
+            <p class="hero-description">
+                Simplifiez la gestion de vos condominiums avec notre solution complète et intuitive
+            </p>
+        </div>
+
+        <div class="hero-actions">
+            {% if user_connected %}
+                <div class="connected-user">
+                    <div class="user-status">
+                        <span class="status-icon">✅</span>
+                        <span class="status-text">Connecté en tant que <strong>{{ user_role }}</strong></span>
+                    </div>
+                    <a href="{{ url_for('dashboard') }}" class="btn-hero btn-primary">
+                        <span class="btn-icon">🏠</span>
+                        <span class="btn-text">Tableau de bord</span>
+                    </a>
+                    <a href="{{ url_for('profile') }}" class="btn-hero btn-secondary">
+                        <span class="btn-icon">👤</span>
+                        <span class="btn-text">Mon profil</span>
+                    </a>
+                </div>
+            {% else %}
+                <div class="login-prompt">
+                    <p class="prompt-text">Accédez à votre espace personnel</p>
+                    <a href="{{ url_for('login') }}" class="btn-hero btn-primary">
+                        <span class="btn-icon">🔑</span>
+                        <span class="btn-text">Se connecter</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <div class="features-header">
+            <h2>Fonctionnalités principales</h2>
+            <p>Une solution complète pour la gestion de vos propriétés</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏢</div>
+                <h3>Gestion des Condos</h3>
+                <p>Suivez et gérez toutes vos unités de condominiums en temps réel</p>
+                <ul class="feature-list">
+                    <li>Inventaire complet des unités</li>
+                    <li>Statuts et disponibilités</li>
+                    <li>Informations détaillées</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3>Gestion Financière</h3>
+                <p>Contrôlez vos finances avec des outils avancés et des rapports détaillés</p>
+                <ul class="feature-list">
+                    <li>Suivi des revenus et dépenses</li>
+                    <li>Rapports financiers automatisés</li>
+                    <li>Gestion des paiements</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Gestion des Utilisateurs</h3>
+                <p>Administrez les résidents et les accès avec un système de rôles avancé</p>
+                <ul class="feature-list">
+                    <li>Rôles et permissions</li>
+                    <li>Profils des résidents</li>
+                    <li>Authentification sécurisée</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Tableaux de Bord</h3>
+                <p>Visualisez vos données avec des tableaux de bord interactifs et personnalisés</p>
+                <ul class="feature-list">
+                    <li>Métriques en temps réel</li>
+                    <li>Graphiques et statistiques</li>
+                    <li>Rapports personnalisables</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <div class="stats-header">
+            <h2>En chiffres</h2>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Unités gérées</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">10</div>
+                <div class="stat-label">Utilisateurs actifs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Sécurité</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Disponibilité</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+        <div class="cta-content">
+            <h2>Prêt à commencer ?</h2>
+            <p>Rejoignez notre plateforme et simplifiez la gestion de vos condominiums</p>
+            {% if not user_connected %}
+            <a href="{{ url_for('login') }}" class="btn-cta">
+                <span class="btn-icon">🚀</span>
+                <span class="btn-text">Commencer maintenant</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .index-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 80px 40px;
+        text-align: center;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 60px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        margin-bottom: 40px;
+    }
+
+    .hero-logo .logo-animation {
+        display: inline-block;
+        animation: bounce 2s infinite;
+        margin-bottom: 20px;
+    }
+
+    .logo-building {
+        font-size: 4rem;
+        display: block;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-10px); }
+        60% { transform: translateY(-5px); }
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 0 0 20px 0;
+        color: white;
+        border: none;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-subtitle {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 15px 0;
+        opacity: 0.9;
+    }
+
+    .hero-description {
+        font-size: 1.1rem;
+        margin: 0;
+        opacity: 0.8;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .hero-actions {
+        position: relative;
+        z-index: 2;
+    }
+
+    .connected-user {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .user-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 12px 20px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .status-icon {
+        font-size: 1.2rem;
+    }
+
+    .status-text {
+        font-weight: 500;
+    }
+
+    .login-prompt {
+        text-align: center;
+    }
+
+    .prompt-text {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        opacity: 0.9;
+    }
+
+    .btn-hero {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        border-radius: 15px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        margin: 0 10px;
+    }
+
+    .btn-primary {
+        background: rgba(255, 255, 255, 0.9);
+        color: #667eea;
+    }
+
+    .btn-primary:hover {
+        background: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: white;
+        transform: translateY(-3px);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Features Section */
+    .features-section {
+        padding: 0 40px 60px 40px;
+    }
+
+    .features-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .features-header h2 {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .features-header p {
+        font-size: 1.2rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .feature-card h3 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    .feature-card p {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .feature-list li {
+        padding: 8px 0;
+        color: #555;
+        position: relative;
+        padding-left: 25px;
+    }
+
+    .feature-list li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+    }
+
+    /* Stats Section */
+    .stats-section {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 60px 40px;
+        margin: 60px 0;
+        border-radius: 30px;
+    }
+
+    .stats-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .stats-header h2 {
+        font-size: 2.5rem;
+        margin: 0;
+        color: white;
+        border: none;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+    }
+
+    .stat-item {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 30px 20px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 40px;
+        text-align: center;
+        border-radius: 30px;
+        margin-bottom: 40px;
+    }
+
+    .cta-content h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        color: white;
+        border: none;
+    }
+
+    .cta-content p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        opacity: 0.9;
+    }
+
+    .btn-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 35px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta:hover {
+        background: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .hero-section {
+            padding: 60px 20px;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .features-section, .stats-section, .cta-section {
+            padding: 40px 20px;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .btn-hero {
+            display: block;
+            margin: 10px 0;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .index-container {
+            padding: 0 10px;
+        }
+    }
+
+    /* Animations */
+    .feature-card {
+        animation: fadeInUp 0.6s ease-out forwards;
+        opacity: 0;
+    }
+
+    .feature-card:nth-child(1) { animation-delay: 0.1s; }
+    .feature-card:nth-child(2) { animation-delay: 0.2s; }
+    .feature-card:nth-child(3) { animation-delay: 0.3s; }
+    .feature-card:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animation des statistiques au scroll
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const statNumbers = entry.target.querySelectorAll('.stat-number');
+                    statNumbers.forEach(stat => {
+                        animateNumber(stat);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        const statsSection = document.querySelector('.stats-section');
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+
+        function animateNumber(element) {
+            const finalNumber = element.textContent;
+            const isPercent = finalNumber.includes('%');
+            const isTime = finalNumber.includes('/');
+            
+            if (!isPercent && !isTime) {
+                const target = parseInt(finalNumber);
+                let current = 0;
+                const increment = target / 30;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        element.textContent = finalNumber;
+                        clearInterval(timer);
+                    } else {
+                        element.textContent = Math.floor(current);
+                    }
+                }, 50);
+            }
+        }
+    });
+</script>
+{% endblock %}

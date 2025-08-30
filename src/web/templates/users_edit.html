@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Éditer Utilisateur - Gestion Condos{% endblock %}
+
+{% block content %}
+<h1>Éditer l'utilisateur: {{ user['username'] }}</h1>
+
+<div class="card">
+    <div class="card-header">Modifier les informations</div>
+    <div class="card-body">
+        <form method="post">
+            <input type="text" name="username" value="{{ user['username'] }}" required>
+            <input type="email" name="email" value="{{ user['email'] }}" required>
+            <select name="role" required>
+                <option value="">Sélectionner un rôle</option>
+                <option value="admin" {% if user['role'] == 'admin' %}selected{% endif %}>Administrateur</option>
+                <option value="resident" {% if user['role'] == 'resident' %}selected{% endif %}>Résident</option>
+                <option value="guest" {% if user['role'] == 'guest' %}selected{% endif %}>Invité</option>
+            </select>
+            <input type="submit" value="Sauvegarder" class="btn-primary">
+        </form>
+        <p><a href="/users" class="btn-link">← Retour à la liste</a></p>
+    </div>
+</div>
+{% endblock %}

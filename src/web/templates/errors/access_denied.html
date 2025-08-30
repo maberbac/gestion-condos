@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Accès Refusé - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-danger">
+        <strong>Accès refusé:</strong> {{ message }}
+    </div>
+    
+    <div class="card">
+        <div class="card-header card-header-error">
+            <h2>Accès refusé</h2>
+        </div>
+        <div class="card-body">
+            <p>{{ message }}</p>
+            <div class="actions">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Retour au tableau de bord</a>
+                {% if return_url %}
+                    <a href="{{ return_url }}" class="btn btn-secondary">Retour</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

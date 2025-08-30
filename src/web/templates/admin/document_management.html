@@ -1,0 +1,88 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestion des Documents{% endblock %}
+
+{% block page_title %}Gestion des Documents{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Documents officiels</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Type</th>
+                    <th>Date de création</th>
+                    <th>Taille</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Règlement_Interieur_2025.pdf</td>
+                    <td>Règlement</td>
+                    <td>15 janvier 2025</td>
+                    <td>2.3 MB</td>
+                    <td>
+                        <button class="btn-small">Télécharger</button>
+                        <button class="btn-small btn-danger">Supprimer</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>PV_Assemblee_Mars_2025.pdf</td>
+                    <td>Procès-verbal</td>
+                    <td>15 mars 2025</td>
+                    <td>1.8 MB</td>
+                    <td>
+                        <button class="btn-small">Télécharger</button>
+                        <button class="btn-small btn-danger">Supprimer</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Budget_Previsionnel_2025.xlsx</td>
+                    <td>Budget</td>
+                    <td>1 décembre 2024</td>
+                    <td>456 KB</td>
+                    <td>
+                        <button class="btn-small">Télécharger</button>
+                        <button class="btn-small btn-danger">Supprimer</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Ajouter un document</div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <label>Fichier:</label>
+            <input type="file" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx">
+            
+            <label>Type de document:</label>
+            <select name="document_type" required>
+                <option value="">Sélectionner le type</option>
+                <option value="reglement">Règlement</option>
+                <option value="pv">Procès-verbal</option>
+                <option value="budget">Budget</option>
+                <option value="contrat">Contrat</option>
+                <option value="autre">Autre</option>
+            </select>
+            
+            <label>Description (optionnelle):</label>
+            <textarea name="description" placeholder="Description du document..."></textarea>
+            
+            <input type="submit" value="Téléverser" class="btn-primary">
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin" class="btn-link">← Retour à l'administration</a></p>
+    </div>
+</div>
+{% endblock %}

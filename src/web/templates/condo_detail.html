@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Condo {{ condo_id }} - Admin{% endblock %}
+
+{% block page_title %}Condo {{ condo_id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Détails du condo</div>
+    <div class="card-body">
+        <p><strong>Propriétaire:</strong> {{ owner_info }}</p>
+        <p><strong>Superficie:</strong> {{ square_footage }} m²</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/admin/condos/{{ condo_id }}/edit" class="btn-link">Modifier ce condo</a></p>
+        <p><a href="/admin/condos" class="btn-link">← Retour aux condos</a></p>
+    </div>
+</div>
+{% endblock %}

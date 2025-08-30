@@ -1,0 +1,8 @@
+# Dépendances pour l'interface web Flask
+Flask==2.3.2
+Werkzeug==2.3.6
+
+# Dépendances existantes
+SQLAlchemy==2.0.19
+pytest==7.4.0
+pytest-asyncio==0.21.1

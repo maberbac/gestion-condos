@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Configuration Base de Données",
+  "description": "Schéma de validation pour la configuration de la base de données SQLite",
+  "type": "object",
+  "required": ["database"],
+  "properties": {
+    "database": {
+      "type": "object",
+      "required": ["type", "name", "path"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["sqlite"],
+          "description": "Type de base de données (SQLite uniquement)"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_]+\\.db$",
+          "description": "Nom du fichier de base de données"
+        },
+        "path": {
+          "type": "string",
+          "description": "Chemin vers le fichier de base de données"
+        },
+        "migrations_path": {
+          "type": "string",
+          "description": "Répertoire des scripts de migration"
+        }
+      }
+    },
+    "connection": {
+      "type": "object",
+      "properties": {
+        "pool_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retry_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    }
+  }
+}

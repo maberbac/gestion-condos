@@ -1,0 +1,770 @@
+{% extends "base.html" %}
+
+{% block title %}Condos - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="condos-container">
+    <!-- Header Section -->
+    <div class="condos-header">
+        <div class="header-content">
+            <div class="header-icon">🏢</div>
+            <div class="header-text">
+                <h1>Gestion des Condos</h1>
+                <p class="header-subtitle">{{ condos|length }} unités dans le système</p>
+            </div>
+        </div>
+        <div class="user-role-badge">
+            <span class="role-icon">👤</span>
+            <span class="role-text">{{ user_role.upper() }}</span>
+        </div>
+    </div>
+
+    {% if condos %}
+        <!-- Quick Stats Section -->
+        <div class="quick-stats">
+            <div class="stat-card occupied">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ condos|selectattr('status', 'equalto', 'OCCUPIED')|list|length }}</div>
+                    <div class="stat-label">Occupés</div>
+                </div>
+            </div>
+            
+            <div class="stat-card vacant">
+                <div class="stat-icon">🏠</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ condos|selectattr('status', 'equalto', 'VACANT')|list|length }}</div>
+                    <div class="stat-label">Vacants</div>
+                </div>
+            </div>
+            
+            <div class="stat-card revenue">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-number">${{ "%.0f"|format(condos|map(attribute='monthly_fees')|sum) }}</div>
+                    <div class="stat-label">Revenus/mois</div>
+                </div>
+            </div>
+            
+            <div class="stat-card area">
+                <div class="stat-icon">📐</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ "%.0f"|format(condos|map(attribute='area')|sum) }}</div>
+                    <div class="stat-label">m² totaux</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Condos Grid -->
+        <div class="condos-grid">
+            {% for condo in condos %}
+            <div class="condo-card {{ condo.status.lower() }} {{ condo.unit_type.name.lower() }}">
+                <div class="condo-header">
+                    <div class="unit-number">{{ condo.unit_number }}</div>
+                    <div class="condo-badges">
+                        <span class="type-badge {{ condo.unit_type.name.lower() }}">
+                            {% if condo.unit_type.name == 'RESIDENTIAL' %}
+                                🏠 Résidentiel
+                            {% elif condo.unit_type.name == 'COMMERCIAL' %}
+                                🏢 Commercial
+                            {% elif condo.unit_type.name == 'PARKING' %}
+                                🚗 Parking
+                            {% elif condo.unit_type.name == 'STORAGE' %}
+                                📦 Entreposage
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="condo-status">
+                    <span class="status-badge {{ condo.status.lower() }}">
+                        {% if condo.status == 'OCCUPIED' %}
+                            ✅ Occupé
+                        {% elif condo.status == 'VACANT' %}
+                            🏠 Vacant
+                        {% elif condo.status == 'MAINTENANCE' %}
+                            ⚠️ Maintenance
+                        {% elif condo.status == 'RENTED' %}
+                            💼 Loué
+                        {% elif condo.status == 'SOLD' %}
+                            ✅ Vendu
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="condo-details">
+                    <div class="detail-item">
+                        <span class="detail-icon">📐</span>
+                        <span class="detail-text">{{ "%.1f"|format(condo.area) }} m²</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">💰</span>
+                        <span class="detail-text">${{ "%.2f"|format(condo.monthly_fees) }}/mois</span>
+                    </div>
+                    {% if user_role == 'admin' and condo.owner %}
+                    <div class="detail-item">
+                        <span class="detail-icon">👤</span>
+                        <span class="detail-text">{{ condo.owner }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if user_role == 'admin' %}
+                <div class="condo-actions">
+                    <button class="action-btn primary" onclick="viewCondoDetails('{{ condo.unit_number }}')">
+                        <span class="btn-icon">👁️</span>
+                        <span class="btn-text">Détails</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="editCondo('{{ condo.unit_number }}')">
+                        <span class="btn-icon">✏️</span>
+                        <span class="btn-text">Modifier</span>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if user_role == 'admin' %}
+        <!-- Detailed Admin Stats -->
+        <div class="admin-stats-section">
+            <h3>Statistiques Détaillées</h3>
+            <div class="detailed-stats-grid">
+                <div class="detailed-stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Répartition par Type</span>
+                        <span class="stat-icon">🏗️</span>
+                    </div>
+                    <div class="stat-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Résidentiel</span>
+                            <span class="breakdown-value">{{ condos|selectattr('unit_type.name', 'equalto', 'RESIDENTIAL')|list|length }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Commercial</span>
+                            <span class="breakdown-value">{{ condos|selectattr('unit_type.name', 'equalto', 'COMMERCIAL')|list|length }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Parking</span>
+                            <span class="breakdown-value">{{ condos|selectattr('unit_type.name', 'equalto', 'PARKING')|list|length }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Entreposage</span>
+                            <span class="breakdown-value">{{ condos|selectattr('unit_type.name', 'equalto', 'STORAGE')|list|length }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detailed-stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Performance Financière</span>
+                        <span class="stat-icon">📊</span>
+                    </div>
+                    <div class="stat-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Revenus totaux</span>
+                            <span class="breakdown-value">${{ "%.2f"|format(condos|map(attribute='monthly_fees')|sum) }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Revenus moyens/unité</span>
+                            <span class="breakdown-value">${{ "%.2f"|format((condos|map(attribute='monthly_fees')|sum) / (condos|length)) }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Unités rentables</span>
+                            <span class="breakdown-value">{{ condos|selectattr('monthly_fees', 'greaterthan', 0)|list|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🏢</div>
+            <h3>Aucun condo trouvé</h3>
+            <p>Il n'y a actuellement aucun condominium dans le système.</p>
+            {% if user_role == 'admin' %}
+            <button class="empty-action-btn" onclick="addNewCondo()">
+                <span class="btn-icon">➕</span>
+                <span class="btn-text">Ajouter le premier condo</span>
+            </button>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if user_role == 'admin' %}
+    <!-- Admin Actions Panel -->
+    <div class="admin-actions-panel">
+        <h3>Actions Administrateur</h3>
+        <div class="actions-grid">
+            <button class="admin-action-btn add" onclick="addNewCondo()">
+                <span class="action-icon">➕</span>
+                <span class="action-text">Ajouter un condo</span>
+                <span class="action-desc">Créer une nouvelle unité</span>
+            </button>
+            
+            <button class="admin-action-btn import" onclick="importCondos()">
+                <span class="action-icon">📤</span>
+                <span class="action-text">Importer des données</span>
+                <span class="action-desc">Charger depuis un fichier</span>
+            </button>
+            
+            <button class="admin-action-btn export" onclick="exportCondos()">
+                <span class="action-icon">📥</span>
+                <span class="action-text">Exporter des données</span>
+                <span class="action-desc">Télécharger les données</span>
+            </button>
+            
+            <button class="admin-action-btn report" onclick="generateReport()">
+                <span class="action-icon">📋</span>
+                <span class="action-text">Générer un rapport</span>
+                <span class="action-desc">Rapport détaillé PDF</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .condos-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header Section */
+    .condos-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .header-icon {
+        font-size: 3rem;
+        opacity: 0.9;
+    }
+
+    .header-text h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        border: none;
+    }
+
+    .header-subtitle {
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+        font-size: 1.1rem;
+    }
+
+    .user-role-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 12px 20px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .role-icon {
+        font-size: 1.2rem;
+    }
+
+    .role-text {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    /* Quick Stats */
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.occupied { border-left: 4px solid #28a745; }
+    .stat-card.vacant { border-left: 4px solid #6c757d; }
+    .stat-card.revenue { border-left: 4px solid #ffc107; }
+    .stat-card.area { border-left: 4px solid #17a2b8; }
+
+    .stat-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Condos Grid */
+    .condos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .condo-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .condo-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .condo-card.occupied::before { background: linear-gradient(90deg, #28a745, #20c997); }
+    .condo-card.vacant::before { background: linear-gradient(90deg, #6c757d, #495057); }
+    .condo-card.maintenance::before { background: linear-gradient(90deg, #fd7e14, #e55100); }
+    .condo-card.rented::before { background: linear-gradient(90deg, #17a2b8, #117a8b); }
+    .condo-card.sold::before { background: linear-gradient(90deg, #dc3545, #c82333); }
+
+    .condo-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .condo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .unit-number {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #333;
+    }
+
+    .condo-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .type-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .type-badge.residential { background: #e3f2fd; color: #1976d2; }
+    .type-badge.commercial { background: #e8f5e8; color: #388e3c; }
+    .type-badge.parking { background: #f3e5f5; color: #7b1fa2; }
+    .type-badge.storage { background: #fff3e0; color: #f57c00; }
+
+    .condo-status {
+        margin-bottom: 15px;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .status-badge.occupied { background: #d4edda; color: #155724; }
+    .status-badge.vacant { background: #f8f9fa; color: #495057; }
+    .status-badge.maintenance { background: #fff3cd; color: #856404; }
+    .status-badge.rented { background: #d1ecf1; color: #0c5460; }
+    .status-badge.sold { background: #f8d7da; color: #721c24; }
+
+    .condo-details {
+        margin-bottom: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-icon {
+        font-size: 1.1rem;
+        opacity: 0.7;
+        width: 20px;
+    }
+
+    .detail-text {
+        color: #555;
+        font-weight: 500;
+    }
+
+    .condo-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .action-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .action-btn.secondary {
+        background: #f8f9fa;
+        color: #495057;
+        border: 1px solid #dee2e6;
+    }
+
+    .action-btn.secondary:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+    }
+
+    /* Admin Stats Section */
+    .admin-stats-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .admin-stats-section h3 {
+        margin: 0 0 25px 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .detailed-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .detailed-stat-card {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .stat-title {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .stat-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .breakdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .breakdown-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .breakdown-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    /* Admin Actions Panel */
+    .admin-actions-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .admin-actions-panel h3 {
+        margin: 0 0 25px 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .admin-action-btn {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .admin-action-btn:hover {
+        border-color: #667eea;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-icon {
+        font-size: 2rem;
+        margin-bottom: 5px;
+    }
+
+    .action-text {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .action-desc {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.6;
+    }
+
+    .empty-state h3 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: #666;
+        margin-bottom: 25px;
+    }
+
+    .empty-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 25px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .empty-action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .condos-container {
+            padding: 15px;
+        }
+
+        .condos-header {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+        }
+
+        .quick-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .condos-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detailed-stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .quick-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .condo-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    function viewCondoDetails(unitNumber) {
+        // Navigation vers la page de détails
+        window.location.href = `/condos/${unitNumber}/details`;
+    }
+
+    function editCondo(unitNumber) {
+        // Navigation vers la page d'édition
+        window.location.href = `/condos/${unitNumber}/edit`;
+    }
+
+    function addNewCondo() {
+        // Navigation vers la page d'ajout
+        window.location.href = '/condos/new';
+    }
+
+    function importCondos() {
+        // Ouvrir modal d'import
+        alert('Fonctionnalité d\'import en développement');
+    }
+
+    function exportCondos() {
+        // Télécharger export
+        alert('Fonctionnalité d\'export en développement');
+    }
+
+    function generateReport() {
+        // Générer rapport PDF
+        alert('Génération de rapport en développement');
+    }
+
+    // Animation des statistiques au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        const statNumbers = document.querySelectorAll('.stat-number');
+        
+        statNumbers.forEach(stat => {
+            const finalValue = stat.textContent;
+            const isMonetary = finalValue.includes('$');
+            const isPercentage = finalValue.includes('%');
+            
+            if (!isMonetary && !isPercentage && !isNaN(parseInt(finalValue))) {
+                animateCounter(stat, parseInt(finalValue));
+            }
+        });
+    });
+
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 30;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = target;
+                clearInterval(timer);
+            } else {
+                element.textContent = Math.floor(current);
+            }
+        }, 50);
+    }
+</script>
+{% endblock %}

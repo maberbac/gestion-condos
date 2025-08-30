@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Comptes en Souffrance{% endblock %}
+
+{% block page_title %}Comptes en Souffrance{% endblock %}
+
+{% block content %}
+<div class="alert alert-warning">
+    <strong>Retard de Paiement:</strong> Comptes nécessitant un suivi
+</div>
+
+<div class="card">
+    <div class="card-header">Comptes en retard de paiement</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Unité</th>
+                    <th>Propriétaire</th>
+                    <th>Montant dû</th>
+                    <th>Jours de retard</th>
+                    <th>Dernier contact</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>A-102</td>
+                    <td>Marie Martin</td>
+                    <td>475 $</td>
+                    <td class="text-warning">28 jours</td>
+                    <td>15 août 2025</td>
+                </tr>
+                <tr>
+                    <td>C-305</td>
+                    <td>Paul Dubois</td>
+                    <td>950 $</td>
+                    <td class="text-danger">65 jours</td>
+                    <td>1er juillet 2025</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Gestion des retards</div>
+    <div class="card-body">
+        <p><a href="/admin/financial/generate-notices" class="btn-link">Générer des avis de retard</a></p>
+        <p><a href="/admin/financial/payment-status" class="btn-link">Voir tous les paiements</a></p>
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

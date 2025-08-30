@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Nouveau Condo - Gestion Condos{% endblock %}
+
+{% block content %}
+<h1>Nouveau Condo</h1>
+
+<div class="card">
+    <div class="card-header">Créer un nouveau condo</div>
+    <div class="card-body">
+        <form method="post">
+            <input type="text" name="unit_number" placeholder="Numéro d'unité" required>
+            <input type="submit" value="Créer le condo" class="btn-primary">
+        </form>
+        <p><a href="/admin/condos" class="btn-link">← Annuler</a></p>
+    </div>
+</div>
+{% endblock %}

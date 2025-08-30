@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Header du profil avec photo et informations principales -->
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <div class="avatar-circle">
+                <span class="avatar-initials">{{ full_name.split()[0][0] }}{{ full_name.split()[-1][0] if full_name.split()|length > 1 else '' }}</span>
+            </div>
+        </div>
+        <div class="profile-main-info">
+            <h1 class="profile-name">{{ full_name }}</h1>
+            <p class="profile-role">{{ role_display }}</p>
+            <p class="profile-description">{{ role_description }}</p>
+            {% if condo_unit %}
+            <div class="profile-unit">
+                <span class="unit-label">Unité</span>
+                <span class="unit-value">{{ condo_unit }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="profile-actions">
+            <button class="btn-modern btn-primary" onclick="editProfile()">
+                <span class="btn-icon">✏️</span>
+                Modifier
+            </button>
+            <button class="btn-modern btn-secondary" onclick="changePassword()">
+                <span class="btn-icon">🔒</span>
+                Mot de passe
+            </button>
+        </div>
+    </div>
+
+    <!-- Grille des informations détaillées -->
+    <div class="profile-grid">
+        <!-- Informations de compte -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3>📋 Informations du compte</h3>
+            </div>
+            <div class="card-content">
+                <div class="info-row">
+                    <span class="info-label">Nom d'utilisateur</span>
+                    <span class="info-value">{{ username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Statut</span>
+                    <span class="status-badge status-active">Actif</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Membre depuis</span>
+                    <span class="info-value">{{ member_since }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activité récente -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3>🕐 Activité récente</h3>
+            </div>
+            <div class="card-content">
+                <div class="info-row">
+                    <span class="info-label">Dernière connexion</span>
+                    <span class="info-value">{{ last_login }}</span>
+                </div>
+                <div class="activity-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-action">Connexion au système</span>
+                            <span class="timeline-time">Aujourd'hui</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-action">Consultation du tableau de bord</span>
+                            <span class="timeline-time">Il y a 2h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions et accès -->
+        <div class="profile-card permissions-card">
+            <div class="card-header">
+                <h3>🔐 Permissions d'accès</h3>
+            </div>
+            <div class="card-content">
+                <div class="permissions-grid">
+                    <div class="permission-item {{ 'allowed' if permissions.view_condos else 'denied' }}">
+                        <div class="permission-icon">
+                            {% if permissions.view_condos %}✅{% else %}❌{% endif %}
+                        </div>
+                        <div class="permission-details">
+                            <span class="permission-name">Consultation des condos</span>
+                            <span class="permission-status">
+                                {{ 'Autorisé' if permissions.view_condos else 'Refusé' }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-item {{ 'allowed' if permissions.manage_finance else 'denied' }}">
+                        <div class="permission-icon">
+                            {% if permissions.manage_finance %}✅{% else %}❌{% endif %}
+                        </div>
+                        <div class="permission-details">
+                            <span class="permission-name">Gestion financière</span>
+                            <span class="permission-status">
+                                {{ 'Autorisé' if permissions.manage_finance else 'Refusé' }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-item {{ 'allowed' if permissions.manage_users else 'denied' }}">
+                        <div class="permission-icon">
+                            {% if permissions.manage_users %}✅{% else %}❌{% endif %}
+                        </div>
+                        <div class="permission-details">
+                            <span class="permission-name">Gestion des utilisateurs</span>
+                            <span class="permission-status">
+                                {{ 'Autorisé' if permissions.manage_users else 'Refusé' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3>⚡ Actions rapides</h3>
+            </div>
+            <div class="card-content">
+                <div class="quick-actions">
+                    <a href="/dashboard" class="quick-action-btn">
+                        <span class="action-icon">🏠</span>
+                        <span class="action-text">Tableau de bord</span>
+                    </a>
+                    {% if permissions.view_condos %}
+                    <a href="/condos" class="quick-action-btn">
+                        <span class="action-icon">🏢</span>
+                        <span class="action-text">Mes condos</span>
+                    </a>
+                    {% endif %}
+                    {% if permissions.manage_finance %}
+                    <a href="/finance" class="quick-action-btn">
+                        <span class="action-icon">💰</span>
+                        <span class="action-text">Finances</span>
+                    </a>
+                    {% endif %}
+                    <a href="/logout" class="quick-action-btn logout-btn">
+                        <span class="action-icon">🚪</span>
+                        <span class="action-text">Déconnexion</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header du profil */
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-avatar .avatar-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    .avatar-initials {
+        font-size: 36px;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+    }
+
+    .profile-main-info {
+        flex: 1;
+    }
+
+    .profile-name {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        color: white;
+        border: none;
+    }
+
+    .profile-role {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        opacity: 0.9;
+    }
+
+    .profile-description {
+        font-size: 1rem;
+        margin: 0 0 20px 0;
+        opacity: 0.8;
+        line-height: 1.5;
+    }
+
+    .profile-unit {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 8px 16px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .unit-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .unit-value {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .profile-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .btn-modern {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 150px;
+        justify-content: center;
+    }
+
+    .btn-primary {
+        background: rgba(255, 255, 255, 0.9);
+        color: #667eea;
+    }
+
+    .btn-primary:hover {
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: white;
+        transform: translateY(-2px);
+    }
+
+    /* Grille des cartes */
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 25px;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 20px;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-content {
+        padding: 25px;
+    }
+
+    /* Lignes d'informations */
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #555;
+    }
+
+    .info-value {
+        color: #333;
+        font-weight: 500;
+    }
+
+    /* Badge de statut */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-active {
+        background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        color: #2d3748;
+    }
+
+    /* Timeline d'activité */
+    .activity-timeline {
+        margin-top: 20px;
+    }
+
+    .timeline-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+
+    .timeline-content {
+        flex: 1;
+    }
+
+    .timeline-action {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .timeline-time {
+        font-size: 0.85rem;
+        color: #888;
+    }
+
+    /* Grille des permissions */
+    .permissions-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .permission-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .permission-item.allowed {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 1px solid #b8dabc;
+    }
+
+    .permission-item.denied {
+        background: linear-gradient(135deg, #f8d7da 0%, #f1c2c7 100%);
+        border: 1px solid #f0b7bd;
+    }
+
+    .permission-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .permission-details {
+        flex: 1;
+    }
+
+    .permission-name {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .permission-status {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .permission-item.allowed .permission-status {
+        color: #155724;
+    }
+
+    .permission-item.denied .permission-status {
+        color: #721c24;
+    }
+
+    /* Actions rapides */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+    }
+
+    .quick-action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 20px 15px;
+        border-radius: 12px;
+        text-decoration: none;
+        color: #333;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .quick-action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    .quick-action-btn.logout-btn:hover {
+        border-color: #e74c3c;
+        color: #e74c3c;
+    }
+
+    .action-icon {
+        font-size: 1.8rem;
+    }
+
+    .action-text {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .profile-actions {
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+        }
+
+        .quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .profile-container {
+            padding: 10px;
+        }
+
+        .profile-header {
+            padding: 20px 15px;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+        }
+
+        .avatar-circle {
+            width: 80px !important;
+            height: 80px !important;
+        }
+
+        .avatar-initials {
+            font-size: 24px !important;
+        }
+    }
+</style>
+
+<script>
+    function editProfile() {
+        // Fonction pour éditer le profil
+        alert('Fonctionnalité de modification du profil en développement');
+    }
+
+    function changePassword() {
+        // Fonction pour changer le mot de passe
+        alert('Fonctionnalité de changement de mot de passe en développement');
+    }
+
+    // Animation au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.profile-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 150);
+        });
+    });
+</script>
+{% endblock %}

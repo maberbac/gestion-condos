@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Condo - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>Mon Condo - {{ user_name }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="condo-info">
+                <h3>Informations sur votre unité</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Numéro d'unité:</strong> {{ condo_unit }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Propriétaire:</strong> {{ user_name }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Superficie:</strong> {{ condo_area }} m²
+                    </div>
+                    <div class="info-item">
+                        <strong>Type:</strong> {{ condo_type }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="condo-financial">
+                <h3>Informations financières</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Frais mensuels:</strong> {{ monthly_fees }} $
+                    </div>
+                    <div class="info-item">
+                        <strong>Solde actuel:</strong> 
+                        {% if current_balance >= 0 %}
+                            <span class="status-paid">{{ current_balance }} $ (À jour)</span>
+                        {% else %}
+                            <span class="status-overdue">{{ current_balance }} $ (En retard)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <a href="{{ url_for('resident_my_fees') }}" class="btn btn-primary">Voir mes frais</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Retour au tableau de bord</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

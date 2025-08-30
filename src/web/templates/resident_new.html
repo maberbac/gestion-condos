@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Nouveau Résident - Admin{% endblock %}
+
+{% block page_title %}Nouveau Résident{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Créer un nouveau résident</div>
+    <div class="card-body">
+        <form method="post">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Nom complet" required>
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="unit" placeholder="Unité" required>
+            </div>
+            <input type="submit" value="Créer le résident" class="btn-primary">
+        </form>
+        <p><a href="/admin/residents" class="btn-link">← Annuler</a></p>
+    </div>
+</div>
+{% endblock %}

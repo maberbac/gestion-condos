@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Projections de Flux de Trésorerie{% endblock %}
+
+{% block page_title %}Projections de Flux de Trésorerie{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Projection sur 12 mois</div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th>Recettes prévues</th>
+                    <th>Dépenses prévues</th>
+                    <th>Flux net</th>
+                    <th>Solde cumulé</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Septembre 2025</td>
+                    <td>17 000 $</td>
+                    <td>13 500 $</td>
+                    <td class="text-success">+3 500 $</td>
+                    <td>78 500 $</td>
+                </tr>
+                <tr>
+                    <td>Octobre 2025</td>
+                    <td>17 000 $</td>
+                    <td>14 200 $</td>
+                    <td class="text-success">+2 800 $</td>
+                    <td>81 300 $</td>
+                </tr>
+                <tr>
+                    <td>Novembre 2025</td>
+                    <td>17 000 $</td>
+                    <td>15 800 $</td>
+                    <td class="text-success">+1 200 $</td>
+                    <td>82 500 $</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Analyse des tendances</div>
+    <div class="card-body">
+        <p><strong>Tendance générale :</strong> Flux positif stable</p>
+        <p><strong>Réserves recommandées :</strong> 75 000 $ minimum</p>
+        <p><strong>Capacité d'investissement :</strong> 7 500 $ disponible</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Avis en Attente{% endblock %}
+
+{% block page_title %}Avis en Attente{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Avis non envoyés</div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Unité</th>
+                    <th>Type d'avis</th>
+                    <th>Montant</th>
+                    <th>Date de création</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>A-102</td>
+                    <td>Retard de paiement</td>
+                    <td>475 $</td>
+                    <td>25 août 2025</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}

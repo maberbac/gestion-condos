@@ -1,0 +1,886 @@
+{% extends "base.html" %}
+
+{% block title %}Finance - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="finance-container">
+    <!-- Header Section -->
+    <div class="finance-header">
+        <div class="header-content">
+            <div class="header-icon">💰</div>
+            <div class="header-text">
+                <h1>Gestion Financière</h1>
+                <p class="header-subtitle">Suivi des revenus et performance financière</p>
+            </div>
+        </div>
+        <div class="period-selector">
+            <button class="period-btn active">Mensuel</button>
+            <button class="period-btn">Annuel</button>
+            <button class="period-btn">Projection</button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card revenue">
+            <div class="kpi-header">
+                <div class="kpi-icon">💵</div>
+                <div class="kpi-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+5.2%</span>
+                </div>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-value">${{ "%.2f"|format(monthly_revenue) }}</div>
+                <div class="kpi-label">Revenus mensuels</div>
+                <div class="kpi-subtitle">vs mois précédent</div>
+            </div>
+        </div>
+
+        <div class="kpi-card annual">
+            <div class="kpi-header">
+                <div class="kpi-icon">📊</div>
+                <div class="kpi-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+3.5%</span>
+                </div>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-value">${{ "%.0f"|format(monthly_revenue * 12) }}</div>
+                <div class="kpi-label">Revenus annuels</div>
+                <div class="kpi-subtitle">projection basée sur tendances</div>
+            </div>
+        </div>
+
+        <div class="kpi-card average">
+            <div class="kpi-header">
+                <div class="kpi-icon">🏠</div>
+                <div class="kpi-trend neutral">
+                    <span class="trend-icon">➡️</span>
+                    <span class="trend-text">stable</span>
+                </div>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-value">${{ "%.2f"|format(average_fee) }}</div>
+                <div class="kpi-label">Frais moyens/unité</div>
+                <div class="kpi-subtitle">{{ total_condos }} unités actives</div>
+            </div>
+        </div>
+
+        <div class="kpi-card occupancy">
+            <div class="kpi-header">
+                <div class="kpi-icon">📈</div>
+                <div class="kpi-trend positive">
+                    <span class="trend-icon">📈</span>
+                    <span class="trend-text">+2.1%</span>
+                </div>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-value">{{ "%.1f"|format((total_condos / (total_condos + 2)) * 100) }}%</div>
+                <div class="kpi-label">Taux d'occupation</div>
+                <div class="kpi-subtitle">{{ total_condos }}/{{ total_condos + 2 }} unités</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Évolution des Revenus</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active">6 mois</button>
+                    <button class="chart-btn">1 an</button>
+                    <button class="chart-btn">2 ans</button>
+                </div>
+            </div>
+            <div class="chart-placeholder">
+                <div class="chart-visual">
+                    <div class="chart-bar" style="height: 60%">
+                        <span class="bar-value">$4,200</span>
+                    </div>
+                    <div class="chart-bar" style="height: 75%">
+                        <span class="bar-value">$5,250</span>
+                    </div>
+                    <div class="chart-bar" style="height: 85%">
+                        <span class="bar-value">$5,950</span>
+                    </div>
+                    <div class="chart-bar" style="height: 70%">
+                        <span class="bar-value">$4,900</span>
+                    </div>
+                    <div class="chart-bar" style="height: 90%">
+                        <span class="bar-value">$6,300</span>
+                    </div>
+                    <div class="chart-bar active" style="height: 95%">
+                        <span class="bar-value">${{ "%.0f"|format(monthly_revenue) }}</span>
+                    </div>
+                </div>
+                <div class="chart-labels">
+                    <span>Jan</span>
+                    <span>Fév</span>
+                    <span>Mar</span>
+                    <span>Avr</span>
+                    <span>Mai</span>
+                    <span>Juin</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="breakdown-container">
+            <div class="breakdown-header">
+                <h3>Répartition des Revenus</h3>
+                <div class="breakdown-period">Juin 2025</div>
+            </div>
+            <div class="breakdown-items">
+                <div class="breakdown-item">
+                    <div class="breakdown-category">
+                        <span class="category-color residential"></span>
+                        <span class="category-name">Unités résidentielles</span>
+                    </div>
+                    <div class="breakdown-amount">${{ "%.0f"|format(monthly_revenue * 0.75) }}</div>
+                    <div class="breakdown-percentage">75%</div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-category">
+                        <span class="category-color commercial"></span>
+                        <span class="category-name">Unités commerciales</span>
+                    </div>
+                    <div class="breakdown-amount">${{ "%.0f"|format(monthly_revenue * 0.15) }}</div>
+                    <div class="breakdown-percentage">15%</div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-category">
+                        <span class="category-color parking"></span>
+                        <span class="category-name">Stationnements</span>
+                    </div>
+                    <div class="breakdown-amount">${{ "%.0f"|format(monthly_revenue * 0.08) }}</div>
+                    <div class="breakdown-percentage">8%</div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-category">
+                        <span class="category-color storage"></span>
+                        <span class="category-name">Entreposages</span>
+                    </div>
+                    <div class="breakdown-amount">${{ "%.0f"|format(monthly_revenue * 0.02) }}</div>
+                    <div class="breakdown-percentage">2%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Panels -->
+    <div class="analysis-grid">
+        <div class="analysis-panel revenue-analysis">
+            <div class="panel-header">
+                <div class="panel-icon">📈</div>
+                <h3>Analyse des Revenus</h3>
+            </div>
+            <div class="panel-content">
+                <div class="metric-row">
+                    <span class="metric-label">Revenus actuels (mensuel)</span>
+                    <span class="metric-value">${{ "%.2f"|format(monthly_revenue) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Moyenne par unité</span>
+                    <span class="metric-value">${{ "%.2f"|format(average_fee) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Croissance mensuelle</span>
+                    <span class="metric-value positive">+5.2%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Taux d'occupation</span>
+                    <span class="metric-value">{{ "%.1f"|format((total_condos / (total_condos + 2)) * 100) }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-panel projection-analysis">
+            <div class="panel-header">
+                <div class="panel-icon">🔮</div>
+                <h3>Projections 2025</h3>
+            </div>
+            <div class="panel-content">
+                <div class="metric-row">
+                    <span class="metric-label">Revenus annuels projetés</span>
+                    <span class="metric-value">${{ "%.0f"|format(monthly_revenue * 12) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Croissance estimée</span>
+                    <span class="metric-value positive">+3.5%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Revenus projetés (fin 2025)</span>
+                    <span class="metric-value">${{ "%.0f"|format(monthly_revenue * 12 * 1.035) }}</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Potentiel d'optimisation</span>
+                    <span class="metric-value warning">+12%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-panel recommendations">
+            <div class="panel-header">
+                <div class="panel-icon">💡</div>
+                <h3>Recommandations</h3>
+            </div>
+            <div class="panel-content">
+                <div class="recommendation-item">
+                    <div class="rec-icon">🎯</div>
+                    <div class="rec-text">
+                        <div class="rec-title">Optimiser les unités vacantes</div>
+                        <div class="rec-desc">2 unités disponibles représentent un potentiel de +$1,200/mois</div>
+                    </div>
+                </div>
+                
+                <div class="recommendation-item">
+                    <div class="rec-icon">📊</div>
+                    <div class="rec-text">
+                        <div class="rec-title">Révision des frais mensuels</div>
+                        <div class="rec-desc">Analyse du marché suggère une augmentation de 2-3%</div>
+                    </div>
+                </div>
+                
+                <div class="recommendation-item">
+                    <div class="rec-icon">🔄</div>
+                    <div class="rec-text">
+                        <div class="rec-title">Diversification des revenus</div>
+                        <div class="rec-desc">Explorer les services additionnels (buanderie, gym)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="finance-actions">
+        <button class="finance-btn primary" onclick="exportReport()">
+            <span class="btn-icon">📋</span>
+            <span class="btn-text">Générer Rapport</span>
+        </button>
+        
+        <button class="finance-btn secondary" onclick="updateProjections()">
+            <span class="btn-icon">🔄</span>
+            <span class="btn-text">Actualiser Projections</span>
+        </button>
+        
+        <button class="finance-btn secondary" onclick="viewDetails()">
+            <span class="btn-icon">📊</span>
+            <span class="btn-text">Analyse Détaillée</span>
+        </button>
+    </div>
+</div>
+
+<style>
+    .finance-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header */
+    .finance-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .header-icon {
+        font-size: 3rem;
+        opacity: 0.9;
+    }
+
+    .header-text h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        border: none;
+    }
+
+    .header-subtitle {
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+        font-size: 1.1rem;
+    }
+
+    .period-selector {
+        display: flex;
+        gap: 5px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+    }
+
+    .period-btn {
+        padding: 10px 20px;
+        border: none;
+        background: transparent;
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .period-btn.active {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    .period-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .kpi-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .kpi-card.revenue::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+    .kpi-card.annual::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+    .kpi-card.average::before { background: linear-gradient(90deg, #fa709a, #fee140); }
+    .kpi-card.occupancy::before { background: linear-gradient(90deg, #a8edea, #fed6e3); }
+
+    .kpi-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .kpi-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .kpi-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .kpi-trend {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .kpi-trend.positive {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .kpi-trend.neutral {
+        background: #f8f9fa;
+        color: #495057;
+    }
+
+    .kpi-trend.negative {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .kpi-value {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .kpi-label {
+        font-size: 1.1rem;
+        color: #555;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .kpi-subtitle {
+        font-size: 0.9rem;
+        color: #888;
+    }
+
+    /* Charts Section */
+    .charts-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .chart-container, .breakdown-container {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-header, .breakdown-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .chart-header h3, .breakdown-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .chart-controls {
+        display: flex;
+        gap: 5px;
+    }
+
+    .chart-btn {
+        padding: 8px 15px;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .chart-btn.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .breakdown-period {
+        background: #f8f9fa;
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    /* Chart Visual */
+    .chart-placeholder {
+        height: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-visual {
+        flex: 1;
+        display: flex;
+        align-items: end;
+        justify-content: space-around;
+        padding: 20px;
+        background: linear-gradient(to top, #f8f9fa 0%, transparent 100%);
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+
+    .chart-bar {
+        width: 40px;
+        background: linear-gradient(to top, #667eea, #764ba2);
+        border-radius: 4px 4px 0 0;
+        transition: all 0.3s ease;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .chart-bar.active {
+        background: linear-gradient(to top, #f093fb, #f5576c);
+        transform: scale(1.1);
+    }
+
+    .chart-bar:hover {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    .bar-value {
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555;
+        white-space: nowrap;
+    }
+
+    .chart-labels {
+        display: flex;
+        justify-content: space-around;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    /* Breakdown */
+    .breakdown-items {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .breakdown-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .breakdown-category {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .category-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .category-color.residential { background: #667eea; }
+    .category-color.commercial { background: #28a745; }
+    .category-color.parking { background: #6c757d; }
+    .category-color.storage { background: #ffc107; }
+
+    .category-name {
+        font-weight: 500;
+        color: #555;
+    }
+
+    .breakdown-amount {
+        font-weight: 700;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .breakdown-percentage {
+        color: #888;
+        font-size: 0.9rem;
+        font-weight: 500;
+        min-width: 40px;
+        text-align: right;
+    }
+
+    /* Analysis Grid */
+    .analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .analysis-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .panel-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .metric-row:last-child {
+        border-bottom: none;
+    }
+
+    .metric-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .metric-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .metric-value.positive { color: #28a745; }
+    .metric-value.warning { color: #ffc107; }
+    .metric-value.negative { color: #dc3545; }
+
+    /* Recommendations */
+    .recommendations .panel-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .recommendation-item {
+        display: flex;
+        gap: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .rec-icon {
+        font-size: 1.5rem;
+        opacity: 0.8;
+    }
+
+    .rec-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .rec-desc {
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    /* Finance Actions */
+    .finance-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .finance-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 25px;
+        border-radius: 15px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .finance-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .finance-btn.primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .finance-btn.secondary {
+        background: white;
+        color: #555;
+        border: 2px solid #dee2e6;
+    }
+
+    .finance-btn.secondary:hover {
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateY(-3px);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .finance-container {
+            padding: 15px;
+        }
+
+        .finance-header {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+        }
+
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .charts-section {
+            grid-template-columns: 1fr;
+        }
+
+        .analysis-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .finance-actions {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .period-selector {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    function exportReport() {
+        alert('Génération du rapport financier en cours...');
+        // Implémentation future : génération PDF
+    }
+
+    function updateProjections() {
+        alert('Actualisation des projections financières...');
+        // Implémentation future : recalcul des projections
+    }
+
+    function viewDetails() {
+        alert('Affichage de l\'analyse détaillée...');
+        // Implémentation future : page d'analyse approfondie
+    }
+
+    // Animation des valeurs au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        animateKPIValues();
+        setupChartInteractions();
+    });
+
+    function animateKPIValues() {
+        const kpiValues = document.querySelectorAll('.kpi-value');
+        
+        kpiValues.forEach(element => {
+            const finalValue = element.textContent;
+            const isMonetary = finalValue.includes('$');
+            const isPercentage = finalValue.includes('%');
+            
+            if (isMonetary) {
+                const numericValue = parseFloat(finalValue.replace(/[$,]/g, ''));
+                animateMonetaryValue(element, numericValue, finalValue.includes('$'));
+            } else if (isPercentage) {
+                const numericValue = parseFloat(finalValue.replace('%', ''));
+                animatePercentageValue(element, numericValue);
+            }
+        });
+    }
+
+    function animateMonetaryValue(element, target, hasDollar) {
+        let current = 0;
+        const increment = target / 50;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = hasDollar ? `$${target.toFixed(2)}` : target.toFixed(2);
+                clearInterval(timer);
+            } else {
+                element.textContent = hasDollar ? `$${current.toFixed(0)}` : current.toFixed(0);
+            }
+        }, 30);
+    }
+
+    function animatePercentageValue(element, target) {
+        let current = 0;
+        const increment = target / 30;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = `${target.toFixed(1)}%`;
+                clearInterval(timer);
+            } else {
+                element.textContent = `${current.toFixed(1)}%`;
+            }
+        }, 50);
+    }
+
+    function setupChartInteractions() {
+        const chartBars = document.querySelectorAll('.chart-bar');
+        const periodBtns = document.querySelectorAll('.period-btn');
+        const chartBtns = document.querySelectorAll('.chart-btn');
+
+        // Interactions des barres de graphique
+        chartBars.forEach(bar => {
+            bar.addEventListener('click', function() {
+                chartBars.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Sélecteur de période
+        periodBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                periodBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Contrôles de graphique
+        chartBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                chartBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,582 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title|default("Succès") }} - Gestion Condos{% endblock %}
+
+{% block content %}
+<div class="success-container">
+    <div class="success-content">
+        <div class="success-animation">
+            <div class="success-icon">✅</div>
+            <div class="success-particles">
+                <div class="particle particle-1"></div>
+                <div class="particle particle-2"></div>
+                <div class="particle particle-3"></div>
+                <div class="particle particle-4"></div>
+                <div class="particle particle-5"></div>
+                <div class="particle particle-6"></div>
+            </div>
+        </div>
+
+        <div class="success-message">
+            <h1>{{ title|default("Opération réussie !") }}</h1>
+            <p class="success-description">{{ message|default(success_message|default("Votre opération a été terminée avec succès.")) }}</p>
+        </div>
+
+        <div class="success-details">
+            <div class="detail-card">
+                <div class="detail-icon">⏰</div>
+                <div class="detail-content">
+                    <div class="detail-label">Heure de completion</div>
+                    <div class="detail-value" id="completion-time"></div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-icon">✓</div>
+                <div class="detail-content">
+                    <div class="detail-label">Statut</div>
+                    <div class="detail-value">Terminé avec succès</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            <a href="{{ return_url|default(url_for('dashboard')) }}" class="btn-primary">
+                <span class="btn-icon">←</span>
+                <span class="btn-text">{{ return_text|default("Retour au tableau de bord") }}</span>
+            </a>
+            
+            <a href="{{ url_for('index') }}" class="btn-secondary">
+                <span class="btn-icon">🏠</span>
+                <span class="btn-text">Accueil</span>
+            </a>
+        </div>
+
+        <div class="success-next-steps">
+            <h3>Prochaines étapes suggérées</h3>
+            <div class="steps-grid">
+                <div class="step-item" data-url="{{ url_for('condos') }}">
+                    <div class="step-icon">🏢</div>
+                    <div class="step-content">
+                        <div class="step-title">Gérer les condos</div>
+                        <div class="step-desc">Voir et modifier vos unités</div>
+                    </div>
+                </div>
+                
+                <div class="step-item" data-url="{{ url_for('finance') }}">
+                    <div class="step-icon">💰</div>
+                    <div class="step-content">
+                        <div class="step-title">Finances</div>
+                        <div class="step-desc">Consulter les rapports financiers</div>
+                    </div>
+                </div>
+                
+                <div class="step-item" data-url="{{ url_for('users') }}">
+                    <div class="step-icon">👥</div>
+                    <div class="step-content">
+                        <div class="step-title">Utilisateurs</div>
+                        <div class="step-desc">Gérer les comptes et permissions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-feedback">
+            <h4>Comment s'est passée votre expérience ?</h4>
+            <div class="feedback-buttons">
+                <button class="feedback-btn excellent" onclick="submitFeedback('excellent')">
+                    <span class="feedback-icon">🌟</span>
+                    <span class="feedback-text">Excellent</span>
+                </button>
+                <button class="feedback-btn good" onclick="submitFeedback('good')">
+                    <span class="feedback-icon">👍</span>
+                    <span class="feedback-text">Bien</span>
+                </button>
+                <button class="feedback-btn average" onclick="submitFeedback('average')">
+                    <span class="feedback-icon">👌</span>
+                    <span class="feedback-text">Moyen</span>
+                </button>
+                <button class="feedback-btn poor" onclick="submitFeedback('poor')">
+                    <span class="feedback-icon">👎</span>
+                    <span class="feedback-text">Décevant</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .success-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    }
+
+    .success-content {
+        max-width: 700px;
+        width: 100%;
+        background: white;
+        border-radius: 25px;
+        padding: 50px 40px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Success Animation */
+    .success-animation {
+        position: relative;
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 120px;
+    }
+
+    .success-icon {
+        font-size: 5rem;
+        z-index: 10;
+        position: relative;
+        animation: successBounce 1s ease-out;
+    }
+
+    .success-particles {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        animation: particleFloat 2s infinite;
+    }
+
+    .particle-1 { top: -40px; left: -30px; animation-delay: 0.1s; background: #ffc107; }
+    .particle-2 { top: -50px; left: 20px; animation-delay: 0.3s; background: #17a2b8; }
+    .particle-3 { top: -20px; left: 40px; animation-delay: 0.5s; background: #28a745; }
+    .particle-4 { top: 20px; left: 35px; animation-delay: 0.7s; background: #fd7e14; }
+    .particle-5 { top: 30px; left: -25px; animation-delay: 0.9s; background: #e83e8c; }
+    .particle-6 { top: 10px; left: -45px; animation-delay: 1.1s; background: #6f42c1; }
+
+    @keyframes successBounce {
+        0% { transform: scale(0) rotate(0deg); }
+        50% { transform: scale(1.2) rotate(180deg); }
+        100% { transform: scale(1) rotate(360deg); }
+    }
+
+    @keyframes particleFloat {
+        0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+        50% { transform: translateY(-20px) rotate(180deg); opacity: 0.7; }
+    }
+
+    /* Success Message */
+    .success-message {
+        margin-bottom: 40px;
+    }
+
+    .success-message h1 {
+        font-size: 2.5rem;
+        color: #28a745;
+        margin-bottom: 15px;
+        font-weight: 700;
+        border: none;
+    }
+
+    .success-description {
+        font-size: 1.2rem;
+        color: #666;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Success Details */
+    .success-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .detail-card {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border-left: 4px solid #28a745;
+    }
+
+    .detail-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .detail-content {
+        text-align: left;
+    }
+
+    .detail-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #333;
+        font-size: 1rem;
+    }
+
+    /* Success Actions */
+    .success-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary, .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        border-radius: 15px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        min-width: 200px;
+        justify-content: center;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(40, 167, 69, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: #f8f9fa;
+        color: #495057;
+        border: 2px solid #dee2e6;
+    }
+
+    .btn-secondary:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+        transform: translateY(-3px);
+        color: #495057;
+        text-decoration: none;
+    }
+
+    /* Next Steps */
+    .success-next-steps {
+        text-align: left;
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .success-next-steps h3 {
+        color: #333;
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .success-next-steps h3::before {
+        content: '🎯';
+        font-size: 1.5rem;
+    }
+
+    .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .step-item {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 2px solid transparent;
+    }
+
+    .step-item:hover {
+        border-color: #28a745;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .step-icon {
+        font-size: 1.5rem;
+        opacity: 0.8;
+    }
+
+    .step-content {
+        text-align: left;
+    }
+
+    .step-title {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+    }
+
+    .step-desc {
+        color: #666;
+        font-size: 0.8rem;
+    }
+
+    /* Success Feedback */
+    .success-feedback {
+        background: #e7f5e7;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+    }
+
+    .success-feedback h4 {
+        color: #333;
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .success-feedback h4::before {
+        content: '📝';
+        font-size: 1.3rem;
+    }
+
+    .feedback-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .feedback-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 12px 15px;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 80px;
+    }
+
+    .feedback-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .feedback-btn.excellent:hover { border-color: #ffc107; background: #fff3cd; }
+    .feedback-btn.good:hover { border-color: #28a745; background: #d4edda; }
+    .feedback-btn.average:hover { border-color: #17a2b8; background: #d1ecf1; }
+    .feedback-btn.poor:hover { border-color: #dc3545; background: #f8d7da; }
+
+    .feedback-icon {
+        font-size: 1.5rem;
+    }
+
+    .feedback-text {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .success-content {
+            padding: 30px 25px;
+            margin: 20px;
+        }
+
+        .success-message h1 {
+            font-size: 2rem;
+        }
+
+        .success-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .steps-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .feedback-buttons {
+            justify-content: space-around;
+        }
+
+        .feedback-btn {
+            min-width: 70px;
+            padding: 10px 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .success-container {
+            padding: 20px 10px;
+        }
+
+        .success-content {
+            padding: 25px 20px;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+        }
+
+        .success-details {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .detail-content {
+            text-align: center;
+        }
+    }
+
+    /* Animation for feedback submission */
+    .feedback-submitted {
+        background: #d4edda !important;
+        border-color: #28a745 !important;
+        transform: scale(1.1);
+        animation: feedbackSuccess 0.5s ease-out;
+    }
+
+    @keyframes feedbackSuccess {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1.1); }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remplir l'heure de completion
+        const now = new Date();
+        document.getElementById('completion-time').textContent = now.toLocaleString('fr-FR');
+        
+        // Ajouter un effet confetti après le chargement
+        setTimeout(createConfetti, 500);
+        
+        // Gérer les clics sur les étapes suivantes
+        document.querySelectorAll('.step-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+        });
+    });
+
+    function submitFeedback(rating) {
+        const btn = event.target.closest('.feedback-btn');
+        
+        // Animation de confirmation
+        btn.classList.add('feedback-submitted');
+        
+        // Simuler l'envoi du feedback
+        setTimeout(() => {
+            alert(`Merci pour votre retour ! Évaluation : ${rating}`);
+            
+            // Désactiver tous les boutons de feedback
+            const allBtns = document.querySelectorAll('.feedback-btn');
+            allBtns.forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+                button.style.cursor = 'not-allowed';
+            });
+            
+            // Garder le bouton sélectionné visible
+            btn.style.opacity = '1';
+        }, 500);
+    }
+
+    function createConfetti() {
+        const colors = ['#ffc107', '#28a745', '#17a2b8', '#fd7e14', '#e83e8c', '#6f42c1'];
+        const container = document.querySelector('.success-content');
+        
+        for (let i = 0; i < 20; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'absolute';
+            confetti.style.width = '10px';
+            confetti.style.height = '10px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '-10px';
+            confetti.style.borderRadius = '50%';
+            confetti.style.pointerEvents = 'none';
+            confetti.style.zIndex = '5';
+            
+            container.appendChild(confetti);
+            
+            // Animation de chute
+            let position = -10;
+            const fallSpeed = Math.random() * 3 + 2;
+            const sway = Math.random() * 4 - 2;
+            
+            const fall = setInterval(() => {
+                position += fallSpeed;
+                confetti.style.top = position + 'px';
+                confetti.style.left = (parseFloat(confetti.style.left) + sway * 0.1) + '%';
+                
+                if (position > container.offsetHeight + 20) {
+                    clearInterval(fall);
+                    confetti.remove();
+                }
+            }, 50);
+        }
+    }
+</script>
+{% endblock %}

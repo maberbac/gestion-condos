@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bilan Financier{% endblock %}
+
+{% block page_title %}Bilan Financier{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">Actifs</div>
+        <div class="card-body">
+            <p><strong>Encaisse:</strong> 25 000 $</p>
+            <p><strong>Comptes à recevoir:</strong> 3 500 $</p>
+            <p><strong>Placements à court terme:</strong> 50 000 $</p>
+            <p><strong>Total actifs courants:</strong> 78 500 $</p>
+            <p><strong>Immobilisations nettes:</strong> 2 100 000 $</p>
+            <p><strong>Total actifs:</strong> 2 178 500 $</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Passifs et avoir net</div>
+        <div class="card-body">
+            <p><strong>Comptes à payer:</strong> 8 200 $</p>
+            <p><strong>Charges à payer:</strong> 4 300 $</p>
+            <p><strong>Total passifs:</strong> 12 500 $</p>
+            <p><strong>Avoir net des copropriétaires:</strong> 2 166 000 $</p>
+            <p><strong>Total passifs et avoir net:</strong> 2 178 500 $</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Ratios financiers</div>
+    <div class="card-body">
+        <p><strong>Ratio de liquidité:</strong> 6.3</p>
+        <p><strong>Fonds de réserve (% des actifs):</strong> 3.6%</p>
+        <p><strong>Endettement (% des actifs):</strong> 0.6%</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Actions</div>
+    <div class="card-body">
+        <p><a href="/finance" class="btn-link">← Retour aux finances</a></p>
+    </div>
+</div>
+{% endblock %}
