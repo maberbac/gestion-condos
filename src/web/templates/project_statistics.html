@@ -1,0 +1,736 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiques - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">{{ project_name }}</h1>
+            <p class="page-subtitle">Statistiques détaillées du projet</p>
+        </div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('projects') }}" class="breadcrumb-link">Projets</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current">{{ project_name }}</span>
+        </nav>
+    </div>
+
+    {% if statistics %}
+    <!-- Statistiques principales -->
+    <div class="stats-overview">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-home"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ statistics.total_units }}</h3>
+                <p>Unités Totales</p>
+                <span class="stat-change">Projet complet</span>
+            </div>
+        </div>
+        
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ statistics.sold_units }}</h3>
+                <p>Unités Vendues</p>
+                <span class="stat-change">{{ "%.1f"|format(statistics.occupancy_rate) }}% occupé</span>
+            </div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ statistics.available_units }}</h3>
+                <p>Disponibles</p>
+                <span class="stat-change">Prêt à vendre</span>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ "%.1f"|format(statistics.occupancy_rate) }}%</h3>
+                <p>Taux d'Occupation</p>
+                {% set rate = statistics.occupancy_rate %}
+                {% if rate >= 80 %}
+                    <span class="stat-change positive">Excellent</span>
+                {% elif rate >= 50 %}
+                    <span class="stat-change neutral">Bon</span>
+                {% else %}
+                    <span class="stat-change negative">À améliorer</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique de progression -->
+    <div class="progress-section">
+        <h2 class="section-title">Progression des Ventes</h2>
+        <div class="progress-container">
+            <div class="progress-bar-large">
+                <div class="progress-fill-large" style="width: {{ statistics.occupancy_rate }}%">
+                    <span class="progress-text-inner">{{ statistics.sold_units }}/{{ statistics.total_units }}</span>
+                </div>
+            </div>
+            <div class="progress-info">
+                <div class="progress-detail">
+                    <span class="detail-label">Vendues:</span>
+                    <span class="detail-value">{{ statistics.sold_units }} unités</span>
+                </div>
+                <div class="progress-detail">
+                    <span class="detail-label">Disponibles:</span>
+                    <span class="detail-value">{{ statistics.available_units }} unités</span>
+                </div>
+                <div class="progress-detail">
+                    <span class="detail-label">Progression:</span>
+                    <span class="detail-value">{{ "%.1f"|format(statistics.occupancy_rate) }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyse détaillée -->
+    <div class="analysis-grid">
+        <div class="analysis-card">
+            <h3 class="card-title">
+                <i class="fas fa-chart-line"></i>
+                Analyse des Ventes
+            </h3>
+            <div class="analysis-content">
+                {% set rate = statistics.occupancy_rate %}
+                {% if rate >= 80 %}
+                <div class="analysis-item positive">
+                    <i class="fas fa-thumbs-up"></i>
+                    <div>
+                        <strong>Performance Excellente</strong>
+                        <p>Le projet affiche un taux d'occupation de {{ "%.1f"|format(rate) }}%, ce qui est excellent pour un projet de condominiums.</p>
+                    </div>
+                </div>
+                {% elif rate >= 50 %}
+                <div class="analysis-item neutral">
+                    <i class="fas fa-chart-line"></i>
+                    <div>
+                        <strong>Performance Satisfaisante</strong>
+                        <p>Avec {{ "%.1f"|format(rate) }}% d'occupation, le projet progresse bien. Il reste {{ statistics.available_units }} unités à vendre.</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="analysis-item attention">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Potentiel d'Amélioration</strong>
+                        <p>Le taux d'occupation de {{ "%.1f"|format(rate) }}% suggère des opportunités d'amélioration de la stratégie commerciale.</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="analysis-metrics">
+                    <div class="metric">
+                        <span class="metric-label">Unités restantes:</span>
+                        <span class="metric-value">{{ statistics.available_units }}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Potentiel de revenus:</span>
+                        <span class="metric-value">{{ statistics.available_units }} unités × prix moyen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-card">
+            <h3 class="card-title">
+                <i class="fas fa-lightbulb"></i>
+                Recommandations
+            </h3>
+            <div class="analysis-content">
+                {% if statistics.occupancy_rate >= 80 %}
+                <div class="recommendation">
+                    <i class="fas fa-check-circle text-success"></i>
+                    <p>Maintenir la stratégie actuelle - excellents résultats</p>
+                </div>
+                <div class="recommendation">
+                    <i class="fas fa-star text-warning"></i>
+                    <p>Considérer augmenter les prix pour les dernières unités (offre limitée)</p>
+                </div>
+                {% elif statistics.occupancy_rate >= 50 %}
+                <div class="recommendation">
+                    <i class="fas fa-bullhorn text-info"></i>
+                    <p>Intensifier les efforts marketing pour les {{ statistics.available_units }} unités restantes</p>
+                </div>
+                <div class="recommendation">
+                    <i class="fas fa-users text-primary"></i>
+                    <p>Organiser des visites groupées et événements promotionnels</p>
+                </div>
+                {% else %}
+                <div class="recommendation">
+                    <i class="fas fa-search text-warning"></i>
+                    <p>Analyser la concurrence et ajuster la stratégie de prix</p>
+                </div>
+                <div class="recommendation">
+                    <i class="fas fa-gift text-success"></i>
+                    <p>Considérer des incitatifs pour accélérer les ventes</p>
+                </div>
+                {% endif %}
+                
+                <div class="recommendation">
+                    <i class="fas fa-chart-bar text-secondary"></i>
+                    <p>Suivre l'évolution mensuelle pour optimiser la stratégie</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions disponibles -->
+    <div class="actions-section">
+        <h2 class="section-title">Actions Disponibles</h2>
+        <div class="actions-grid">
+            <button class="action-card" onclick="viewProjectDetails()">
+                <i class="fas fa-eye"></i>
+                <span>Voir Détails du Projet</span>
+            </button>
+            <button class="action-card" onclick="viewUnits()">
+                <i class="fas fa-list"></i>
+                <span>Liste des Unités</span>
+            </button>
+            <button class="action-card" onclick="exportReport()">
+                <i class="fas fa-download"></i>
+                <span>Exporter Rapport</span>
+            </button>
+            <button class="action-card" onclick="updateProject()">
+                <i class="fas fa-edit"></i>
+                <span>Modifier Projet</span>
+            </button>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- État d'erreur -->
+    <div class="error-state">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Données non disponibles</h3>
+        <p>Impossible de charger les statistiques pour ce projet.</p>
+        <a href="{{ url_for('projects') }}" class="btn btn-primary">
+            Retour aux Projets
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.header-content .page-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #6c757d;
+    margin: 0.5rem 0 0 0;
+    font-size: 1rem;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+    color: #667eea;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.breadcrumb-link:hover {
+    color: #5a6fd8;
+}
+
+.breadcrumb-separator {
+    margin: 0 0.5rem;
+}
+
+.stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.stat-card.primary::before {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card.success::before {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.stat-card.info::before {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+}
+
+.stat-card.warning::before {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.stat-icon i {
+    font-size: 1.5rem;
+    color: #667eea;
+}
+
+.stat-content h3 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.25rem 0;
+}
+
+.stat-content p {
+    color: #6c757d;
+    margin: 0 0 0.25rem 0;
+    font-weight: 500;
+}
+
+.stat-change {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.stat-change.positive {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.stat-change.neutral {
+    background: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+}
+
+.stat-change.negative {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.progress-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.progress-container {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.progress-bar-large {
+    width: 100%;
+    height: 40px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill-large {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    transition: width 0.8s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill-large::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.progress-text-inner {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.progress-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.progress-detail {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.detail-label {
+    display: block;
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.detail-value {
+    display: block;
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.analysis-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.analysis-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.analysis-item.positive {
+    background: rgba(40, 167, 69, 0.05);
+    border-left: 4px solid #28a745;
+}
+
+.analysis-item.neutral {
+    background: rgba(23, 162, 184, 0.05);
+    border-left: 4px solid #17a2b8;
+}
+
+.analysis-item.attention {
+    background: rgba(255, 193, 7, 0.05);
+    border-left: 4px solid #ffc107;
+}
+
+.analysis-item i {
+    color: #667eea;
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.analysis-item strong {
+    color: #2c3e50;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.analysis-item p {
+    color: #6c757d;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.analysis-metrics {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.metric-value {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.recommendation {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.recommendation i {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.recommendation p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.4;
+}
+
+.actions-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.action-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-card:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    transform: translateY(-3px);
+}
+
+.action-card i {
+    font-size: 1.5rem;
+    color: #667eea;
+    transition: color 0.3s ease;
+}
+
+.action-card:hover i {
+    color: white;
+}
+
+.action-card span {
+    font-weight: 600;
+    color: #2c3e50;
+    transition: color 0.3s ease;
+}
+
+.action-card:hover span {
+    color: white;
+}
+
+.error-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.error-icon i {
+    font-size: 4rem;
+    color: #ffc107;
+    margin-bottom: 1rem;
+}
+
+.error-state h3 {
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.error-state p {
+    color: #adb5bd;
+    margin-bottom: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@media (max-width: 768px) {
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .progress-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+function viewProjectDetails() {
+    alert('Fonctionnalité en développement - Voir détails du projet');
+}
+
+function viewUnits() {
+    alert('Fonctionnalité en développement - Liste des unités du projet');
+}
+
+function exportReport() {
+    alert('Fonctionnalité en développement - Export du rapport de statistiques');
+}
+
+function updateProject() {
+    const projectName = "{{ project_name }}";
+    const confirmed = confirm(`Voulez-vous modifier les paramètres du projet "${projectName}" ?`);
+    if (confirmed) {
+        alert('Fonctionnalité en développement - Modification du projet');
+    }
+}
+
+// Animation d'entrée pour les statistiques
+document.addEventListener('DOMContentLoaded', function() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

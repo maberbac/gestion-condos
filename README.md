@@ -56,6 +56,12 @@ Ce projet illustre l'implémentation de quatre concepts techniques avancés :
 - **JSON** (configuration système - `config/app.json`)
 - **Logging** (système de logging centralisé configurable)
 
+### Architecture de Base de Données
+- **Migrations Centralisées** : Toutes les migrations sont gérées par `SQLiteAdapter` uniquement
+- **Table de Tracking** : `schema_migrations` empêche les duplications de migrations
+- **Intégrité des Données** : Protection contre la corruption lors des redémarrages multiples
+- **Configuration JSON** : Base de données configurée via `config/database.json`
+
 ## Méthodologie de Développement
 
 ### TDD avec Mocking Strict - APPLICATION COMPLÈTE
@@ -76,19 +82,20 @@ Le projet applique une méthodologie **Test-Driven Development (TDD)** avec des 
 #### Structure de Tests Finalisée
 ```
 tests/
-├── unit/                    # Tests unitaires (145 tests - 0.8s)
-├── integration/             # Tests d'intégration (77 tests - 1.8s)  
-├── acceptance/              # Tests d'acceptance (84 tests - 2.1s)
+├── unit/                    # Tests unitaires (184 tests - logique métier)
+├── integration/             # Tests d'intégration (108 tests - composants)  
+├── acceptance/              # Tests d'acceptance (101 tests - scenarios)
+├── fixtures/                # Données et utilitaires de test
 ├── run_all_unit_tests.py    # Exécute TOUS les tests unitaires
 ├── run_all_integration_tests.py  # Exécute TOUS les tests d'intégration
 ├── run_all_acceptance_tests.py   # Exécute TOUS les tests d'acceptance
-└── run_all_tests.py         # Exécute les 3 niveaux de tests (4.7s total)
+└── run_all_tests.py         # Exécute les 3 niveaux de tests
 ```
 
-#### Résultats Observés
-- **Performance** : Tests ultra-rapides (306 tests en 4.7s)
-- **Fiabilité** : Aucun effet de bord entre tests (100% succès)
-- **Reproductibilité** : Tests identiques dans n'importe quel ordre
+#### Résultats Actuels
+- **Performance** : 393 tests avec 100% de succès
+- **Fiabilité** : Aucun effet de bord entre tests (isolation complète)
+- **Reproductibilité** : Tests indépendants dans n'importe quel ordre
 - **Debugging** : Isolation facilite l'identification des problèmes
 - **Qualité** : Couverture complète du système avec validation TDD
 
@@ -149,11 +156,22 @@ gestion-condos/
 │   │   └── use_cases/           #   - Cas d'usage applicatifs
 │   ├── ports/                    # Interfaces (Contracts)
 │   ├── adapters/                 # Implémentations Concrètes
-│   │   ├── file_adapter.py      #   - [Concept: File Reading]
+│   │   ├── sqlite_adapter.py    #   - Adapter SQLite centralisé (migrations)
+│   │   ├── project_repository_sqlite.py  #   - Repository projets SQLite
+│   │   ├── user_repository_sqlite.py     #   - Repository utilisateurs SQLite
+│   │   ├── user_file_adapter.py  #   - [Concept: File Reading]
 │   │   ├── web_adapter.py       #   - [Concept: Async Programming]
 │   │   ├── error_adapter.py     #   - [Concept: Exception Handling]
 │   │   └── future_extensions/   #   - Extensions futures (location, juridique)
-│   └── infrastructure/          # Configuration et utilitaires
+│   ├── application/             # Services Application
+│   │   └── services/            #   - Services orchestration métier
+│   ├── infrastructure/          # Configuration et utilitaires
+│   │   ├── logger_manager.py    #   - Système logging centralisé
+│   │   └── config_manager.py    #   - Gestion configuration JSON
+│   └── web/                     # Interface Web Flask
+│       ├── condo_app.py         #   - Application Flask principale
+│       ├── templates/           #   - Templates HTML modernes
+│       └── static/              #   - CSS et assets
 ├── tests/                        # Tests TDD avec unittest
 │   ├── fixtures/                #   - Input/Expected/Config data
 │   │   ├── config/
@@ -162,10 +180,10 @@ gestion-condos/
 │   ├── integration/
 │   ├── unit/
 │   ├── acceptance/
-│   ├── run_acceptance_tests.py
+│   ├── run_all_acceptance_tests.py
 │   ├── run_all_tests.py
-│   ├── run_integration_tests.py
-│   └── run_unit_tests.py
+│   ├── run_all_integration_tests.py
+│   └── run_all_unit_tests.py
 ├── docs/                         # Documentation Technique
 │   ├── architecture.md          #   - Architecture hexagonale détaillée
 │   ├── conception-extensibilite.md #   - Conception pour extensions futures
@@ -173,8 +191,7 @@ gestion-condos/
 │   ├── guide-demarrage.md       #   - Guide de démarrage rapide
 │   ├── guide-logging.md         #   - Documentation système de logging
 │   ├── journal-developpement.md    #   - Journal de développement et roadmap
-│   ├── methodologie.md          #   - TDD avec unittest
-│   └── status-success.md        #   - Statut de réussite du projet
+│   └── methodologie.md          #   - TDD avec unittest
 ├── ai-guidelines/               # Instructions et Guidelines pour l'IA
 │   ├── checklist-concepts.md    #   - Checklist des concepts techniques
 │   ├── consignes-projet.md      #   - Exigences et contraintes du projet
@@ -281,16 +298,16 @@ L'application sera accessible à l'adresse : `http://localhost:5000`
 
 #### Tests par catégorie (Performance Optimisée)
 ```bash
-# Tests unitaires uniquement (145 tests - 0.8s)
+# Tests unitaires uniquement (184 tests - logique métier)
 python tests/run_all_unit_tests.py
 
-# Tests d'intégration uniquement (77 tests - 1.8s)
+# Tests d'intégration uniquement (108 tests - composants)
 python tests/run_all_integration_tests.py
 
-# Tests d'acceptance uniquement (84 tests - 2.1s)
+# Tests d'acceptance uniquement (101 tests - scenarios)
 python tests/run_all_acceptance_tests.py
 
-# Tous les tests avec rapport consolidé (306 tests - 4.7s)
+# Tous les tests avec rapport consolidé (393 tests)
 python tests/run_all_tests.py
 ```
 
@@ -394,9 +411,45 @@ Chaque type de test dispose de son propre runner avec découverte automatique :
 
 ```bash
 tests/
-├── unit/                           # Tests unitaires par concept
-│   ├── test_file_reader.py        # [CONCEPT] Lecture fichiers
-│   ├── test_functional_ops.py     # [CONCEPT] Programmation fonctionnelle
+├── unit/                           # Tests unitaires par composant (184 tests)
+│   ├── test_condo_entity.py       # Entité condo
+│   ├── test_condo_service.py      # Service métier condo
+│   ├── test_config_manager.py     # Gestionnaire configuration
+│   ├── test_financial_service.py  # Service financier
+│   ├── test_logger_manager.py     # Gestionnaire de logs
+│   ├── test_password_change_service.py  # Service changement mot de passe
+│   ├── test_project_entity.py     # Entité projet
+│   ├── test_project_service.py    # Service métier projet
+│   ├── test_user_creation_service.py  # Service création utilisateur
+│   ├── test_user_entity.py        # Entité utilisateur
+│   └── test_user_file_adapter.py  # Adapter fichiers utilisateur
+├── integration/                    # Tests d'intégration par flux (108 tests)
+│   ├── test_authentication_database_integration.py  # Authentification + DB
+│   ├── test_condo_routes_integration.py  # Routes web condos
+│   ├── test_logging_config_integration.py  # Configuration logging
+│   ├── test_password_change_integration.py  # Changement mot de passe
+│   ├── test_project_integration.py  # Gestion projets
+│   ├── test_user_creation_integration.py  # Création utilisateurs
+│   ├── test_user_deletion_integration.py  # Suppression utilisateurs
+│   └── test_web_integration.py    # Interface web complète
+├── acceptance/                     # Tests d'acceptance par scenario (101 tests)
+│   ├── test_authentication_database_acceptance.py  # Scénarios authentification
+│   ├── test_condo_management_acceptance.py  # Gestion condos end-to-end
+│   ├── test_financial_scenarios.py  # Scénarios financiers
+│   ├── test_logging_system_acceptance.py  # Système de logging
+│   ├── test_modern_ui_acceptance.py  # Interface utilisateur moderne
+│   ├── test_password_change_acceptance.py  # Changement mot de passe
+│   ├── test_project_acceptance.py  # Gestion projets complète
+│   ├── test_security_acceptance.py  # Sécurité et permissions
+│   ├── test_user_creation_acceptance.py  # Création utilisateurs
+│   ├── test_user_deletion_acceptance.py  # Suppression utilisateurs
+│   └── test_web_interface.py      # Interface web complète
+├── fixtures/                       # Données de test et utilitaires
+├── run_all_unit_tests.py          # Runner tests unitaires
+├── run_all_integration_tests.py   # Runner tests d'intégration  
+├── run_all_acceptance_tests.py    # Runner tests d'acceptance
+└── run_all_tests.py               # Runner complet (393 tests)
+```
 │   ├── test_error_handler.py      # [CONCEPT] Gestion erreurs
 │   └── test_async_ops.py          # [CONCEPT] Programmation asynchrone
 ├── integration/                    # Tests d'intégration
@@ -452,6 +505,177 @@ coverage html
 python tests/run_all_tests.py --report --html
 ```
 
+## Arborescence du Projet
+
+```
+gestion-condos/
+├── README.md                    # Documentation principale
+├── requirements.txt             # Dépendances Python de base
+├── requirements-web.txt         # Dépendances web Flask
+├── run_app.py                   # Point d'entrée application web
+├── configure_logging.py         # Configuration du système de logging
+├── .gitignore                   # Fichiers exclus du versioning
+│
+├── .github/                     # Configuration GitHub
+│   ├── copilot-instructions.md # Instructions GitHub Copilot  
+│   └── ai-guidelines/           # Guidelines additionnelles IA
+│
+├── ai-guidelines/               # Instructions et contexte pour l'IA
+│   ├── README.md               # Index des instructions IA
+│   ├── checklist-concepts.md   # Checklist concepts techniques
+│   ├── consignes-projet.md     # Exigences et contraintes projet
+│   ├── debut-session.md        # Guide début de session IA
+│   ├── guidelines-code.md      # Standards de code
+│   ├── instructions-ai.md      # Instructions spécifiques projet
+│   └── regles-developpement.md # Règles TDD et mocking
+│
+├── config/                      # Configuration système
+│   ├── app.json                # Configuration application principale
+│   ├── database.json           # Configuration base de données
+│   ├── logging.json            # Configuration système de logs
+│   └── schemas/                # Schémas de validation JSON
+│       ├── app_schema.json
+│       └── database_schema.json
+│
+├── data/                        # Données et base de données
+│   ├── condos.db               # Base de données SQLite principale
+│   ├── projects.json           # Données projets (transition)
+│   ├── users.json              # Données utilisateurs (transition)
+│   └── migrations/             # Scripts de migration base de données
+│       ├── 001_initial_schema.sql
+│       ├── 002_users_authentication.sql
+│       ├── 003_projects_units_tables.sql
+│       ├── 004_populate_projects.sql
+│       ├── 005_populate_units.sql
+│       └── README.md           # Documentation des scripts d'initialisation
+│
+├── docs/                        # Documentation du projet
+│   ├── README.md               # Index de la documentation
+│   ├── architecture.md         # Architecture hexagonale
+│   ├── architecture-finale.md  # Architecture finale complète
+│   ├── conception-extensibilite.md  # Conception extensions
+│   ├── documentation-technique.md   # Documentation technique
+│   ├── fonctionnalites-details-utilisateur.md  # Guide utilisateur
+│   ├── guide-demarrage.md      # Guide de démarrage
+│   ├── guide-logging.md        # Documentation logging
+│   ├── guide-tests-mocking.md  # Guide tests avec mocking
+│   ├── journal-developpement.md  # Journal développement
+│   └── methodologie.md         # Méthodologie TDD
+│
+├── logs/                        # Fichiers de logs
+│   ├── application.log         # Logs application principale
+│   ├── app_startup.log         # Logs de démarrage
+│   └── errors.log              # Logs d'erreurs
+│
+├── src/                         # Code source principal
+│   ├── adapters/               # Adapters (couche infrastructure)
+│   │   ├── file_adapter.py     # Adapter lecture fichiers
+│   │   ├── project_repository_sqlite.py  # Repository projets SQLite
+│   │   ├── sqlite_adapter.py   # Adapter SQLite principal
+│   │   ├── user_file_adapter.py # Adapter fichiers utilisateurs
+│   │   └── user_repository_sqlite.py  # Repository utilisateurs SQLite
+│   │
+│   ├── application/            # Services applicatifs
+│   │   └── services/
+│   │       ├── condo_service.py   # Service métier condos
+│   │       ├── project_service.py # Service métier projets
+│   │       └── user_service.py    # Service métier utilisateurs
+│   │
+│   ├── domain/                 # Domaine métier (core business)
+│   │   ├── entities/           # Entités métier
+│   │   │   ├── condo.py       # Entité Condo
+│   │   │   ├── project.py     # Entité Project
+│   │   │   ├── unit.py        # Entité Unit
+│   │   │   └── user.py        # Entité User
+│   │   ├── exceptions/         # Exceptions métier
+│   │   │   └── business_exceptions.py
+│   │   ├── services/           # Services domaine
+│   │   │   ├── authentication_service.py  # Service authentification
+│   │   │   ├── financial_service.py       # Service financier
+│   │   │   ├── password_change_service.py # Service changement mdp
+│   │   │   └── user_creation_service.py   # Service création utilisateur
+│   │   └── use_cases/          # Cas d'usage métier
+│   │
+│   ├── infrastructure/         # Infrastructure système
+│   │   ├── config_manager.py   # Gestionnaire de configuration
+│   │   ├── logger_manager.py   # Gestionnaire de logging
+│   │   └── repositories/       # Repositories infrastructure
+│   │       └── user_repository.py
+│   │
+│   ├── ports/                  # Ports (interfaces hexagonales)
+│   │   ├── condo_repository.py     # Port repository condos
+│   │   ├── condo_repository_sync.py # Port repository condos sync
+│   │   └── user_repository.py      # Port repository utilisateurs
+│   │
+│   └── web/                    # Interface web Flask
+│       ├── condo_app.py        # Application Flask principale
+│       ├── unite_app.py        # Application Flask unités
+│       ├── static/             # Ressources statiques
+│       │   └── css/
+│       │       └── style.css   # Styles CSS modernes
+│       └── templates/          # Templates HTML Jinja2
+│           ├── base.html       # Template de base
+│           ├── dashboard.html  # Tableau de bord
+│           ├── condos.html     # Gestion des condos
+│           ├── finance.html    # Page financière
+│           ├── login.html      # Page de connexion
+│           ├── profile.html    # Profil utilisateur
+│           ├── projets.html    # Gestion des projets
+│           ├── success.html    # Page de succès
+│           ├── users.html      # Gestion des utilisateurs
+│           ├── admin/          # Templates administrateur
+│           ├── errors/         # Templates d'erreur
+│           └── resident/       # Templates résident
+│
+├── tests/                       # Suite de tests complète (393 tests)
+│   ├── README.md               # Documentation des tests
+│   ├── run_all_unit_tests.py   # Runner tests unitaires (184 tests)
+│   ├── run_all_integration_tests.py # Runner tests intégration (108 tests)
+│   ├── run_all_acceptance_tests.py  # Runner tests acceptance (101 tests)
+│   ├── run_all_tests.py        # Runner complet tous tests
+│   ├── fixtures/               # Données et utilitaires de test
+│   ├── unit/                   # Tests unitaires (logique métier)
+│   │   ├── test_condo_entity.py
+│   │   ├── test_condo_service.py
+│   │   ├── test_config_manager.py
+│   │   ├── test_financial_service.py
+│   │   ├── test_logger_manager.py
+│   │   ├── test_password_change_service.py
+│   │   ├── test_project_entity.py
+│   │   ├── test_project_service.py
+│   │   ├── test_user_creation_service.py
+│   │   ├── test_user_entity.py
+│   │   └── test_user_file_adapter.py
+│   ├── integration/            # Tests d'intégration (composants)
+│   │   ├── test_authentication_database_integration.py
+│   │   ├── test_condo_routes_integration.py
+│   │   ├── test_logging_config_integration.py
+│   │   ├── test_password_change_integration.py
+│   │   ├── test_project_integration.py
+│   │   ├── test_user_creation_integration.py
+│   │   ├── test_user_deletion_integration.py
+│   │   └── test_web_integration.py
+│   └── acceptance/             # Tests d'acceptance (scénarios)
+│       ├── test_authentication_database_acceptance.py
+│       ├── test_condo_management_acceptance.py
+│       ├── test_financial_scenarios.py
+│       ├── test_logging_system_acceptance.py
+│       ├── test_modern_ui_acceptance.py
+│       ├── test_password_change_acceptance.py
+│       ├── test_project_acceptance.py
+│       ├── test_security_acceptance.py
+│       ├── test_user_creation_acceptance.py
+│       ├── test_user_deletion_acceptance.py
+│       └── test_web_interface.py
+│
+└── tmp/                         # Fichiers temporaires et utilitaires
+    ├── analyze_projects.py      # Utilitaires d'analyse
+    ├── check_db_tables.py       # Vérification base de données
+    ├── cleanup_project.py       # Nettoyage projet
+    ├── complete_migration.py    # Scripts de migration
+    └── populate_units.py        # Population données test
+```
+
 ## Documentation
 
 ### Documentation Technique
@@ -459,7 +683,6 @@ python tests/run_all_tests.py --report --html
 - `docs/documentation-technique.md` - Documentation complète
 - `docs/methodologie.md` - Processus de développement TDD
 - `docs/guide-demarrage.md` - Guide de démarrage rapide
-- `docs/status-success.md` - Statut de réussite du projet
 
 ### Instructions de Développement IA
 - `ai-guidelines/consignes-projet.md` - Exigences du projet

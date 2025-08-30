@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}{{ condo.unit_number }} - Détails Condo{% endblock %}
+
+{% block content %}
+<div class="condo-details-container">
+    <!-- Header Section -->
+    <div class="details-header">
+        <div class="header-content">
+            <div class="header-icon">🏠</div>
+            <div class="header-text">
+                <h1>Condo {{ condo.unit_number }}</h1>
+                <p class="header-subtitle">Détails complets de l'unité</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/condos" class="back-btn">
+                <span class="btn-icon">← </span>
+                <span class="btn-text">Retour à la liste</span>
+            </a>
+            {% if user_role == 'admin' %}
+            <a href="/condos/{{ condo.unit_number }}/edit" class="edit-btn">
+                <span class="btn-icon">✏️</span>
+                <span class="btn-text">Modifier</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="details-content">
+        <!-- Basic Information Card -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3>Informations Générales</h3>
+                <span class="card-icon">📋</span>
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Numéro d'unité</span>
+                    <span class="info-value">{{ condo.unit_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Propriétaire</span>
+                    <span class="info-value">{{ condo.owner_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Type d'unité</span>
+                    <span class="info-value">{{ condo.condo_type.value|title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Statut</span>
+                    <span class="info-value status-{{ condo.status.value }}">{{ condo.status.value|title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Superficie</span>
+                    <span class="info-value">{{ condo.square_feet }} pi²</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frais mensuels</span>
+                    <span class="info-value">${{ condo.monthly_fees }}</span>
+                </div>
+                {% if condo.building_name %}
+                <div class="info-item">
+                    <span class="info-label">Bâtiment</span>
+                    <span class="info-value">{{ condo.building_name }}</span>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <span class="info-label">Disponibilité</span>
+                    <span class="info-value availability-{{ 'available' if not condo.is_sold else 'occupied' }}">
+                        {{ 'Disponible' if not condo.is_sold else 'Occupé' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Information Card -->
+        <div class="info-card">
+            <div class="card-header">
+                <h3>Informations Financières</h3>
+                <span class="card-icon">💰</span>
+            </div>
+            <div class="financial-details">
+                <div class="financial-item">
+                    <span class="financial-label">Frais mensuels</span>
+                    <span class="financial-value">${{ condo.monthly_fees }}</span>
+                </div>
+                <div class="financial-item">
+                    <span class="financial-label">Frais annuels estimés</span>
+                    <span class="financial-value">${{ condo.monthly_fees * 12 }}</span>
+                </div>
+                <div class="financial-item">
+                    <span class="financial-label">Coût par pi²/mois</span>
+                    <span class="financial-value">${{ "%.2f"|format(condo.monthly_fees / condo.square_feet) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="info-card status-card">
+            <div class="card-header">
+                <h3>Statut et Disponibilité</h3>
+                <span class="card-icon">📊</span>
+            </div>
+            <div class="status-details">
+                <div class="status-badge-large {{ condo.status.value }}">
+                    <div class="status-icon">
+                        {% if condo.status.value == 'active' %}✅
+                        {% elif condo.status.value == 'inactive' %}❌
+                        {% elif condo.status.value == 'maintenance' %}🔧
+                        {% elif condo.status.value == 'sold' %}💰
+                        {% else %}❓{% endif %}
+                    </div>
+                    <div class="status-text">
+                        <div class="status-title">{{ condo.status.value|title }}</div>
+                        <div class="status-description">
+                            {% if condo.status.value == 'active' %}
+                                L'unité est active et génère des frais de copropriété
+                            {% elif condo.status.value == 'inactive' %}
+                                L'unité est temporairement inactive
+                            {% elif condo.status.value == 'maintenance' %}
+                                L'unité est en mode maintenance
+                            {% elif condo.status.value == 'sold' %}
+                                L'unité a été vendue
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.condo-details-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-icon {
+    font-size: 3rem;
+    opacity: 0.9;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 600;
+}
+
+.header-subtitle {
+    margin: 5px 0 0 0;
+    opacity: 0.8;
+    font-size: 1.1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.back-btn, .edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover, .edit-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.details-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.info-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.card-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.card-icon {
+    font-size: 1.5rem;
+    opacity: 0.7;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.info-value.status-active { color: #28a745; }
+.info-value.status-inactive { color: #dc3545; }
+.info-value.status-maintenance { color: #ffc107; }
+.info-value.status-sold { color: #17a2b8; }
+
+.info-value.availability-available { color: #28a745; }
+.info-value.availability-occupied { color: #dc3545; }
+
+.financial-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.financial-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.financial-label {
+    font-size: 1rem;
+    color: #666;
+}
+
+.financial-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.status-card {
+    grid-column: 1 / -1;
+}
+
+.status-details {
+    display: flex;
+    justify-content: center;
+}
+
+.status-badge-large {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px;
+    border-radius: 15px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    min-width: 300px;
+}
+
+.status-badge-large.active {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border-color: #28a745;
+}
+
+.status-badge-large.inactive {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    border-color: #dc3545;
+}
+
+.status-badge-large.maintenance {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border-color: #ffc107;
+}
+
+.status-badge-large.sold {
+    background: linear-gradient(135deg, #d1ecf1, #b8daff);
+    border-color: #17a2b8;
+}
+
+.status-icon {
+    font-size: 3rem;
+}
+
+.status-text {
+    flex: 1;
+}
+
+.status-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.status-description {
+    font-size: 1rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .condo-details-container {
+        padding: 15px;
+    }
+    
+    .details-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .header-content {
+        justify-content: center;
+    }
+    
+    .details-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .status-badge-large {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+        min-width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .details-header {
+        padding: 20px;
+    }
+    
+    .header-text h1 {
+        font-size: 1.8rem;
+    }
+    
+    .info-card {
+        padding: 20px;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .back-btn, .edit-btn {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

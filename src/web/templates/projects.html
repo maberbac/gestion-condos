@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Projets{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1 class="page-title">Gestion des Projets de Condominiums</h1>
+        <div class="page-actions">
+            <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouveau Projet
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistiques globales -->
+    {% if projects_data and projects_data.success %}
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ projects_data.total_projects }}</h3>
+                <p>Projets Total</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-home"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ projects_data.total_units }}</h3>
+                <p>Unités Total</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ projects_data.total_sold }}</h3>
+                <p>Unités Vendues</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ "%.1f"|format(projects_data.overall_occupancy) }}%</h3>
+                <p>Taux Global</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Liste des projets -->
+    <div class="projects-container">
+        <h2 class="section-title">Projets Actifs</h2>
+        
+        {% if projects_data and projects_data.success and projects_data.projects %}
+        <div class="projects-grid">
+            {% for project in projects_data.projects %}
+            <div class="project-card">
+                <div class="project-header">
+                    <h3 class="project-name">{{ project.name }}</h3>
+                    <div class="project-status">
+                        {% set occupancy = project.occupancy_rate %}
+                        {% if occupancy >= 80 %}
+                            <span class="status-badge status-success">Complet</span>
+                        {% elif occupancy >= 50 %}
+                            <span class="status-badge status-warning">En cours</span>
+                        {% else %}
+                            <span class="status-badge status-info">Disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="project-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Unités totales:</span>
+                        <span class="stat-value">{{ project.total_units }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Unités vendues:</span>
+                        <span class="stat-value">{{ project.sold_units }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Disponibles:</span>
+                        <span class="stat-value">{{ project.available_units }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Taux d'occupation:</span>
+                        <span class="stat-value">{{ "%.1f"|format(project.occupancy_rate) }}%</span>
+                    </div>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ project.occupancy_rate }}%"></div>
+                    </div>
+                    <span class="progress-text">{{ project.sold_units }}/{{ project.total_units }}</span>
+                </div>
+                
+                <div class="project-actions">
+                    <a href="{{ url_for('project_statistics', project_name=project.name) }}" 
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-chart-bar"></i> Statistiques
+                    </a>
+                    <button class="btn btn-outline-secondary" 
+                            onclick="editProjectUnits('{{ project.name }}', {{ project.total_units }})">
+                        <i class="fas fa-edit"></i> Modifier
+                    </button>
+                    <button class="btn btn-outline-danger" 
+                            onclick="confirmDeleteProject('{{ project.name }}', {{ project.total_units }})">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <h3>Aucun projet existant</h3>
+            <p>Commencez par créer votre premier projet de condominium</p>
+            <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Créer un Projet
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal pour modifier le nombre d'unités -->
+<div class="modal fade" id="editUnitsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le nombre d'unités</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUnitsForm">
+                    <div class="form-group">
+                        <label for="projectNameDisplay">Projet:</label>
+                        <input type="text" id="projectNameDisplay" class="form-control" readonly>
+                        <input type="hidden" id="projectName" name="project_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="newUnitCount">Nouveau nombre d'unités:</label>
+                        <input type="number" id="newUnitCount" name="unit_count" 
+                               class="form-control" min="1" max="500" required>
+                        <small class="form-text text-muted">
+                            Note: Augmenter le nombre créera de nouvelles unités automatiquement
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveUnitsUpdate()">
+                    Mettre à jour
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.page-actions .btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    text-decoration: none;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.page-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.stat-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-content h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.stat-content p {
+    color: #6c757d;
+    margin: 0;
+    font-weight: 500;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.project-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.project-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.status-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #fce89d 100%);
+    color: #856404;
+}
+
+.status-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+
+.project-stats {
+    margin-bottom: 1.5rem;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.stat-value {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.progress-container {
+    margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.project-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.project-actions .btn {
+    flex: 1;
+    border-radius: 25px;
+    padding: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary {
+    border: 2px solid #667eea;
+    color: #667eea;
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+    background: transparent;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon i {
+    font-size: 4rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: #adb5bd;
+    margin-bottom: 2rem;
+}
+
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+@media (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .project-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function editProjectUnits(projectName, currentUnits) {
+    document.getElementById('projectNameDisplay').value = projectName;
+    document.getElementById('projectName').value = projectName;
+    document.getElementById('newUnitCount').value = currentUnits;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editUnitsModal'));
+    modal.show();
+}
+
+function saveUnitsUpdate() {
+    const projectName = document.getElementById('projectName').value;
+    const newUnitCount = parseInt(document.getElementById('newUnitCount').value);
+    
+    if (!newUnitCount || newUnitCount < 1 || newUnitCount > 500) {
+        alert('Veuillez entrer un nombre valide d\'unités (1-500)');
+        return;
+    }
+    
+    // Appel API pour mettre à jour
+    fetch(`/api/projects/${encodeURIComponent(projectName)}/update-units`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            unit_count: newUnitCount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Unités mises à jour avec succès');
+            location.reload(); // Recharger la page pour voir les changements
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur de communication avec le serveur');
+    });
+    
+    // Fermer le modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editUnitsModal'));
+    modal.hide();
+}
+
+// Fonction pour confirmer la suppression d'un projet
+function confirmDeleteProject(projectName, totalUnits) {
+    const message = `Êtes-vous sûr de vouloir supprimer le projet "${projectName}" ?\n\n` +
+                   `Cette action supprimera définitivement :\n` +
+                   `- Le projet et toutes ses données\n` +
+                   `- ${totalUnits} unité(s) associée(s)\n` +
+                   `- Toutes les statistiques du projet\n\n` +
+                   `Cette action est IRRÉVERSIBLE !`;
+    
+    if (confirm(message)) {
+        // TODO: Implémenter la logique de suppression
+        alert(`Fonctionnalité de suppression non encore implémentée.\n\nProjet à supprimer : ${projectName}`);
+        
+        // Lorsque l'implémentation sera faite, décommenter ces lignes :
+        // deleteProject(projectName);
+    }
+}
+
+// Fonction pour supprimer un projet (à implémenter plus tard)
+function deleteProject(projectName) {
+    // TODO: Appel API pour supprimer le projet
+    /*
+    fetch(`/api/projects/${encodeURIComponent(projectName)}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Projet supprimé avec succès');
+            location.reload(); // Recharger la page
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur de communication avec le serveur');
+    });
+    */
+}
+</script>
+{% endblock %}

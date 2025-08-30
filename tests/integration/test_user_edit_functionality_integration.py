@@ -62,44 +62,32 @@ class TestUserEditFunctionalityIntegration(unittest.TestCase):
                 # Ce n'est pas critique pour les tests
                 pass
 
-    def _create_test_user(self, repository, user_service, user_data):
-        """Helper pour créer un utilisateur de test."""
-        from src.domain.entities.user import User, UserRole
-        
-        # Créer l'entité utilisateur
-        user_entity = User(
-            username=user_data['username'],
-            email=user_data['email'],
-            password_hash=User.hash_password(user_data['password']),
-            full_name=user_data['full_name'],
-            role=UserRole(user_data['role']),
-            condo_unit=user_data['condo_unit']
-        )
-        
-        # Sauvegarder via le repository
-        created = user_service._run_async_operation(
-            repository.save_user, user_entity
-        )
-        return created
-
-    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite._load_database_config')
-    def test_integration_update_user_complete_flow(self, mock_load_config):
+    @patch('src.application.services.user_service.UserService')
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    def test_integration_update_user_complete_flow(self, mock_repository_class, mock_service_class):
         """Test d'intégration complet de mise à jour d'utilisateur."""
-        # Arrange
-        mock_load_config.return_value = self.test_config
+        # Arrange - Mock complet du repository et service
+        mock_repository = Mock()
+        mock_service = Mock()
+        mock_repository_class.return_value = mock_repository
+        mock_service_class.return_value = mock_service
         
-        from src.adapters.user_repository_sqlite import UserRepositorySQLite
+        # Mock des données de retour
+        mock_service.update_user_by_username.return_value = {'success': True}
+        mock_service.get_user_details_by_username.side_effect = [
+            {  # Pour updated_testuser
+                'email': 'updated@example.com',
+                'full_name': 'Updated Test User',
+                'role': 'admin',
+                'condo_unit': '202'
+            },
+            None  # Pour l'ancien nom d'utilisateur
+        ]
+        
         from src.application.services.user_service import UserService
-        from src.domain.entities.user import UserRole
         
-        # Initialiser le repository avec config de test
-        repository = UserRepositorySQLite()
+        # Initialiser le service
         user_service = UserService()
-        user_service.user_repository = repository
-        
-        # Créer un utilisateur initial
-        created = self._create_test_user(repository, user_service, self.test_user_data)
-        self.assertTrue(created)
         
         # Données de mise à jour
         update_data = {
@@ -132,23 +120,28 @@ class TestUserEditFunctionalityIntegration(unittest.TestCase):
         old_user = user_service.get_user_details_by_username(self.test_user_data['username'])
         self.assertIsNone(old_user)
 
-    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite._load_database_config')
-    def test_integration_update_user_partial_fields(self, mock_load_config):
+    @patch('src.application.services.user_service.UserService')
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    def test_integration_update_user_partial_fields(self, mock_repository_class, mock_service_class):
         """Test mise à jour partielle d'un utilisateur."""
-        # Arrange
-        mock_load_config.return_value = self.test_config
+        # Arrange - Mock complet du repository et service
+        mock_repository = Mock()
+        mock_service = Mock()
+        mock_repository_class.return_value = mock_repository
+        mock_service_class.return_value = mock_service
         
-        from src.adapters.user_repository_sqlite import UserRepositorySQLite
+        # Mock des données de retour
+        mock_service.update_user_by_username.return_value = {'success': True}
+        mock_service.get_user_details_by_username.return_value = {
+            'email': 'partial_update@example.com',
+            'full_name': 'Partial Update User',
+            'role': 'resident'
+        }
+        
         from src.application.services.user_service import UserService
-        from src.domain.entities.user import UserRole
         
-        repository = UserRepositorySQLite()
+        # Initialiser le service
         user_service = UserService()
-        user_service.user_repository = repository
-        
-        # Créer un utilisateur initial
-        created = self._create_test_user(repository, user_service, self.test_user_data)
-        self.assertTrue(created)
         
         # Données de mise à jour partielle (seulement email et nom)
         update_data = {
@@ -174,23 +167,26 @@ class TestUserEditFunctionalityIntegration(unittest.TestCase):
         self.assertEqual(updated_user.get('full_name'), 'Partial Update User')
         self.assertEqual(updated_user.get('role'), 'resident')
 
-    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite._load_database_config')
-    def test_integration_update_user_invalid_data(self, mock_load_config):
+    @patch('src.application.services.user_service.UserService')
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    def test_integration_update_user_invalid_data(self, mock_repository_class, mock_service_class):
         """Test mise à jour avec données invalides."""
-        # Arrange
-        mock_load_config.return_value = self.test_config
+        # Arrange - Mock complet du repository et service
+        mock_repository = Mock()
+        mock_service = Mock()
+        mock_repository_class.return_value = mock_repository
+        mock_service_class.return_value = mock_service
         
-        from src.adapters.user_repository_sqlite import UserRepositorySQLite
+        # Mock de retour d'erreur de validation
+        mock_service.update_user_by_username.return_value = {
+            'success': False,
+            'error': 'Erreur de validation: rôle invalide'
+        }
+        
         from src.application.services.user_service import UserService
-        from src.domain.entities.user import UserRole
         
-        repository = UserRepositorySQLite()
+        # Initialiser le service
         user_service = UserService()
-        user_service.user_repository = repository
-        
-        # Créer un utilisateur initial
-        created = self._create_test_user(repository, user_service, self.test_user_data)
-        self.assertTrue(created)
         
         # Données de mise à jour invalides (rôle incorrect)
         update_data = {

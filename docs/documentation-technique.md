@@ -227,42 +227,76 @@ import concurrent.futures
 
 ```
 gestion-condos/
-├── .github/                    # Instructions pour GitHub Copilot
-│   ├── copilot-instructions.md
-│   └── ai-guidelines/
-├── docs/                       # Documentation
-│   └── documentation-technique.md
-├── instructions/               # Instructions spécifiques au projet
-│   ├── instructions-ai.md
-│   ├── regles-developpement.md
-│   └── consignes-projet.md
-├── prompts/                   # Templates et directives
-│   └── checklist-concepts.md
-├── tmp/                       # Fichiers temporaires (ignorés par Git)
-├── src/                       # Code source principal
-│   ├── app/                   # Application principale
-│   │   ├── __init__.py
-│   │   ├── main.py           # Point d'entrée
-│   │   ├── routes/           # Routeurs et contrôleurs
-│   │   ├── services/         # Logique métier
-│   │   ├── models/           # Modèles de données
-│   │   └── utils/            # Utilitaires
-│   ├── static/               # Ressources statiques
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── templates/            # Templates HTML
-├── data/                     # Données de l'application
-│   ├── residents.json
-│   ├── unites.json
-│   └── finances.csv
-├── config/                   # Fichiers de configuration
-│   ├── app_config.json
-│   └── database_config.json
-├── tests/                    # Tests unitaires et d'intégration
-├── requirements.txt          # Dépendances Python
-├── .gitignore
-└── README.md
+├── README.md                    # Documentation principale
+├── requirements.txt             # Dépendances Python de base
+├── requirements-web.txt         # Dépendances web Flask
+├── run_app.py                   # Point d'entrée application web
+├── configure_logging.py         # Configuration du système de logging
+├── .gitignore                   # Fichiers exclus du versioning
+│
+├── .github/                     # Configuration GitHub
+│   ├── copilot-instructions.md # Instructions GitHub Copilot  
+│   └── ai-guidelines/           # Guidelines additionnelles IA
+│
+├── ai-guidelines/               # Instructions et contexte pour l'IA
+│   ├── README.md               # Index des instructions IA
+│   ├── checklist-concepts.md   # Checklist concepts techniques
+│   ├── consignes-projet.md     # Exigences et contraintes projet
+│   ├── debut-session.md        # Guide début de session IA
+│   ├── guidelines-code.md      # Standards de code
+│   ├── instructions-ai.md      # Instructions spécifiques projet
+│   └── regles-developpement.md # Règles TDD et mocking
+│
+├── config/                      # Configuration système
+│   ├── app.json                # Configuration application principale
+│   ├── database.json           # Configuration base de données
+│   ├── logging.json            # Configuration système de logs
+│   └── schemas/                # Schémas de validation JSON
+│
+├── data/                        # Données et base de données
+│   ├── condos.db               # Base de données SQLite principale
+│   ├── projects.json           # Données projets (transition)
+│   ├── users.json              # Données utilisateurs (transition)
+│   └── migrations/             # Scripts d'initialisation base de données
+│
+├── docs/                        # Documentation du projet
+│   ├── README.md               # Index de la documentation
+│   ├── architecture.md         # Architecture hexagonale
+│   ├── documentation-technique.md   # Documentation technique
+│   ├── guide-demarrage.md      # Guide de démarrage
+│   ├── guide-logging.md        # Documentation logging
+│   ├── guide-tests-mocking.md  # Guide tests avec mocking
+│   └── methodologie.md         # Méthodologie TDD
+│
+├── logs/                        # Fichiers de logs
+│   ├── application.log         # Logs application principale
+│   └── errors.log              # Logs d'erreurs
+│
+├── src/                         # Code source principal
+│   ├── adapters/               # Adapters (couche infrastructure)
+│   ├── application/            # Services applicatifs
+│   ├── domain/                 # Domaine métier (core business)
+│   │   ├── entities/           # Entités métier
+│   │   ├── exceptions/         # Exceptions métier
+│   │   ├── services/           # Services domaine
+│   │   └── use_cases/          # Cas d'usage métier
+│   ├── infrastructure/         # Infrastructure système
+│   ├── ports/                  # Ports (interfaces hexagonales)
+│   └── web/                    # Interface web Flask
+│       ├── static/             # Ressources statiques CSS/JS
+│       └── templates/          # Templates HTML Jinja2
+│
+├── tests/                       # Suite de tests complète (393 tests)
+│   ├── run_all_unit_tests.py   # Runner tests unitaires (184 tests)
+│   ├── run_all_integration_tests.py # Runner tests intégration (108 tests)
+│   ├── run_all_acceptance_tests.py  # Runner tests acceptance (101 tests)
+│   ├── run_all_tests.py        # Runner complet tous tests
+│   ├── fixtures/               # Données et utilitaires de test
+│   ├── unit/                   # Tests unitaires (logique métier)
+│   ├── integration/            # Tests d'intégration (composants)
+│   └── acceptance/             # Tests d'acceptance (scénarios)
+│
+└── tmp/                         # Fichiers temporaires et utilitaires
 ```
 
 ---
@@ -448,6 +482,82 @@ class UserService:
 ---
 
 ## Base de données et stockage
+
+### Architecture de Base de Données SQLite
+
+Le système utilise SQLite comme base de données principale avec une architecture centralisée pour les migrations.
+
+#### Configuration de Base de Données
+```json
+// config/database.json
+{
+  "database": {
+    "type": "sqlite",
+    "path": "data/condos.db",
+    "migrations_path": "data/migrations/",
+    "wal_mode": true,
+    "cache_size": 2000
+  }
+}
+```
+
+### Centralisation des Migrations - Architecture Critique
+
+#### Principe de Centralisation
+**TOUTES les migrations de base de données sont centralisées dans `SQLiteAdapter`** pour garantir l'intégrité des données et éviter les corruptions lors des redémarrages multiples.
+
+#### Problème Résolu
+Avant la centralisation, trois adaptateurs exécutaient leurs propres migrations de façon indépendante :
+- `SQLiteAdapter._run_migrations()`
+- `ProjectRepositorySQLite._run_migrations()` ❌ SUPPRIMÉ
+- `UserRepositorySQLite._run_migrations()` ❌ SUPPRIMÉ
+
+Cela causait des **corruptions de données** où les projets/unités étaient recréés avec des timestamps actuels au lieu de préserver les données originales.
+
+#### Solution Implémentée
+
+##### 1. Source Unique de Vérité
+```python
+# src/adapters/sqlite_adapter.py - SEUL POINT D'ENTRÉE MIGRATIONS
+class SQLiteAdapter(CondoRepositoryPort):
+    def _run_migrations(self) -> None:
+        """Exécute TOUTES les migrations du système de façon centralisée"""
+        # Utilise la table schema_migrations pour le tracking
+        
+    def _execute_migration_with_tracking(self, migration_file: Path, conn: sqlite3.Connection) -> None:
+        """Exécute une migration avec tracking pour éviter les duplications"""
+        # Vérifie schema_migrations avant exécution
+        # Marque la migration comme exécutée
+```
+
+##### 2. Table de Tracking
+```sql
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    migration_name TEXT UNIQUE NOT NULL,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+##### 3. Autres Adapters Simplifiés
+```python
+# src/adapters/project_repository_sqlite.py
+class ProjectRepositorySQLite:
+    def __init__(self, db_path: str = None):
+        # PLUS de _run_migrations() - Dépend de SQLiteAdapter
+        
+# src/adapters/user_repository_sqlite.py  
+class UserRepositorySQLite(UserRepositoryPort):
+    def __init__(self, config_path: str = "config/database.json"):
+        # PLUS de _run_migrations() - Dépend de SQLiteAdapter
+```
+
+#### Avantages de la Centralisation
+- **Idempotence** : Les migrations ne s'exécutent jamais deux fois
+- **Intégrité** : Les données existantes ne sont jamais corrompues
+- **Cohérence** : Un seul point de contrôle pour l'évolution du schéma
+- **Traçabilité** : Historique complet des migrations via schema_migrations
+- **Performance** : Évite les opérations redondantes au démarrage
 
 ### Modèle de données
 Bien qu'utilisant des fichiers, l'application maintient un modèle de données structuré :
@@ -663,35 +773,103 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 2. **GREEN** : Écrire le minimum de code pour faire passer le test  
 3. **REFACTOR** : Améliorer le code sans changer les fonctionnalités
 
-### Architecture de Tests en 3 Niveaux
+### Suite de Tests Complète (393 tests - 100% succès)
 
-#### Tests Unitaires (139 tests)
-**Objectif** : Tester la logique métier isolée
-**Répertoire** : `tests/unit/`
-**Couverture** : Services, entités, calculs métier
-
-**Exemples** :
-- `test_user_page_database.py` : Tests du UserService (7 tests)
-- `test_user_details_service.py` : **NOUVEAU** - Tests des détails utilisateur (4 tests)
-- `test_financial_service.py` : Tests des calculs financiers
-- `test_condo_entity.py` : Tests des entités métier
-
-**Nouveaux tests implémentés** :
-```python
-# test_user_details_service.py - Tests pour nouvelles méthodes UserService
-def test_get_user_details_by_username_success()  # Test récupération utilisateur existant
-def test_get_user_details_by_username_not_found()  # Test utilisateur inexistant
-def test_get_user_details_for_api_formatting()  # Test formatage données API
-def test_get_user_details_by_username_handles_errors()  # Test gestion erreurs
+**Structure organisée par niveaux** :
+```
+tests/
+├── unit/                    # 184 tests unitaires (logique métier isolée)
+├── integration/             # 108 tests d'intégration (composants ensemble)
+├── acceptance/              # 101 tests d'acceptance (scénarios end-to-end)
+├── fixtures/                # Données et utilitaires de test
+├── run_all_unit_tests.py    # Runner tests unitaires
+├── run_all_integration_tests.py  # Runner tests d'intégration
+├── run_all_acceptance_tests.py   # Runner tests d'acceptance
+└── run_all_tests.py         # Runner complet (393 tests)
 ```
 
-#### Tests d'Intégration (74 tests)  
-**Objectif** : Tester l'interaction entre composants
-**Répertoire** : `tests/integration/`
-**Couverture** : Services + Adapters, Database + Web
+#### Tests Unitaires (184 tests)
+**Objectif** : Valider la logique métier de chaque composant de manière isolée
+**Répertoire** : `tests/unit/`
+**Couverture** : Entités, services domaine, adapters, configuration
 
-**Exemples** :
-- `test_user_page_database_integration.py` : Intégration web/database (8 tests)
+**Standards de mocking stricts** :
+- **Mocking obligatoire** : Tous les repositories et services externes mockés
+- **Isolation totale** : Aucune interaction avec base de données ou fichiers
+- **Performance** : Exécution ultra-rapide (pas d'I/O)
+
+**Exemples principaux** :
+- `test_condo_entity.py` - Validation logique métier entité Condo
+- `test_condo_service.py` - Service métier condos avec mocking
+- `test_config_manager.py` - Gestionnaire configuration
+- `test_financial_service.py` - Calculs financiers isolés
+- `test_logger_manager.py` - Système de logging
+- `test_password_change_service.py` - Service changement mot de passe
+- `test_project_entity.py` - Entité projet avec validations
+- `test_project_service.py` - Service métier projets
+- `test_user_creation_service.py` - Service création utilisateur
+- `test_user_entity.py` - Entité utilisateur
+- `test_user_file_adapter.py` - Adapter fichiers utilisateur
+
+#### Tests d'Intégration (108 tests)
+**Objectif** : Valider l'interaction entre composants du système
+**Répertoire** : `tests/integration/`
+**Couverture** : Services + Adapters, Database + Web, Configuration + Logging
+
+**Mocking sélectif** :
+- Services externes mockés, composants internes réels
+- Base de test isolée pour environnement contrôlé
+- Validation des flux de données entre couches
+
+**Exemples principaux** :
+- `test_authentication_database_integration.py` - Authentification avec base isolée
+- `test_condo_routes_integration.py` - Routes web condos
+- `test_logging_config_integration.py` - Configuration système de logging
+- `test_password_change_integration.py` - Changement mot de passe end-to-end
+- `test_project_integration.py` - Gestion projets complète
+- `test_user_creation_integration.py` - Création utilisateurs avec validation
+- `test_user_deletion_integration.py` - Suppression utilisateurs
+- `test_web_integration.py` - Interface web complète
+
+#### Tests d'Acceptance (101 tests)
+**Objectif** : Valider les scénarios utilisateur complets
+**Répertoire** : `tests/acceptance/`
+**Couverture** : Workflows métier, Interface utilisateur, Sécurité
+
+**Environnement réaliste** :
+- Simulation conditions de production
+- Données contrôlées mais représentatives
+- Scénarios métier complets des utilisateurs finaux
+
+**Exemples principaux** :
+- `test_authentication_database_acceptance.py` - Scénarios authentification
+- `test_condo_management_acceptance.py` - Gestion condos end-to-end
+- `test_financial_scenarios.py` - Scénarios financiers complets
+- `test_logging_system_acceptance.py` - Système de logging en action
+- `test_modern_ui_acceptance.py` - Interface utilisateur moderne
+- `test_password_change_acceptance.py` - Changement mot de passe utilisateur
+- `test_project_acceptance.py` - Gestion projets complète
+- `test_security_acceptance.py` - Sécurité et permissions
+- `test_user_creation_acceptance.py` - Création utilisateurs
+- `test_user_deletion_acceptance.py` - Suppression utilisateurs
+- `test_web_interface.py` - Interface web complète
+
+### Runners de Tests Spécialisés
+
+**Exécution par catégorie** :
+```bash
+# Tests unitaires uniquement (184 tests - logique métier)
+python tests/run_all_unit_tests.py
+
+# Tests d'intégration uniquement (108 tests - composants)
+python tests/run_all_integration_tests.py
+
+# Tests d'acceptance uniquement (101 tests - scénarios)
+python tests/run_all_acceptance_tests.py
+
+# Suite complète avec rapport consolidé (393 tests)
+python tests/run_all_tests.py
+```
 - `test_user_details_integration.py` : **NOUVEAU** - Tests intégration détails utilisateur (4 tests)
 - `test_api_endpoints.py` : Tests des routes Flask
 - `test_database_operations.py` : Tests des opérations SQLite

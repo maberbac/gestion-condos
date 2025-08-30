@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 
 import sqlite3
 import json
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -79,7 +80,24 @@ class SQLiteAdapter(CondoRepositoryPort):
         Charge la configuration depuis fichier JSON avec validation.
         """
         try:
-            with open(config_path, 'r', encoding='utf-8') as file:
+            # Résoudre le chemin de façon robuste par rapport à la racine du projet
+            if not os.path.isabs(config_path):
+                # Trouver la racine du projet (répertoire contenant src/)
+                current_dir = Path(__file__).resolve()
+                while current_dir.parent != current_dir:
+                    if (current_dir / 'src').is_dir():
+                        project_root = current_dir
+                        break
+                    current_dir = current_dir.parent
+                else:
+                    # Fallback : utiliser le répertoire courant
+                    project_root = Path.cwd()
+                
+                resolved_config_path = project_root / config_path
+            else:
+                resolved_config_path = Path(config_path)
+            
+            with open(resolved_config_path, 'r', encoding='utf-8') as file:
                 config = json.load(file)
             
             # Validation basique de la configuration
@@ -156,23 +174,52 @@ class SQLiteAdapter(CondoRepositoryPort):
     def _run_migrations(self) -> None:
         """
         [STANDARD: Migrations SQL]
-        Exécute les scripts de migration dans l'ordre.
+        Exécute les scripts de migration dans l'ordre en utilisant schema_migrations.
         """
-        migration_files = sorted(self.migrations_dir.glob("*.sql"))
-        
-        for migration_file in migration_files:
-            self._execute_migration(migration_file)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Créer la table de suivi des migrations
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS schema_migrations (
+                        version TEXT PRIMARY KEY,
+                        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Vérifier quelles migrations ont été appliquées
+                cursor = conn.execute("SELECT version FROM schema_migrations")
+                applied_migrations = {row[0] for row in cursor.fetchall()}
+                
+                # Obtenir tous les fichiers de migration
+                migration_files = sorted(self.migrations_dir.glob("*.sql"))
+                
+                # Appliquer les nouvelles migrations
+                for migration_file in migration_files:
+                    migration_name = migration_file.name
+                    if migration_name not in applied_migrations:
+                        self._execute_migration_with_tracking(migration_file, conn)
+                
+                conn.commit()
+                
+        except Exception as e:
+            self.logger.error(f"Erreur lors des migrations: {e}")
+            raise CondoRepositoryError(f"Migrations échouées: {e}")
     
-    def _execute_migration(self, migration_file: Path) -> None:
-        """Exécute un script de migration spécifique."""
+    def _execute_migration_with_tracking(self, migration_file: Path, conn: sqlite3.Connection) -> None:
+        """Exécute une migration et l'enregistre dans schema_migrations."""
         try:
             # Lire et exécuter le script SQL
             with open(migration_file, 'r', encoding='utf-8') as file:
                 migration_sql = file.read()
             
-            with sqlite3.connect(self.db_path) as conn:
-                conn.executescript(migration_sql)
-                conn.commit()
+            # Exécuter la migration
+            conn.executescript(migration_sql)
+            
+            # Marquer comme appliquée
+            conn.execute(
+                "INSERT INTO schema_migrations (version) VALUES (?)",
+                (migration_file.name,)
+            )
             
             self.logger.info(f"Migration exécutée: {migration_file.name}")
             

@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ 'Modifier' if action == 'edit' else 'Créer' }} Condo - Gestion Condos
+{% endblock %}
+
+{% block content %}
+<div class="condo-form-container">
+    <!-- Header Section -->
+    <div class="form-header">
+        <div class="header-content">
+            <div class="header-icon">{{ '✏️' if action == 'edit' else '➕' }}</div>
+            <div class="header-text">
+                <h1>{{ 'Modifier le Condo' if action == 'edit' else 'Nouveau Condo' }}</h1>
+                <p class="header-subtitle">
+                    {{ ('Modification de l\'unité ' + condo.unit_number) if action == 'edit' else 'Création d\'une nouvelle unité' }}
+                </p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/condos" class="back-btn">
+                <span class="btn-icon">←</span>
+                <span class="btn-text">Retour à la liste</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+        <form method="POST" class="condo-form">
+            <div class="form-section">
+                <h3>Informations de base</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="unit_number">Numéro d'unité *</label>
+                        <input type="text" 
+                               id="unit_number" 
+                               name="unit_number" 
+                               value="{{ condo.unit_number if action == 'edit' else '' }}"
+                               {{ 'readonly' if action == 'edit' else 'required' }}
+                               placeholder="Ex: A-101, B-205">
+                        <small class="form-help">Identifiant unique de l'unité</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="owner_name">Propriétaire</label>
+                        <input type="text" 
+                               id="owner_name" 
+                               name="owner_name" 
+                               value="{{ condo.owner_name if action == 'edit' else '' }}"
+                               placeholder="Nom du propriétaire">
+                        <small class="form-help">Laissez vide pour "Disponible"</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="square_feet">Superficie (pi²) *</label>
+                        <input type="number" 
+                               id="square_feet" 
+                               name="square_feet" 
+                               value="{{ condo.square_feet if action == 'edit' else '' }}"
+                               min="100" 
+                               max="10000" 
+                               required
+                               placeholder="800">
+                        <small class="form-help">Entre 100 et 10,000 pi²</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="monthly_fees">Frais mensuels ($) *</label>
+                        <input type="number" 
+                               id="monthly_fees" 
+                               name="monthly_fees" 
+                               value="{{ condo.monthly_fees if action == 'edit' else '' }}"
+                               min="50" 
+                               max="5000" 
+                               required
+                               placeholder="450">
+                        <small class="form-help">Entre 50$ et 5,000$</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Type et statut</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="condo_type">Type d'unité</label>
+                        <select id="condo_type" name="condo_type">
+                            <option value="residential" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'residential' else '' }}>
+                                🏠 Résidentiel
+                            </option>
+                            <option value="commercial" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'commercial' else '' }}>
+                                🏢 Commercial
+                            </option>
+                            <option value="parking" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'parking' else '' }}>
+                                🚗 Stationnement
+                            </option>
+                            <option value="storage" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'storage' else '' }}>
+                                📦 Entreposage
+                            </option>
+                        </select>
+                        <small class="form-help">Catégorie de l'unité</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status">Statut</label>
+                        <select id="status" name="status">
+                            <option value="active" {{ 'selected' if action == 'edit' and condo.status.value == 'active' else '' }}>
+                                ✅ Actif
+                            </option>
+                            <option value="inactive" {{ 'selected' if action == 'edit' and condo.status.value == 'inactive' else '' }}>
+                                ❌ Inactif
+                            </option>
+                            <option value="maintenance" {{ 'selected' if action == 'edit' and condo.status.value == 'maintenance' else '' }}>
+                                🔧 Maintenance
+                            </option>
+                            <option value="sold" {{ 'selected' if action == 'edit' and condo.status.value == 'sold' else '' }}>
+                                💰 Vendu
+                            </option>
+                        </select>
+                        <small class="form-help">État actuel de l'unité</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Informations complémentaires</h3>
+                
+                <div class="form-group">
+                    <label for="building_name">Bâtiment</label>
+                    <input type="text" 
+                           id="building_name" 
+                           name="building_name" 
+                           value="{{ condo.building_name if action == 'edit' else '' }}"
+                           placeholder="Nom du bâtiment ou tour">
+                    <small class="form-help">Nom du bâtiment ou section</small>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" 
+                               id="is_sold" 
+                               name="is_sold"
+                               {{ 'checked' if action == 'edit' and condo.is_sold else '' }}>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-text">
+                            <strong>Condo vendu/occupé</strong>
+                            <small>Cochez si l'unité a un propriétaire actuel</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <a href="/condos" class="btn-cancel">
+                    <span class="btn-icon">❌</span>
+                    <span class="btn-text">Annuler</span>
+                </a>
+                
+                <button type="submit" class="btn-submit">
+                    <span class="btn-icon">{{ '💾' if action == 'edit' else '➕' }}</span>
+                    <span class="btn-text">{{ 'Sauvegarder' if action == 'edit' else 'Créer le condo' }}</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Information Panel -->
+        <div class="info-panel">
+            <div class="info-card">
+                <div class="info-header">
+                    <h4>💡 Aide</h4>
+                </div>
+                <div class="info-content">
+                    <div class="info-item">
+                        <strong>Numéro d'unité :</strong>
+                        <p>Format recommandé : Lettre-Numéro (ex: A-101, B-205)</p>
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Types d'unité :</strong>
+                        <ul>
+                            <li><strong>Résidentiel :</strong> Appartements et condos</li>
+                            <li><strong>Commercial :</strong> Bureaux et commerces</li>
+                            <li><strong>Stationnement :</strong> Places de parking</li>
+                            <li><strong>Entreposage :</strong> Espaces de rangement</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Statuts :</strong>
+                        <ul>
+                            <li><strong>Actif :</strong> Génère des frais normalement</li>
+                            <li><strong>Inactif :</strong> Temporairement suspendu</li>
+                            <li><strong>Maintenance :</strong> En réparation</li>
+                            <li><strong>Vendu :</strong> Transaction complétée</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {% if action == 'edit' %}
+            <div class="info-card danger">
+                <div class="info-header">
+                    <h4>⚠️ Attention</h4>
+                </div>
+                <div class="info-content">
+                    <p>La modification de certaines informations peut affecter les calculs financiers et les rapports existants.</p>
+                    <p><strong>Le numéro d'unité ne peut pas être modifié</strong> pour préserver l'intégrité des données.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.condo-form-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-icon {
+    font-size: 3rem;
+    opacity: 0.9;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 600;
+}
+
+.header-subtitle {
+    margin: 5px 0 0 0;
+    opacity: 0.8;
+    font-size: 1.1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.form-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.condo-form {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.form-section {
+    margin-bottom: 35px;
+    padding-bottom: 25px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.form-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input[readonly] {
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.form-help {
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+}
+
+.checkbox-group {
+    margin-top: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    accent-color: #667eea;
+}
+
+.checkbox-text {
+    flex: 1;
+}
+
+.checkbox-text strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.checkbox-text small {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 2px solid #f8f9fa;
+}
+
+.btn-cancel,
+.btn-submit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 160px;
+    justify-content: center;
+}
+
+.btn-cancel {
+    background: linear-gradient(135deg, #6c757d, #545b62);
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: linear-gradient(135deg, #545b62, #3d4142);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #1e7e34, #155724);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* Info Panel */
+.info-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.info-card.danger {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+}
+
+.info-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.info-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.info-item {
+    margin-bottom: 15px;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-item strong {
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.info-item p {
+    margin: 0 0 5px 0;
+    color: #666;
+}
+
+.info-item ul {
+    margin: 5px 0 0 0;
+    padding-left: 20px;
+    color: #666;
+}
+
+.info-item li {
+    margin-bottom: 3px;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .form-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .info-panel {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .condo-form-container {
+        padding: 15px;
+    }
+    
+    .form-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .header-content {
+        justify-content: center;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .condo-form {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .btn-cancel,
+    .btn-submit {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-header {
+        padding: 20px;
+    }
+    
+    .header-text h1 {
+        font-size: 1.8rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+    }
+    
+    .back-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.condo-form');
+    
+    // Validation du formulaire
+    form.addEventListener('submit', function(e) {
+        const unitNumber = document.getElementById('unit_number').value.trim();
+        const squareFeet = parseInt(document.getElementById('square_feet').value);
+        const monthlyFees = parseInt(document.getElementById('monthly_fees').value);
+        
+        let errors = [];
+        
+        // Validation numéro d'unité
+        if (!unitNumber) {
+            errors.push('Le numéro d\'unité est obligatoire');
+        } else if (unitNumber.length > 10) {
+            errors.push('Le numéro d\'unité ne peut pas dépasser 10 caractères');
+        }
+        
+        // Validation superficie
+        if (!squareFeet || squareFeet < 100 || squareFeet > 10000) {
+            errors.push('La superficie doit être entre 100 et 10,000 pi²');
+        }
+        
+        // Validation frais mensuels
+        if (!monthlyFees || monthlyFees < 50 || monthlyFees > 5000) {
+            errors.push('Les frais mensuels doivent être entre 50$ et 5,000$');
+        }
+        
+        // Afficher les erreurs
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert('Erreurs de validation :\n\n' + errors.join('\n'));
+            return false;
+        }
+    });
+    
+    // Calcul automatique du coût par pi²
+    const squareFeetInput = document.getElementById('square_feet');
+    const monthlyFeesInput = document.getElementById('monthly_fees');
+    
+    function updateCostPerSqFt() {
+        const sqft = parseFloat(squareFeetInput.value);
+        const fees = parseFloat(monthlyFeesInput.value);
+        
+        if (sqft > 0 && fees > 0) {
+            const costPerSqFt = (fees / sqft).toFixed(2);
+            
+            // Ajouter ou mettre à jour l'affichage du coût par pi²
+            let costDisplay = document.getElementById('cost-per-sqft-display');
+            if (!costDisplay) {
+                costDisplay = document.createElement('div');
+                costDisplay.id = 'cost-per-sqft-display';
+                costDisplay.style.cssText = 'margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 5px; font-size: 0.9rem; color: #0c5460;';
+                monthlyFeesInput.parentNode.appendChild(costDisplay);
+            }
+            
+            costDisplay.innerHTML = `💡 Coût par pi² : <strong>$${costPerSqFt}/mois</strong>`;
+        }
+    }
+    
+    squareFeetInput.addEventListener('input', updateCostPerSqFt);
+    monthlyFeesInput.addEventListener('input', updateCostPerSqFt);
+    
+    // Calcul initial si les valeurs sont déjà présentes
+    updateCostPerSqFt();
+});
+</script>
+{% endblock %}

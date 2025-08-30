@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+
+{% block title %}Nouveau Projet{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Créer un Nouveau Projet</h1>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('projects') }}" class="breadcrumb-link">Projets</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current">Nouveau Projet</span>
+        </nav>
+    </div>
+
+    <div class="form-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h2>Configuration du Projet</h2>
+                <p>Renseignez les informations du projet. Les unités seront créées automatiquement.</p>
+            </div>
+
+            <form method="POST" class="project-form" id="projectForm">
+                <div class="form-grid">
+                    <!-- Informations de base -->
+                    <div class="form-section">
+                        <h3 class="section-title">Informations Générales</h3>
+                        
+                        <div class="form-group">
+                            <label for="name" class="form-label">
+                                <i class="fas fa-building"></i>
+                                Nom du Projet *
+                            </label>
+                            <input type="text" 
+                                   id="name" 
+                                   name="name" 
+                                   class="form-control"
+                                   placeholder="Ex: Résidence du Parc"
+                                   required
+                                   minlength="3"
+                                   maxlength="100">
+                            <small class="form-help">Nom distinctif du projet de condominium</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address" class="form-label">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Adresse Complète *
+                            </label>
+                            <textarea id="address" 
+                                      name="address" 
+                                      class="form-control"
+                                      placeholder="123 Rue de la Paix, Montréal, QC H1A 1A1"
+                                      required
+                                      minlength="10"
+                                      rows="3"></textarea>
+                            <small class="form-help">Adresse complète avec ville et code postal</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="constructor" class="form-label">
+                                <i class="fas fa-hard-hat"></i>
+                                Constructeur *
+                            </label>
+                            <input type="text" 
+                                   id="constructor" 
+                                   name="constructor" 
+                                   class="form-control"
+                                   placeholder="Ex: Construction ABC Inc."
+                                   required
+                                   minlength="3"
+                                   maxlength="100">
+                            <small class="form-help">Nom de l'entreprise de construction</small>
+                        </div>
+                    </div>
+
+                    <!-- Spécifications techniques -->
+                    <div class="form-section">
+                        <h3 class="section-title">Spécifications Techniques</h3>
+                        
+                        <div class="form-group">
+                            <label for="total_area" class="form-label">
+                                <i class="fas fa-ruler-combined"></i>
+                                Superficie Totale (pi²) *
+                            </label>
+                            <input type="number" 
+                                   id="total_area" 
+                                   name="total_area" 
+                                   class="form-control"
+                                   placeholder="5000"
+                                   required
+                                   min="100"
+                                   max="100000"
+                                   step="0.01">
+                            <small class="form-help">Superficie totale en pieds carrés (100 - 100,000)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="construction_year" class="form-label">
+                                <i class="fas fa-calendar-alt"></i>
+                                Année de Construction *
+                            </label>
+                            <input type="number" 
+                                   id="construction_year" 
+                                   name="construction_year" 
+                                   class="form-control"
+                                   placeholder="2024"
+                                   required
+                                   min="1900"
+                                   max="2030">
+                            <small class="form-help">Année de construction ou de livraison prévue</small>
+                        </div>
+
+                        <div class="form-group featured">
+                            <label for="unit_count" class="form-label">
+                                <i class="fas fa-home"></i>
+                                Nombre d'Unités *
+                            </label>
+                            <input type="number" 
+                                   id="unit_count" 
+                                   name="unit_count" 
+                                   class="form-control featured-input"
+                                   placeholder="15"
+                                   required
+                                   min="1"
+                                   max="500">
+                            <small class="form-help featured-help">
+                                <i class="fas fa-magic"></i>
+                                Les unités seront créées automatiquement avec numérotation intelligente
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aperçu automatique -->
+                <div class="preview-section" id="previewSection" style="display: none;">
+                    <h3 class="section-title">
+                        <i class="fas fa-eye"></i>
+                        Aperçu du Projet
+                    </h3>
+                    <div class="preview-content">
+                        <div class="preview-stats">
+                            <div class="preview-stat">
+                                <span class="stat-number" id="previewUnits">0</span>
+                                <span class="stat-label">Unités à créer</span>
+                            </div>
+                            <div class="preview-stat">
+                                <span class="stat-number" id="previewAvgSize">0</span>
+                                <span class="stat-label">Taille moyenne (pi²)</span>
+                            </div>
+                            <div class="preview-stat">
+                                <span class="stat-number" id="previewFloors">0</span>
+                                <span class="stat-label">Étages estimés</span>
+                            </div>
+                        </div>
+                        <div class="preview-description">
+                            <p><strong>Numérotation:</strong> <span id="previewNumbering">101, 102, 103...</span></p>
+                            <p><strong>Distribution:</strong> <span id="previewDistribution">5 unités par étage</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="form-actions">
+                    <a href="{{ url_for('projects') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Créer le Projet avec Unités
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Carte d'aide -->
+        <div class="help-card">
+            <h3>
+                <i class="fas fa-lightbulb"></i>
+                Création Automatique d'Unités
+            </h3>
+            <div class="help-content">
+                <div class="help-item">
+                    <i class="fas fa-cogs"></i>
+                    <div>
+                        <strong>Numérotation Intelligente</strong>
+                        <p>Les unités sont numérotées automatiquement par étage (101, 102, 201, 202...)</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <i class="fas fa-calculator"></i>
+                    <div>
+                        <strong>Calcul des Superficies</strong>
+                        <p>La superficie totale est répartie entre les unités avec variation réaliste</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Prêt à l'Emploi</strong>
+                        <p>Toutes les unités sont créées avec statut "Disponible" pour vente immédiate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+    color: #667eea;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.breadcrumb-link:hover {
+    color: #5a6fd8;
+}
+
+.breadcrumb-separator {
+    margin: 0 0.5rem;
+}
+
+.breadcrumb-current {
+    color: #6c757d;
+}
+
+.form-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.form-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.form-header h2 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-header p {
+    color: #6c757d;
+    margin: 0;
+}
+
+.form-grid {
+    display: grid;
+    gap: 2rem;
+}
+
+.form-section {
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    background: #f8f9fa;
+}
+
+.section-title {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group.featured {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem -1rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.featured .form-label {
+    color: white;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    outline: none;
+}
+
+.featured-input {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.featured-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.featured-input:focus {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.form-help {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.featured-help {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.preview-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border: 2px solid #667eea;
+}
+
+.preview-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.preview-stat {
+    text-align: center;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.preview-description {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.preview-description p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: end;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.help-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.help-card h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.help-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.help-item i {
+    color: #667eea;
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.help-item strong {
+    color: #2c3e50;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.help-item p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .form-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .help-card {
+        position: static;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .preview-stats {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const unitCountInput = document.getElementById('unit_count');
+    const totalAreaInput = document.getElementById('total_area');
+    const previewSection = document.getElementById('previewSection');
+    
+    function updatePreview() {
+        const unitCount = parseInt(unitCountInput.value) || 0;
+        const totalArea = parseFloat(totalAreaInput.value) || 0;
+        
+        if (unitCount > 0) {
+            previewSection.style.display = 'block';
+            
+            // Calculs pour l'aperçu
+            const avgSize = totalArea > 0 ? Math.round(totalArea / unitCount) : 0;
+            const unitsPerFloor = 5;
+            const floors = Math.ceil(unitCount / unitsPerFloor);
+            
+            // Exemples de numérotation
+            const firstUnits = [];
+            for (let i = 0; i < Math.min(3, unitCount); i++) {
+                const floor = Math.floor(i / unitsPerFloor) + 1;
+                const unitOnFloor = (i % unitsPerFloor) + 1;
+                firstUnits.push(`${floor}${unitOnFloor.toString().padStart(2, '0')}`);
+            }
+            
+            // Mise à jour de l'affichage
+            document.getElementById('previewUnits').textContent = unitCount;
+            document.getElementById('previewAvgSize').textContent = avgSize;
+            document.getElementById('previewFloors').textContent = floors;
+            
+            let numberingText = firstUnits.join(', ');
+            if (unitCount > 3) {
+                numberingText += '...';
+            }
+            document.getElementById('previewNumbering').textContent = numberingText;
+            
+            document.getElementById('previewDistribution').textContent = `${unitsPerFloor} unités par étage`;
+        } else {
+            previewSection.style.display = 'none';
+        }
+    }
+    
+    // Événements pour mise à jour en temps réel
+    unitCountInput.addEventListener('input', updatePreview);
+    totalAreaInput.addEventListener('input', updatePreview);
+    
+    // Validation du formulaire
+    document.getElementById('projectForm').addEventListener('submit', function(e) {
+        const unitCount = parseInt(unitCountInput.value);
+        const totalArea = parseFloat(totalAreaInput.value);
+        
+        if (unitCount < 1 || unitCount > 500) {
+            e.preventDefault();
+            alert('Le nombre d\'unités doit être entre 1 et 500');
+            unitCountInput.focus();
+            return;
+        }
+        
+        if (totalArea < 100 || totalArea > 100000) {
+            e.preventDefault();
+            alert('La superficie totale doit être entre 100 et 100,000 pieds carrés');
+            totalAreaInput.focus();
+            return;
+        }
+        
+        // Confirmation avant création
+        const confirmed = confirm(
+            `Êtes-vous sûr de vouloir créer ce projet avec ${unitCount} unités?\n\n` +
+            `Cela créera automatiquement toutes les unités avec numérotation et superficies calculées.`
+        );
+        
+        if (!confirmed) {
+            e.preventDefault();
+        }
+    });
+    
+    // Auto-remplissage de l'année courante
+    const currentYear = new Date().getFullYear();
+    document.getElementById('construction_year').value = currentYear;
+});
+</script>
+{% endblock %}

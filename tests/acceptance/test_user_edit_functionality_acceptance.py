@@ -60,9 +60,8 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                 sess['user_role'] = 'admin'
 
             # Mock du service pour récupérer les données utilisateur
-            with patch('src.application.services.user_service.UserService') as mock_service_class:
-                mock_service = Mock()
-                mock_service_class.return_value = mock_service
+            with patch('src.web.condo_app.user_service') as mock_service, \
+                 patch('src.web.condo_app.ensure_services_initialized'):
                 # La méthode get_user_details_for_api retourne directement les données avec found: True
                 mock_service.get_user_details_for_api.return_value = {
                     'username': self.test_user_data['username'],
@@ -103,9 +102,8 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                 sess['user_role'] = 'admin'
 
             # Mock du service pour la mise à jour
-            with patch('src.application.services.user_service.UserService') as mock_service_class:
-                mock_service = Mock()
-                mock_service_class.return_value = mock_service
+            with patch('src.web.condo_app.user_service') as mock_service, \
+                 patch('src.web.condo_app.ensure_services_initialized'):
                 mock_service.update_user_by_username.return_value = {
                     'success': True,
                     'message': 'Utilisateur mis à jour avec succès'
@@ -168,10 +166,9 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                 sess['user_role'] = 'resident'
 
             # Mock des services
-            with patch('src.application.services.user_service.UserService') as mock_service_class:
-                mock_service = Mock()
-                mock_service_class.return_value = mock_service
-                
+            with patch('src.web.condo_app.user_service') as mock_service, \
+                 patch('src.web.condo_app.ensure_services_initialized'):
+
                 # Pour récupérer ses données
                 mock_service.get_user_details_for_api.return_value = {
                     'username': 'resident1',
@@ -180,9 +177,7 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                     'role': 'resident',
                     'condo_unit': '101',
                     'found': True
-                }
-                
-                # Pour la mise à jour
+                }                # Pour la mise à jour
                 mock_service.update_user_by_username.return_value = {
                     'success': True,
                     'message': 'Profil mis à jour avec succès'
@@ -224,9 +219,8 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                 sess['user_role'] = 'admin'
 
             # Mock du service pour simuler une erreur de validation
-            with patch('src.application.services.user_service.UserService') as mock_service_class:
-                mock_service = Mock()
-                mock_service_class.return_value = mock_service
+            with patch('src.web.condo_app.user_service') as mock_service, \
+                 patch('src.web.condo_app.ensure_services_initialized'):
                 mock_service.update_user_by_username.return_value = {
                     'success': False,
                     'error': 'Erreur de validation: Email invalide'
@@ -267,9 +261,8 @@ class TestUserEditFunctionalityAcceptance(unittest.TestCase):
                 sess['user_role'] = 'admin'
 
             # Mock du service
-            with patch('src.application.services.user_service.UserService') as mock_service_class:
-                mock_service = Mock()
-                mock_service_class.return_value = mock_service
+            with patch('src.web.condo_app.user_service') as mock_service, \
+                 patch('src.web.condo_app.ensure_services_initialized'):
                 mock_service.update_user_by_username.return_value = {
                     'success': True,
                     'message': 'Utilisateur mis à jour sans changer le mot de passe'

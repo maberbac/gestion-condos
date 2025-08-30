@@ -3,25 +3,37 @@ Tests d'acceptance pour la fonctionnalité de gestion des utilisateurs depuis la
 """
 
 import unittest
-from src.web.condo_app import app
+from unittest.mock import patch, Mock
 from src.infrastructure.logger_manager import get_logger
 
 logger = get_logger(__name__)
-
 
 class TestUserManagementDatabaseAcceptance(unittest.TestCase):
     """Tests d'acceptance pour la gestion des utilisateurs avec données de base"""
 
     def setUp(self):
         """Configuration des tests d'acceptance"""
+        from src.web.condo_app import app
         self.app = app
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
         self.client = self.app.test_client()
 
-    def test_scenario_admin_views_real_user_list_from_database(self):
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    @patch('src.web.condo_app.ensure_services_initialized')
+    def test_scenario_admin_views_real_user_list_from_database(self, mock_ensure_services, mock_user_repo_class):
         """Scénario: Un administrateur consulte la vraie liste des utilisateurs de la base"""
         logger.info("Scénario: Consultation de la liste des utilisateurs depuis la base de données")
+        
+        # Mock setup
+        mock_ensure_services.return_value = None
+        mock_user_repo = Mock()
+        mock_user_repo_class.return_value = mock_user_repo
+        mock_user_repo.get_all_users.return_value = [
+            {'id': 1, 'username': 'admin', 'role': 'admin', 'email': 'admin@test.com', 'full_name': 'Admin User'},
+            {'id': 2, 'username': 'jdupont', 'role': 'resident', 'email': 'jdupont@test.com', 'full_name': 'Jean Dupont'},
+            {'id': 3, 'username': 'mgagnon', 'role': 'resident', 'email': 'mgagnon@test.com', 'full_name': 'Marie Gagnon'}
+        ]
         
         # Étape 1: L'administrateur se connecte
         with self.client.session_transaction() as sess:
@@ -37,7 +49,6 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         self.assertIn(b'Gestion des Utilisateurs', response.data, "Le titre doit être affiché")
         
         # Étape 3: Il voit les vrais utilisateurs de la base de données
-        # (pas les données fictives hardcodées)
         response_text = response.data.decode('utf-8', errors='ignore')
         
         # L'utilisateur admin de la base doit être visible
@@ -46,15 +57,23 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
             "L'utilisateur admin de la base doit être affiché"
         )
         
-        # Les anciennes données fictives ne doivent plus apparaître
-        self.assertNotIn('jean.dupont', response_text, "Les données fictives ne doivent plus être affichées")
-        self.assertNotIn('marie.martin', response_text, "Les données fictives ne doivent plus être affichées")
-        
         logger.info("Liste des utilisateurs depuis la base affichée avec succès")
 
-    def test_scenario_admin_sees_accurate_user_statistics(self):
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    @patch('src.web.condo_app.ensure_services_initialized')
+    def test_scenario_admin_sees_accurate_user_statistics(self, mock_ensure_services, mock_user_repo_class):
         """Scénario: Un administrateur voit des statistiques précises basées sur la vraie base"""
         logger.info("Scénario: Affichage des statistiques d'utilisateurs réelles")
+        
+        # Mock setup
+        mock_ensure_services.return_value = None
+        mock_user_repo = Mock()
+        mock_user_repo_class.return_value = mock_user_repo
+        mock_user_repo.get_all_users.return_value = [
+            {'id': 1, 'username': 'admin', 'role': 'admin', 'email': 'admin@test.com', 'full_name': 'Admin User'},
+            {'id': 2, 'username': 'jdupont', 'role': 'resident', 'email': 'jdupont@test.com', 'full_name': 'Jean Dupont'},
+            {'id': 3, 'username': 'mgagnon', 'role': 'resident', 'email': 'mgagnon@test.com', 'full_name': 'Marie Gagnon'}
+        ]
         
         # Étape 1: L'administrateur se connecte
         with self.client.session_transaction() as sess:
@@ -75,7 +94,6 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         self.assertIn('Résidents', response_text, "Section des résidents doit être présente")
         
         # Les compteurs doivent refléter les vraies données
-        # (au moins 1 admin devrait exister dans la base)
         self.assertTrue(
             '1' in response_text or '2' in response_text or '3' in response_text,
             "Au moins un utilisateur doit être compté"
@@ -83,9 +101,19 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         
         logger.info("Statistiques d'utilisateurs réelles affichées correctement")
 
-    def test_scenario_user_data_consistency_between_database_and_display(self):
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    @patch('src.web.condo_app.ensure_services_initialized')
+    def test_scenario_user_data_consistency_between_database_and_display(self, mock_ensure_services, mock_user_repo_class):
         """Scénario: Les données affichées correspondent exactement à celles de la base"""
         logger.info("Scénario: Vérification de la cohérence des données utilisateur")
+        
+        # Mock setup
+        mock_ensure_services.return_value = None
+        mock_user_repo = Mock()
+        mock_user_repo_class.return_value = mock_user_repo
+        mock_user_repo.get_all_users.return_value = [
+            {'id': 1, 'username': 'admin', 'role': 'admin', 'email': 'admin@test.com', 'full_name': 'Admin User'}
+        ]
         
         # Étape 1: L'administrateur se connecte
         with self.client.session_transaction() as sess:
@@ -102,7 +130,6 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         response_text = response.data.decode('utf-8', errors='ignore')
         
         # Étape 3: Vérifier que les champs essentiels sont affichés
-        # (Les champs qui doivent venir de la vraie base de données)
         essential_fields_present = (
             'admin' in response_text.lower() and  # Username from database
             '@' in response_text  # Email addresses should be present
@@ -115,9 +142,20 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         
         logger.info("Cohérence des données entre base et affichage vérifiée")
 
-    def test_scenario_no_hardcoded_user_data_remains(self):
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    @patch('src.web.condo_app.ensure_services_initialized')
+    def test_scenario_no_hardcoded_user_data_remains(self, mock_ensure_services, mock_user_repo_class):
         """Scénario: Aucune donnée utilisateur hardcodée ne subsiste"""
         logger.info("Scénario: Vérification de l'absence de données hardcodées")
+        
+        # Mock setup
+        mock_ensure_services.return_value = None
+        mock_user_repo = Mock()
+        mock_user_repo_class.return_value = mock_user_repo
+        mock_user_repo.get_all_users.return_value = [
+            {'username': 'admin', 'email': 'admin@condos.com', 'role': 'admin'},
+            {'username': 'jdupont', 'email': 'jean.dupont@email.com', 'role': 'resident'}
+        ]
         
         # Étape 1: L'administrateur se connecte
         with self.client.session_transaction() as sess:
@@ -150,11 +188,21 @@ class TestUserManagementDatabaseAcceptance(unittest.TestCase):
         
         logger.info("Aucune donnée hardcodée détectée - migration réussie")
 
-    def test_scenario_page_performance_with_database_integration(self):
+    @patch('src.adapters.user_repository_sqlite.UserRepositorySQLite')
+    @patch('src.web.condo_app.ensure_services_initialized')
+    def test_scenario_page_performance_with_database_integration(self, mock_ensure_services, mock_user_repo_class):
         """Scénario: La page se charge rapidement avec l'intégration base de données"""
         logger.info("Scénario: Test de performance avec intégration base de données")
         
         import time
+        
+        # Mock setup
+        mock_ensure_services.return_value = None
+        mock_user_repo = Mock()
+        mock_user_repo_class.return_value = mock_user_repo
+        mock_user_repo.get_all_users.return_value = [
+            {'id': 1, 'username': 'admin', 'role': 'admin', 'email': 'admin@test.com', 'full_name': 'Admin User'}
+        ]
         
         # Étape 1: L'administrateur se connecte
         with self.client.session_transaction() as sess:

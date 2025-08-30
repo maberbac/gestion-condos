@@ -89,7 +89,7 @@ gestion-condos/                          # APPLICATION COMPLÈTE FONCTIONNELLE
 │   ├── run_all_unit_tests.py         #   - Runner tests unitaires
 │   ├── run_all_integration_tests.py  #   - Runner tests intégration
 │   ├── run_all_acceptance_tests.py   #   - Runner tests acceptance
-│   └── run_all_tests.py              #   - Runner global (4.7s total)
+│   └── run_all_tests.py              #   - Runner global (8.2s total)
 ├── docs/                             # Documentation Complète
 │   ├── architecture.md              #   - Architecture hexagonale détaillée
 │   ├── conception-extensibilite.md  #   - Conception extensions futures
@@ -101,11 +101,6 @@ gestion-condos/                          # APPLICATION COMPLÈTE FONCTIONNELLE
 │   ├── implementation-consultation-details-utilisateur.md  # - Implémentation
 │   ├── journal-developpement.md     #   - Journal et roadmap
 │   ├── methodologie.md              #   - Méthodologie TDD appliquée
-│   ├── mise-a-jour-documentation-30-aout.md  # - Mise à jour 30 août
-│   ├── mise-a-jour-documentation-finale.md   # - Documentation finale
-│   ├── mise-a-jour-mocking-30-aout.md       # - Standards mocking
-│   ├── validation-tests-finale.md   #   - Validation suite de tests
-│   ├── status-success.md            #   - Statut succès application
 │   └── README.md                    #   - Index documentation
 ├── ai-guidelines/                   # Instructions et Guidelines IA
 │   ├── consignes-projet.md          #   - Exigences projet académique
@@ -128,7 +123,11 @@ gestion-condos/                          # APPLICATION COMPLÈTE FONCTIONNELLE
 │   ├── users.json                  #   - Données utilisateurs (legacy)
 │   └── migrations/                 #   - Scripts migration schéma
 │       ├── 001_initial_schema.sql  #     * Schéma initial
-│       └── 002_add_user_tables.sql #     * Tables utilisateurs
+│       ├── 002_users_authentication.sql #     * Authentification utilisateurs
+│       ├── 003_projects_units_tables.sql #     * Tables projets et unités
+│       ├── 004_populate_projects.sql #     * Données projets démonstration
+│       ├── 005_populate_units.sql  #     * Données unités démonstration
+│       └── README.md               #     * Documentation scripts d'initialisation
 ├── logs/                           # Système de Logging
 │   ├── app.log                     #   - Logs application
 │   ├── error.log                   #   - Logs erreurs

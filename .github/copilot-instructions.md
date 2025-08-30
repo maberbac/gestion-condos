@@ -221,6 +221,37 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **REDIRECTION** vers la documentation existante uniquement
 - **FOCUS** exclusif sur le développement fonctionnel réel
 
+## INTERDICTION ABSOLUE DES FICHIERS DE RÉSUMÉ MARKDOWN
+
+### Règle Anti-Résumé Stricte
+- **JAMAIS** créer de nouveaux fichiers `.md` qui ne contiennent que des résumés de travail effectué
+- **JAMAIS** générer de fichiers markdown de type "rapport d'activité" ou "résumé de session"
+- **JAMAIS** créer de fichiers `.md` temporaires pour documenter les actions accomplies
+- **INTERDICTION TOTALE** de créer des fichiers markdown de synthèse d'intervention
+
+### Distinction Importante
+- **AUTORISÉ** : Mettre à jour la documentation existante du projet (README.md, docs/*.md)
+- **AUTORISÉ** : Modifier ou améliorer les fichiers de documentation technique/utilisateur
+- **AUTORISÉ** : Ajouter du contenu dans les fichiers de documentation légitimes
+- **INTERDIT** : Créer de nouveaux `.md` uniquement pour résumer ce qui a été fait
+
+### Types de Fichiers Strictement Interdits
+- Fichiers de résumé de travail (ex: `resume-transformation-*.md`)
+- Rapports d'activité ou de session
+- Synthèses d'interventions ou modifications
+- Fichiers markdown temporaires de documentation d'actions
+- Comptes-rendus de développement en format markdown
+
+### Exception Unique : Documentation Fonctionnelle
+- **AUTORISÉ UNIQUEMENT** : Création de nouveaux fichiers `.md` pour documenter des fonctionnalités, architectures ou guides d'utilisation
+- **CONDITION** : Le fichier doit avoir une valeur documentaire permanente pour le projet
+- **LOCALISATION** : Doit être placé dans `docs/` avec un nom descriptif de sa fonction
+
+### Conséquences de Non-Respect
+- **REFUS CATÉGORIQUE** de créer tout fichier de résumé markdown
+- **SUPPRESSION IMMÉDIATE** de tout fichier de résumé détecté
+- **REDIRECTION** vers la mise à jour de documentation existante uniquement
+
 ## Organisation des Fichiers Markdown
 
 ### Répartition Obligatoire des Fichiers .md
@@ -307,6 +338,17 @@ config/
 - **Compatibilité** : Maintenir support lecture anciens formats pendant transition
 - **Import/Export** : Fonctionnalités pour convertir JSON ↔ SQLite
 - **Validation** : Vérifier intégrité des données lors des migrations
+
+### CENTRALISATION OBLIGATOIRE DES MIGRATIONS DATABASE
+- **SOURCE UNIQUE DE VÉRITÉ** : TOUTES les migrations de base de données doivent être centralisées dans `SQLiteAdapter`
+- **INTERDICTION ABSOLUE** : Aucun autre adaptateur ne doit contenir de logique de migration
+- **JAMAIS** créer de méthodes `_run_migrations()` ou `_execute_migration()` dans d'autres repositories
+- **JAMAIS** dupliquer la logique de migration dans `ProjectRepositorySQLite`, `UserRepositorySQLite` ou autres
+- **TOUJOURS** utiliser le système `schema_migrations` de `SQLiteAdapter` pour le tracking des migrations
+- **RÈGLE CARDINALE** : Un seul point d'entrée pour toutes les migrations = `SQLiteAdapter._run_migrations()`
+- **MÉCANISME DE PROTECTION** : Utiliser `_execute_migration_with_tracking()` pour éviter les duplications
+- **IDEMPOTENCE OBLIGATOIRE** : Les migrations ne doivent jamais s'exécuter deux fois
+- **CONSÉQUENCE** : Cette centralisation empêche la corruption des données lors des redémarrages multiples
 
 ## Standards de Séparation HTML/Python Obligatoires
 
@@ -492,13 +534,32 @@ tests/
 
 ### OBLIGATION STRICTE DE MOCKING DES BASES DE DONNÉES
 - **TESTS UNITAIRES** : TOUJOURS mocker les appels à la base de données (UserRepository, etc.)
-- **TESTS D'INTÉGRATION** : TOUJOURS utiliser une base de données de test isolée ou des mocks
-- **TESTS D'ACCEPTANCE** : TOUJOURS créer/restaurer des données de test avant chaque test
-- **JAMAIS** utiliser la base de données de production dans les tests
-- **JAMAIS** laisser des tests modifier de façon permanente les données de base
-- **TOUJOURS** utiliser `@patch` ou `@mock.patch` pour isoler les couches de persistance
+- **TESTS D'INTÉGRATION** : TOUJOURS mocker complètement les repositories - AUCUNE base de données réelle
+- **TESTS D'ACCEPTANCE** : TOUJOURS mocker tous les appels aux repositories
+- **JAMAIS** utiliser une base de données réelle dans les tests (même temporaire)
+- **JAMAIS** établir de connexion SQLite dans les tests
+- **TOUJOURS** utiliser `@patch` ou `@mock.patch` pour isoler complètement les couches de persistance
 - **OBLIGATION** : Chaque test doit être complètement indépendant des autres
 - **RÈGLE** : Les tests doivent pouvoir s'exécuter dans n'importe quel ordre sans effet de bord
+
+### INTERDICTION ABSOLUE DE MODIFICATION DE LA BASE DE DONNÉES PAR LES TESTS
+- **RÈGLE CARDINALE** : Les tests ne doivent JAMAIS modifier la base de données de production `data/condos.db`
+- **INTERDICTION TOTALE** : Aucun test ne doit utiliser de base de données réelle, même temporaire
+- **ISOLATION OBLIGATOIRE** : Tous les tests doivent EXCLUSIVEMENT utiliser des mocks complets
+- **PRINCIPE SACRÉ** : Aucune connexion SQLite réelle ne doit être établie dans les tests
+- **VALIDATION SYSTÉMATIQUE** : Tous les appels aux repositories doivent être mockés
+- **CONSÉQUENCE** : Toute utilisation de base de données réelle est considérée comme un BUG CRITIQUE
+- **MÉTHODE UNIQUE AUTORISÉE** :
+  - Mocker complètement les repositories avec `@patch` et `Mock` UNIQUEMENT
+- **MÉTHODES STRICTEMENT INTERDITES** :
+  - Utiliser `sqlite3.connect()` même avec `:memory:` ou fichiers temporaires
+  - Utiliser `tempfile.NamedTemporaryFile()` pour des bases temporaires
+  - Créer des connexions SQLite de quelque nature que ce soit
+  - Utiliser des fixtures qui créent des bases de données temporaires
+  - Connecter directement à `data/condos.db` dans les tests
+  - Insérer, modifier ou supprimer des données dans une base réelle
+  - Compter sur des données existantes dans une base pour valider les tests
+  - Laisser des effets de bord après l'exécution des tests
 
 ### INTERDICTION STRICTE DE NOUVEAUX RUNNERS DE TESTS
 - **JAMAIS** créer de nouveaux runners de tests (run_*_tests.py)
@@ -508,11 +569,23 @@ tests/
 - **RUNNERS AUTORISÉS UNIQUEMENT** :
   1. `run_all_unit_tests.py` - Tests unitaires uniquement
   2. `run_all_integration_tests.py` - Tests d'intégration uniquement  
-  3. `run_all_acceptance_tests.py` - Tests d'acceptance (NOM OFFICIEL OBLIGATOIRE)
+  3. `run_all_acceptance_tests.py` - Tests d'acceptance uniquement
   4. `run_all_tests.py` - Exécution complète des 3 runners ci-dessus
-- **ATTENTION RUNNER ACCEPTANCE** : Le runner des tests d'acceptance est **OBLIGATOIREMENT** `run_all_acceptance_tests.py` et **JAMAIS** `run_new_acceptance_tests.py`
 - **ÉVOLUTION** : Modifier les runners existants pour ajouter des fonctionnalités
 - **MAINTENANCE** : Corriger les bugs dans les runners actuels sans en créer de nouveaux
+
+### INTERDICTION ABSOLUE DES TESTS D'INTERFACE UTILISATEUR (UI)
+- **JAMAIS** créer de tests qui testent directement l'interface utilisateur HTML/CSS
+- **JAMAIS** créer de tests qui vérifient la présence d'éléments HTML spécifiques (boutons, formulaires, etc.)
+- **JAMAIS** créer de tests qui analysent le contenu des templates ou pages web
+- **JAMAIS** créer de tests qui vérifient l'apparence visuelle ou le style des pages
+- **JAMAIS** utiliser `self.client.get()` pour tester la présence d'éléments UI
+- **JAMAIS** tester si un bouton, un lien ou un élément HTML est présent dans une page
+- **JAMAIS** valider le contenu HTML généré par les templates
+- **FOCUS EXCLUSIF** : Les tests doivent se concentrer sur la logique métier et les fonctionnalités backend
+- **PRINCIPE** : L'interface utilisateur évolue fréquemment, les tests UI sont fragiles et coûteux
+- **ALTERNATIVE** : Tester uniquement les services, repositories et la logique d'application
+- **EXCEPTION STRICTE** : Aucune exception autorisée, même pour des "tests simples" d'UI
 
 ### Checklist Obligatoire
 
@@ -524,6 +597,9 @@ Avant toute implémentation de code, vérifier :
 - [ ] **VÉRIFIER que TOUS les appels base de données sont mockés dans les tests unitaires**
 - [ ] **S'ASSURER que les tests d'intégration utilisent une base de test isolée**
 - [ ] **CONFIRMER que les tests d'acceptance restaurent les données avant chaque test**
+- [ ] **GARANTIR ABSOLUMENT que les tests ne modifient JAMAIS la base de données de production `data/condos.db`**
+- [ ] **VÉRIFIER STRICTEMENT qu'AUCUN test d'interface utilisateur (UI) n'est créé**
+- [ ] **S'ASSURER que les tests se concentrent UNIQUEMENT sur la logique métier et backend**
 - [ ] S'assurer qu'aucune référence à la méthodologie TDD n'apparaît dans le code
 - [ ] Lire et intégrer automatiquement tous les fichiers .md du projet
 - [ ] Comprendre l'exigence spécifique et son contexte
@@ -547,6 +623,7 @@ Avant toute implémentation de code, vérifier :
 - [ ] **UTILISER les pages de référence comme modèles : profile, dashboard, success**
 - [ ] **RESPECTER les standards de design : border-radius, shadows, responsive**
 - [ ] **VÉRIFIER qu'AUCUNE démo ou simulation n'est créée pour l'utilisateur**
+- [ ] **INTERDICTION ABSOLUE: Aucun fichier .md de résumé de travail créé**
 - [ ] **SI fichiers pour IA interne nécessaires, les placer OBLIGATOIREMENT dans tmp/**
 
 Après toute implémentation de code, s'assurer que :
@@ -558,6 +635,7 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **VALIDATION MOCKING** : Aucun test unitaire n'accède directement à la base de données
 - [ ] **ISOLATION TESTS** : Les tests peuvent s'exécuter dans n'importe quel ordre
 - [ ] **DONNÉES DE TEST** : Aucune modification permanente des données de base
+- [ ] **VALIDATION CRITIQUE** : La base de données `data/condos.db` est identique avant et après les tests
 - [ ] Le code suit les conventions et meilleures pratiques du langage
 - [ ] Les commentaires expliquent le POURQUOI, pas seulement le QUOI
 - [ ] La gestion d'erreurs est implémentée de manière appropriée
@@ -583,9 +661,14 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **VÉRIFIER cohérence avec pages de référence: profile.html, dashboard.html, success.html**
 - [ ] **APPLIQUER border-radius 15px/25px, shadows standardisées, responsive design**
 - [ ] **RESPECT INTERDICTION DÉMOS: Aucun contenu de démonstration créé pour utilisateur**
+- [ ] **RESPECT INTERDICTION RÉSUMÉS: Aucun fichier .md de résumé de travail créé**
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
 - [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
 - [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**
+- [ ] **VALIDATION FINALE TESTS UI: Aucun test d'interface utilisateur créé - focus backend uniquement**
+- [ ] **CENTRALISATION MIGRATIONS: Vérifier que TOUTES les migrations sont dans SQLiteAdapter uniquement**
+- [ ] **AUCUNE MIGRATION DUPLIQUÉE: Confirmer qu'aucun autre repository ne contient de logique de migration**
+- [ ] **SCHEMA_MIGRATIONS: S'assurer que le tracking des migrations utilise la table schema_migrations**
 - [ ] **SUPPRIMER toute mention "NOUVEAU", "RÉCENT", ou indicateur temporel de la documentation**
 - [ ] **MAINTENIR documentation intemporelle et professionnelle sans marqueurs de nouveauté**
 

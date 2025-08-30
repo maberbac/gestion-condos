@@ -1,119 +1,134 @@
 #!/usr/bin/env python3
 """
-Runner global pour tous les types de tests
-Orchestration complète avec rapports consolidés et pipeline de validation
+Runner global pour tous les tests du projet.
+
+Ce script exécute tous les types de tests (unitaires, intégration, acceptance)
+et génère un rapport consolidé des résultats.
+
+Usage:
+    python tests/run_all_tests.py [options]
+    
+Options:
+    -v, --verbose     : Mode verbeux avec détails des tests
+    --with-coverage   : Générer un rapport de couverture
+    --report          : Générer un rapport détaillé
+    --json            : Générer un rapport JSON
+    --fast            : Arrêter au premier échec (mode CI)
+    --unit-only       : Exécuter seulement les tests unitaires
+    --html            : Générer un rapport HTML de couverture
 """
 
-import unittest
+import subprocess
 import sys
 import os
-import argparse
 import time
-import subprocess
-from io import StringIO
+import argparse
 import json
+from dataclasses import dataclass
+from typing import List, Tuple
 
 # Ajouter le répertoire racine au path pour imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.infrastructure.logger_manager import get_logger
 logger = get_logger(__name__)
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+@dataclass
 class TestSuiteResults:
-    """Classe pour stocker les résultats de chaque suite de tests"""
-    def __init__(self, name, test_count=0, failures=0, errors=0, execution_time=0.0, success=False):
-        self.name = name
-        self.test_count = test_count
-        self.failures = failures
-        self.errors = errors
-        self.execution_time = execution_time
-        self.success = success
+    """Résultats d'exécution d'une suite de tests"""
+    name: str
+    test_count: int = 0
+    failures: int = 0
+    errors: int = 0
+    execution_time: float = 0.0
+    success: bool = False
 
-def run_test_suite(runner_script, args_list=None):
-    """Exécute un runner de tests spécifique et parse les résultats"""
-    if args_list is None:
-        args_list = []
+
+def run_test_suite(runner_script, runner_args=None):
+    """Exécute une suite de tests et retourne les résultats."""
+    if runner_args is None:
+        runner_args = []
     
     try:
         start_time = time.time()
+        
+        # Exécuter le runner avec capture de sortie
         result = subprocess.run(
-            [sys.executable, runner_script] + args_list,
+            [sys.executable, os.path.join("tests", runner_script)] + runner_args,
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             capture_output=True,
             text=True,
-            cwd=os.path.dirname(__file__)
+            timeout=120  # Timeout de 2 minutes
         )
+        
         execution_time = time.time() - start_time
         
-        # Parser les résultats depuis la sortie
-        output = result.stdout
+        # Analyse de l'output pour extraire les statistiques
+        full_output = result.stdout + result.stderr
+        stderr = result.stderr
+        
+        output = full_output
         test_count = 0
         failures = 0
         errors = 0
+        success = False
         
-        # Extraction des métriques depuis la sortie
-        full_output = output + "\n" + result.stderr
-        success_indicators = []
-        unittest_ok = False
-        
+        # Extraire le nombre de tests exécutés
         for line in full_output.split('\n'):
-            if "Tests totaux exécutés:" in line:
-                # Format log: "2025-08-29 07:47:33 [INFO] __main__: Tests totaux exécutés: 50"
-                try:
-                    test_count = int(line.split(':')[-1].strip())
-                except (ValueError, IndexError):
-                    pass
-            elif "Tests en échec:" in line:
-                # Format log: "2025-08-29 07:47:33 [ERROR] __main__: Tests en échec: 0"
-                try:
-                    failures = int(line.split(':')[-1].strip())
-                except (ValueError, IndexError):
-                    pass
-            elif "Ran " in line and " tests in " in line:
-                # Format unittest: "Ran 50 tests in 0.088s"
+            line = line.strip()
+            if "Ran " in line and " tests in " in line:
                 parts = line.split()
-                if len(parts) >= 2:
-                    try:
-                        test_count = int(parts[1])
-                    except (ValueError, IndexError):
-                        pass
-            # Détecter le résultat final de unittest
-            elif line.strip() == "OK":
-                unittest_ok = True
-            # Analyser les indicateurs de succès dans la sortie (gérer les problèmes d'encodage)
-            elif "STATUT FINAL:" in line and ("RÉUSSIS" in line or "R╔USSIS" in line or "REUSSIS" in line):
-                success_indicators.append(True)
-            elif "RÉSULTAT: SUCCÈS" in line or "R╔SULTAT: SUCC" in line or "RESULTAT: SUCCES" in line:
-                success_indicators.append(True)
-            elif "STATUT FINAL:" in line and ("ÉCHOUÉS" in line or "╔CHOU╔S" in line or "ECHOUES" in line):
-                success_indicators.append(False)
-            elif "RÉSULTAT: ÉCHEC" in line or "R╔SULTAT: ╔CHEC" in line or "RESULTAT: ECHEC" in line:
-                success_indicators.append(False)
+                try:
+                    test_count = int(parts[1])
+                except (ValueError, IndexError):
+                    pass
+                break
         
-        # Déterminer le succès basé sur les métriques concrètes
-        # Logique robuste: si on a exécuté des tests et aucun échec détecté, c'est un succès
-        
-        # Priorité 1: Si unittest dit OK, c'est un succès
-        if unittest_ok and failures == 0:
-            success = True
-        # Priorité 2: Si on a des tests exécutés et aucun échec, traiter comme succès
-        elif test_count > 0 and failures == 0:
-            # Pour les tests d'intégration, ignorer les problèmes d'environnement
-            # si tous les tests ont été exécutés sans échec
-            success = True
-        # Priorité 3: Indicateurs explicites de succès/échec
-        elif success_indicators:
-            success = all(success_indicators) and failures == 0
-        # Priorité 4: Code de retour
+        # Logique de détection du succès basée PRIORITAIREMENT sur le code de retour
+        # Car c'est le plus fiable
+        if result.returncode == 0:
+            # Code de retour 0 = succès, confirmer avec l'output
+            has_ok = ("\nOK\n" in full_output or full_output.strip().endswith("OK") or 
+                      "\nOK\n" in stderr or stderr.strip().endswith("OK"))
+            
+            if has_ok:
+                success = True
+                failures = 0
+                errors = 0
+            else:
+                # Cas rare: code 0 mais pas de "OK" détecté
+                # Faire confiance au code de retour (plus fiable)
+                success = True
+                failures = 0
+                errors = 0
         else:
-            success = result.returncode == 0 and failures == 0
-        
-        # Debug: afficher les informations de parsing
-        if not success and len(success_indicators) > 0:
-            logger.debug(f"Runner {runner_script}: success_indicators={success_indicators}, failures={failures}")
-        elif not success:
-            logger.debug(f"Runner {runner_script} retourné code {result.returncode}, failures={failures}")
-            logger.debug(f"Stderr: {result.stderr[:200]}...")  # Limiter la taille
+            # Code de retour != 0 = échec
+            success = False
+            
+            # Rechercher patterns d'échec dans l'output pour détails
+            has_failed = "FAILED (" in full_output
+            if has_failed:
+                # Extraire le nombre d'échecs et d'erreurs depuis FAILED (failures=X, errors=Y)
+                for line in full_output.split('\n'):
+                    if "FAILED (" in line:
+                        try:
+                            # Extraire failures
+                            if "failures=" in line:
+                                failures_part = line.split("failures=")[1].split(")")[0].split(",")[0]
+                                failures = int(failures_part)
+                            
+                            # Extraire errors si présent
+                            if "errors=" in line:
+                                errors_part = line.split("errors=")[1].split(")")[0].split(",")[0]
+                                errors = int(errors_part)
+                        except (ValueError, IndexError):
+                            # Si parsing échoue, assumer au moins 1 échec
+                            failures = 1 if failures == 0 else failures
+                        break
+            else:
+                # Échec détecté mais pas de détails, assumer 1 échec
+                failures = 1
         
         return TestSuiteResults(
             name=os.path.basename(runner_script).replace('.py', ''),
@@ -130,6 +145,7 @@ def run_test_suite(runner_script, args_list=None):
             success=False
         ), f"Erreur d'exécution: {e}"
 
+
 def generate_consolidated_report(results_list, total_time, with_coverage=False):
     """Génère un rapport consolidé de tous les tests"""
     logger.info("=" * 80)
@@ -143,9 +159,9 @@ def generate_consolidated_report(results_list, total_time, with_coverage=False):
     
     logger.info(f"\nRésumé Global:")
     logger.info(f"  Tests totaux exécutés: {total_tests}")
-    logger.error(f"  Succès: {total_tests - total_failures - total_errors}")
-    logger.error(f"  Échecs: {total_failures}")
-    logger.error(f"  Erreurs: {total_errors}")
+    logger.info(f"  Succès: {total_tests - total_failures - total_errors}")
+    logger.info(f"  Échecs: {total_failures}")
+    logger.info(f"  Erreurs: {total_errors}")
     logger.info(f"  Temps total: {total_time:.2f}s")
     
     logger.info(f"\nDétail par Type:")
@@ -157,7 +173,7 @@ def generate_consolidated_report(results_list, total_time, with_coverage=False):
     logger.info("")
     if all_success:
         logger.info("=" * 80)
-        logger.info("STATUT FINAL: PIPELINE COMPLET RÉUSSI - TOUS LES TESTS PASSENT")
+        logger.info("STATUT FINAL: PIPELINE RÉUSSI - TOUS LES TESTS PASSENT")
         logger.info("=" * 80)
     else:
         logger.error("=" * 80)
@@ -165,17 +181,11 @@ def generate_consolidated_report(results_list, total_time, with_coverage=False):
         logger.error("=" * 80)
     
     return all_success
-    
-    if with_coverage:
-        logger.info(f"\nRapport de couverture disponible dans htmlcov/index.html")
-    
-    return all_success
 
-def generate_json_report(results_list, total_time, output_file=None):
-    """Génère un rapport JSON pour intégration CI/CD"""
-    if output_file is None:
-        output_file = os.path.join(os.path.dirname(__file__), '..', 'tmp', 'test_report.json')
-    
+
+def generate_json_report(results_list, total_time, output_file="reports/test_results.json"):
+    """Génère un rapport JSON détaillé"""
+    # Créer le répertoire reports s'il n'existe pas
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
     report = {
@@ -205,6 +215,7 @@ def generate_json_report(results_list, total_time, output_file=None):
     
     logger.info(f"Rapport JSON généré: {output_file}")
     return output_file
+
 
 def main():
     """Point d'entrée principal"""
@@ -300,6 +311,7 @@ def main():
     
     # Code de sortie
     return 0 if success else 1
+
 
 if __name__ == '__main__':
     exit_code = main()

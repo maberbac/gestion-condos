@@ -2,7 +2,7 @@
 
 ## Application Complètement Fonctionnelle
 
-L'application de gestion de condominiums est maintenant **complètement implémentée** avec tous les concepts techniques intégrés et une suite de tests TDD de 306 tests (100% succès).
+L'application de gestion de condominiums est maintenant **complètement implémentée** avec tous les concepts techniques intégrés et une suite de tests TDD de 393 tests (100% succès).
 
 ## Démarrage en 3 étapes
 
@@ -16,6 +16,22 @@ pip install -r requirements-web.txt
 ### 2. Démarrage de l'application
 ```bash
 python run_app.py
+```
+
+#### Système de Migration Centralisé
+Au premier démarrage, l'application initialise automatiquement la base de données SQLite avec un **système de migration centralisé** :
+
+- **Migrations Automatiques** : `SQLiteAdapter` exécute toutes les migrations nécessaires
+- **Table de Tracking** : `schema_migrations` empêche les duplications de migrations  
+- **Intégrité Garantie** : Les données existantes ne sont jamais corrompues lors des redémarrages
+- **Idempotence** : Chaque migration ne s'exécute qu'une seule fois
+
+**Logs de démarrage typiques :**
+```
+[INFO] Initialisation de la base de données...
+[INFO] Base de données opérationnelle (5 condos)
+[INFO] Système d'authentification initialisé
+[INFO] === SYSTÈME INITIALISÉ AVEC SUCCÈS ===
 ```
 
 ### 3. Accès à l'interface web
@@ -122,7 +138,46 @@ pip install Flask==2.3.2 Werkzeug==2.3.6
 ```
 
 ### Base de données corrompue
-Supprimez le fichier `data/condos.db` - il sera recréé automatiquement au démarrage.
+**Ancienne méthode :** Supprimez le fichier `data/condos.db` - il sera recréé automatiquement au démarrage.
+
+**Méthode recommandée :** Grâce au système de migration centralisé, la corruption de données est maintenant **empêchée par design**. Les migrations ne s'exécutent qu'une seule fois et les données existantes sont préservées.
+
+## Architecture de Base de Données
+
+### Centralisation des Migrations - Garantie d'Intégrité
+
+Le système utilise une architecture de **migration centralisée** dans `SQLiteAdapter` qui garantit :
+
+#### 1. Source Unique de Vérité
+```python
+# Seul SQLiteAdapter gère les migrations
+src/adapters/sqlite_adapter.py:
+  - _run_migrations()                    # Point d'entrée unique
+  - _execute_migration_with_tracking()   # Prévention duplications
+```
+
+#### 2. Protection Anti-Corruption
+- **Table schema_migrations** : Track de toutes les migrations exécutées
+- **Vérification avant exécution** : Empêche les duplications
+- **Préservation des données** : Les données existantes ne sont jamais écrasées
+
+#### 3. Configuration
+```json
+// config/database.json
+{
+  "database": {
+    "type": "sqlite",
+    "path": "data/condos.db",
+    "migrations_path": "data/migrations/"
+  }
+}
+```
+
+### Avantages du Système
+- **Fiabilité** : Aucune corruption de données possible
+- **Performance** : Migrations exécutées une seule fois
+- **Traçabilité** : Historique complet des modifications
+- **Maintenance** : Gestion simplifiée des évolutions de schéma
 
 ---
 

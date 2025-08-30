@@ -17,8 +17,8 @@ class TestUserDeletionIntegrationMocked:
         app.config['WTF_CSRF_ENABLED'] = False
         self.client = app.test_client()
     
-    @patch('src.web.condo_app.user_service')
-    def test_delete_user_api_endpoint_success(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_delete_user_api_endpoint_success(self, mock_user_service_class):
         """Test de l'endpoint API DELETE /api/user/<username> - SERVICE MOCKÉ"""
         # Arrange - Simuler un administrateur connecté
         with self.client.session_transaction() as sess:
@@ -28,6 +28,8 @@ class TestUserDeletionIntegrationMocked:
             sess['user_name'] = 'Administrator'
         
         # Mock du service pour éviter interaction base de données
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
         mock_user_service.can_delete_user.return_value = True
         mock_user_service.delete_user_by_username.return_value = True
         
@@ -41,11 +43,11 @@ class TestUserDeletionIntegrationMocked:
         assert 'supprimé avec succès' in data['message']
         
         # Vérifier que les mocks ont été appelés correctement
-        mock_user_service.can_delete_user.assert_called_once_with('admin', 'test_user')
+        mock_user_service.can_delete_user.assert_called_once_with('test_user', 'admin')
         mock_user_service.delete_user_by_username.assert_called_once_with('test_user')
     
-    @patch('src.web.condo_app.user_service')
-    def test_delete_user_api_endpoint_not_found(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_delete_user_api_endpoint_not_found(self, mock_user_service_class):
         """Test de l'endpoint avec utilisateur inexistant - SERVICE MOCKÉ"""
         # Arrange - Simuler un administrateur connecté
         with self.client.session_transaction() as sess:
@@ -55,6 +57,8 @@ class TestUserDeletionIntegrationMocked:
             sess['user_name'] = 'Administrator'
             
         # Mock du service pour simuler utilisateur inexistant
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
         mock_user_service.can_delete_user.return_value = True
         mock_user_service.delete_user_by_username.return_value = False  # Utilisateur non trouvé
         
@@ -67,9 +71,13 @@ class TestUserDeletionIntegrationMocked:
         assert data['success'] is False
         assert 'non trouvé' in data['error']
     
-    @patch('src.web.condo_app.user_service')
-    def test_delete_user_authentication_required(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_delete_user_authentication_required(self, mock_user_service_class):
         """Test d'authentification requise - AUCUNE INTERACTION DB"""
+        # Mock setup même si pas utilisé
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
+        
         # Act - Tentative sans session authentifiée
         response = self.client.delete('/api/user/test_user')
         
@@ -79,9 +87,13 @@ class TestUserDeletionIntegrationMocked:
         # Vérifier qu'aucun service n'a été appelé
         mock_user_service.delete_user_by_username.assert_not_called()
     
-    @patch('src.web.condo_app.user_service')
-    def test_delete_user_admin_permission_required(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_delete_user_admin_permission_required(self, mock_user_service_class):
         """Test de permission admin requise - MOCKING COMPLET"""
+        # Mock setup même si pas utilisé
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
+        
         # Arrange - Simuler un utilisateur non-admin connecté
         with self.client.session_transaction() as sess:
             sess['user_id'] = 'resident'
@@ -98,8 +110,8 @@ class TestUserDeletionIntegrationMocked:
         # Vérifier qu'aucun service n'a été appelé
         mock_user_service.delete_user_by_username.assert_not_called()
     
-    @patch('src.web.condo_app.user_service')
-    def test_cannot_delete_self_via_api(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_cannot_delete_self_via_api(self, mock_user_service_class):
         """Test d'empêchement de l'auto-suppression via API - SERVICE MOCKÉ"""
         # Arrange - Simuler un administrateur connecté
         with self.client.session_transaction() as sess:
@@ -109,6 +121,8 @@ class TestUserDeletionIntegrationMocked:
             sess['user_name'] = 'Administrator'
         
         # Mock du service pour refuser auto-suppression
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
         mock_user_service.can_delete_user.return_value = False
         
         # Act - Tentative d'auto-suppression

@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 import sqlite3
 import json
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -74,9 +75,26 @@ class UserRepositorySQLite(UserRepositoryPort):
         Charge la configuration de la base de données depuis JSON.
         """
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            # Résoudre le chemin de façon robuste par rapport à la racine du projet
+            if not os.path.isabs(config_path):
+                # Trouver la racine du projet (répertoire contenant src/)
+                current_dir = Path(__file__).resolve()
+                while current_dir.parent != current_dir:
+                    if (current_dir / 'src').is_dir():
+                        project_root = current_dir
+                        break
+                    current_dir = current_dir.parent
+                else:
+                    # Fallback : utiliser le répertoire courant
+                    project_root = Path.cwd()
+                
+                resolved_config_path = project_root / config_path
+            else:
+                resolved_config_path = Path(config_path)
+            
+            with open(resolved_config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-                logger.debug(f"Configuration de base de données chargée depuis {config_path}")
+                logger.debug(f"Configuration de base de données chargée depuis {resolved_config_path}")
                 return config
         except FileNotFoundError:
             logger.error(f"Fichier de configuration introuvable: {config_path}")
@@ -88,12 +106,11 @@ class UserRepositorySQLite(UserRepositoryPort):
     def _initialize_database(self) -> None:
         """
         [STANDARD: Migrations automatiques]
-        Initialise la base de données et exécute les migrations.
+        Initialise la base de données. Les migrations sont gérées par SQLiteAdapter.
         """
         if not Path(self.db_path).exists():
             self._create_database()
         
-        self._run_migrations()
         self._ensure_default_users()
     
     def _create_database(self) -> None:
@@ -102,37 +119,6 @@ class UserRepositorySQLite(UserRepositoryPort):
             conn.execute("SELECT 1")  # Test de connexion
             conn.commit()
             logger.info(f"Base de données créée: {self.db_path}")
-    
-    def _run_migrations(self) -> None:
-        """
-        [STANDARD: Migrations SQL]
-        Exécute les scripts de migration dans l'ordre.
-        """
-        if not self.migrations_dir.exists():
-            logger.warning(f"Répertoire de migrations introuvable: {self.migrations_dir}")
-            return
-        
-        migration_files = sorted(self.migrations_dir.glob("*.sql"))
-        
-        for migration_file in migration_files:
-            if 'user' in migration_file.name.lower():  # Migration utilisateurs
-                self._execute_migration(migration_file)
-    
-    def _execute_migration(self, migration_file: Path) -> None:
-        """Exécute un script de migration spécifique."""
-        try:
-            with open(migration_file, 'r', encoding='utf-8') as f:
-                migration_sql = f.read()
-            
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.executescript(migration_sql)
-                conn.commit()
-                
-            logger.info(f"Migration exécutée: {migration_file.name}")
-        except Exception as e:
-            logger.error(f"Erreur lors de l'exécution de la migration {migration_file.name}: {e}")
-            raise UserRepositorySQLiteError(f"Erreur de migration: {e}")
     
     def _get_connection(self) -> sqlite3.Connection:
         """Crée une nouvelle connexion SQLite avec configuration."""

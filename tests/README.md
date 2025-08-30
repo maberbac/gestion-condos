@@ -80,16 +80,13 @@ acceptance/
 - Setup d'environnement complet
 - Validation des critères d'acceptance
 
-#### `run_new_acceptance_tests.py` [NOUVEAU]
-- Tests spécialisés pour l'interface moderne et la sécurité
-- Validation du design system et responsive design
-- Tests de sécurité avancée sans utilisateurs hardcodés
-
 #### `run_all_tests.py`
 - Orchestration complète de tous les tests
-- Inclut maintenant les nouveaux tests d'acceptance
-- Rapports consolidés
+- Exécution séquentielle de tous les types de tests
+- Rapports consolidés avec statistiques détaillées
 - Pipeline de validation complète
+- Logique de détection robuste basée sur les codes de retour
+- Support pour couverture de code et rapports JSON/HTML
 
 ## Conventions et Standards
 

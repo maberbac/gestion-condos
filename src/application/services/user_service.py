@@ -110,10 +110,28 @@ class UserService:
             Liste des utilisateurs formatés pour les templates Jinja2
         """
         try:
+            from datetime import datetime
             users = self.get_all_users()
             formatted_users = []
             
             for user in users:
+                # Convertir les chaînes de dates en objets datetime si nécessaire
+                created_at = user.created_at
+                if isinstance(created_at, str):
+                    try:
+                        created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    except:
+                        created_at = datetime.now()
+                
+                last_login = user.last_login
+                if isinstance(last_login, str):
+                    try:
+                        last_login = datetime.fromisoformat(last_login.replace('Z', '+00:00'))
+                    except:
+                        last_login = None
+                elif last_login is None:
+                    last_login = None
+                
                 formatted_user = {
                     'username': user.username,
                     'full_name': user.full_name,
@@ -122,8 +140,8 @@ class UserService:
                     'condo_unit': user.condo_unit,
                     'phone': getattr(user, 'phone', None),
                     'is_active': getattr(user, 'is_active', True),
-                    'created_at': user.created_at,
-                    'last_login': user.last_login,  # Champ manquant ajouté
+                    'created_at': created_at,
+                    'last_login': last_login,
                     'status': 'Actif'  # Par défaut, peut être étendu plus tard
                 }
                 formatted_users.append(formatted_user)

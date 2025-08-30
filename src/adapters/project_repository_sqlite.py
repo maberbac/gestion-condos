@@ -1,0 +1,358 @@
+"""
+Project Repository SQLite - Persistance des projets et unités dans SQLite.
+
+[ARCHITECTURE HEXAGONALE + STANDARDS DE CONFIGURATION]
+Repository SQLite pour la gestion des projets et leurs unités associées
+selon les standards définis dans copilot-instructions.md :
+- Configuration JSON obligatoire (database.json)
+- SQLite comme base de données principale
+- Migrations avec scripts SQL
+- Persistance et gestion des données
+"""
+
+from src.infrastructure.logger_manager import get_logger
+logger = get_logger(__name__)
+
+import sqlite3
+import json
+import os
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+import uuid
+
+from src.domain.entities.project import Project
+from src.domain.entities.condo import Condo, CondoStatus, CondoType
+
+
+class ProjectRepositorySQLite:
+    """
+    Repository SQLite pour la persistance des projets et unités.
+    
+    [STANDARDS OBLIGATOIRES]
+    - Configuration via config/database.json
+    - Base de données SQLite principale
+    - Migrations automatiques
+    - Gestion des données persistantes
+    
+    Architecture Hexagonale:
+    - Implémente la persistance des entités Project
+    - Isole la logique SQLite du core business
+    - Permet tests unitaires avec base en mémoire
+    """
+    
+    def __init__(self, db_path: str = None):
+        """
+        Initialise le repository SQLite pour les projets.
+        
+        Args:
+            db_path: Chemin vers la base de données (optionnel)
+        """
+        self.db_path = db_path or self._get_database_path()
+        self._ensure_database_exists()
+        
+        logger.info(f"ProjectRepositorySQLite initialisé avec DB: {self.db_path}")
+        logger.info(f"Chargé {len(self.get_all_projects())} projets depuis la base de données")
+    
+    def _get_database_path(self) -> str:
+        """Récupère le chemin de la base de données depuis la configuration."""
+        try:
+            config_path = Path(__file__).parent.parent.parent / "config" / "database.json"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get('database_path', 'data/condos.db')
+            else:
+                logger.warning(f"Fichier de config database.json non trouvé: {config_path}")
+                return 'data/condos.db'
+        except Exception as e:
+            logger.warning(f"Erreur de lecture de config database.json: {e}, utilisation config par défaut")
+            return 'data/condos.db'
+    
+    def _ensure_database_exists(self):
+        """S'assure que le fichier de base de données existe."""
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+    
+    def save_project(self, project: Project) -> str:
+        """
+        Sauvegarde un projet et ses unités dans la base de données.
+        
+        Args:
+            project: Instance du projet à sauvegarder
+            
+        Returns:
+            str: ID du projet sauvegardé
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Générer un project_id s'il n'existe pas
+                if not hasattr(project, 'project_id') or not project.project_id:
+                    project.project_id = str(uuid.uuid4())
+                
+                # Insérer ou mettre à jour le projet
+                conn.execute("""
+                    INSERT OR REPLACE INTO projects 
+                    (project_id, name, address, total_area, construction_year, 
+                     unit_count, constructor, creation_date, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    project.project_id,
+                    project.name,
+                    project.address,
+                    project.total_area,
+                    project.construction_year,
+                    project.unit_count,
+                    project.constructor,
+                    project.creation_date.isoformat(),
+                    'active'
+                ))
+                
+                # Supprimer les anciennes unités
+                conn.execute("DELETE FROM units WHERE project_id = ?", (project.project_id,))
+                
+                # Insérer les nouvelles unités
+                if project.units:
+                    for unit in project.units:
+                        self._save_unit(conn, unit, project.project_id)
+                
+                conn.commit()
+                logger.info(f"Projet sauvegardé: {project.name} avec {len(project.units)} unités")
+                return project.project_id
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde du projet {project.name}: {e}")
+            raise
+    
+    def _save_unit(self, conn: sqlite3.Connection, unit, project_id: str):
+        """Sauvegarde une unité dans la base de données."""
+        # Gérer les différents formats d'unités (dict ou objet Condo)
+        if isinstance(unit, dict):
+            unit_number = unit.get('unit_number', '')
+            area = unit.get('square_feet', unit.get('area', 0))
+            condo_type = unit.get('condo_type', 'residential')
+            status = unit.get('status', 'active')
+            owner_name = unit.get('owner_name', 'Disponible')
+            purchase_date = unit.get('purchase_date')
+            monthly_fees = unit.get('calculated_monthly_fees', unit.get('monthly_fees_base'))
+        else:
+            # Objet Condo
+            unit_number = unit.unit_number
+            area = unit.square_feet
+            condo_type = unit.condo_type.value if hasattr(unit.condo_type, 'value') else str(unit.condo_type)
+            status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
+            owner_name = getattr(unit, 'owner_name', 'Disponible')
+            purchase_date = getattr(unit, 'purchase_date', None)
+            monthly_fees = getattr(unit, 'calculated_monthly_fees', getattr(unit, 'monthly_fees_base', None))
+        
+        conn.execute("""
+            INSERT INTO units 
+            (unit_number, project_id, area, condo_type, status, 
+             owner_name, purchase_date, calculated_monthly_fees)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            unit_number,
+            project_id,
+            area,
+            condo_type,
+            status,
+            owner_name,
+            purchase_date,
+            str(monthly_fees) if monthly_fees else None
+        ))
+    
+    def get_all_projects(self) -> List[Project]:
+        """
+        Récupère tous les projets avec leurs unités.
+        
+        Returns:
+            List[Project]: Liste de tous les projets
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                # Récupérer tous les projets
+                cursor = conn.execute("""
+                    SELECT project_id, name, address, total_area, construction_year,
+                           unit_count, constructor, creation_date, status
+                    FROM projects 
+                    ORDER BY creation_date DESC
+                """)
+                
+                projects = []
+                for row in cursor.fetchall():
+                    # Créer l'objet projet
+                    project = Project(
+                        name=row['name'],
+                        address=row['address'],
+                        total_area=row['total_area'],
+                        construction_year=row['construction_year'],
+                        unit_count=row['unit_count'],
+                        constructor=row['constructor'],
+                        creation_date=datetime.fromisoformat(row['creation_date'])
+                    )
+                    
+                    # Ajouter le project_id
+                    project.project_id = row['project_id']
+                    
+                    # Récupérer les unités du projet
+                    unit_cursor = conn.execute("""
+                        SELECT unit_number, area, condo_type, status,
+                               owner_name, purchase_date, calculated_monthly_fees
+                        FROM units 
+                        WHERE project_id = ?
+                        ORDER BY unit_number
+                    """, (row['project_id'],))
+                    
+                    units = []
+                    for unit_row in unit_cursor.fetchall():
+                        # Créer les unités comme objets Unit appropriés
+                        from src.domain.entities.unit import Unit, UnitType, UnitStatus
+                        
+                        # Conversion du type et statut depuis les valeurs string de la DB
+                        try:
+                            unit_type = UnitType(unit_row['condo_type'])
+                        except (ValueError, KeyError):
+                            unit_type = UnitType.RESIDENTIAL  # Valeur par défaut
+                            
+                        # Mapping des anciens CondoStatus vers UnitStatus
+                        try:
+                            old_status = unit_row['status']
+                            if old_status == 'active':
+                                status = UnitStatus.AVAILABLE
+                            elif old_status == 'inactive':
+                                status = UnitStatus.AVAILABLE  # Inactif devient disponible
+                            elif old_status == 'sold':
+                                status = UnitStatus.SOLD
+                            elif old_status == 'maintenance':
+                                status = UnitStatus.MAINTENANCE
+                            else:
+                                # Essayer conversion directe si nouvelles valeurs
+                                status = UnitStatus(old_status)
+                        except (ValueError, KeyError):
+                            status = UnitStatus.AVAILABLE  # Valeur par défaut
+                        
+                        # Conversion date d'achat
+                        purchase_date = None
+                        if unit_row['purchase_date']:
+                            try:
+                                purchase_date = datetime.fromisoformat(unit_row['purchase_date'])
+                            except (ValueError, TypeError):
+                                purchase_date = None
+                        
+                        unit = Unit(
+                            unit_number=unit_row['unit_number'],
+                            area=float(unit_row['area']),
+                            unit_type=unit_type,
+                            status=status,
+                            owner_name=unit_row['owner_name'] or "Disponible",
+                            purchase_date=purchase_date,
+                            estimated_price=float(unit_row['price'] if 'price' in unit_row.keys() else 0),  # Si pas de colonne price, défaut à 0
+                            project_id=row['project_id']          # Ajouter l'ID du projet
+                        )
+                        units.append(unit)
+                    
+                    logger.debug(f"Récupéré {len(units)} unités pour le projet {row['name']}")
+                    project.units = units
+                    projects.append(project)
+                
+                logger.info(f"Chargé {len(projects)} projets depuis la base de données")
+                return projects
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des projets: {e}")
+            return []
+    
+    def get_project_by_id(self, project_id: str) -> Optional[Project]:
+        """
+        Récupère un projet par son ID.
+        
+        Args:
+            project_id: ID du projet
+            
+        Returns:
+            Optional[Project]: Le projet trouvé ou None
+        """
+        try:
+            projects = self.get_all_projects()
+            for project in projects:
+                if hasattr(project, 'project_id') and project.project_id == project_id:
+                    return project
+            return None
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du projet {project_id}: {e}")
+            return None
+    
+    def delete_project(self, project_id: str) -> bool:
+        """
+        Supprime un projet et ses unités.
+        
+        Args:
+            project_id: ID du projet à supprimer
+            
+        Returns:
+            bool: True si supprimé avec succès
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Supprimer les unités d'abord (FK cascade)
+                conn.execute("DELETE FROM units WHERE project_id = ?", (project_id,))
+                
+                # Supprimer le projet
+                cursor = conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+                
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.info(f"Projet supprimé: {project_id}")
+                    return True
+                else:
+                    logger.warning(f"Aucun projet trouvé avec l'ID: {project_id}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression du projet {project_id}: {e}")
+            return False
+    
+    def migrate_from_json(self, json_file_path: str) -> bool:
+        """
+        Migre les données depuis un fichier JSON vers la base de données.
+        
+        Args:
+            json_file_path: Chemin vers le fichier JSON
+            
+        Returns:
+            bool: True si migration réussie
+        """
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            projects_data = data.get('projects', [])
+            migrated_count = 0
+            
+            for project_data in projects_data:
+                try:
+                    # Créer l'objet Project depuis les données JSON
+                    project = Project.from_dict(project_data)
+                    
+                    # Ajouter le project_id depuis les données
+                    if 'project_id' in project_data:
+                        project.project_id = project_data['project_id']
+                    
+                    # Sauvegarder dans la base
+                    self.save_project(project)
+                    migrated_count += 1
+                    
+                except Exception as e:
+                    logger.error(f"Erreur lors de la migration du projet {project_data.get('name', 'Inconnu')}: {e}")
+                    continue
+            
+            logger.info(f"Migration terminée: {migrated_count} projets migrés depuis {json_file_path}")
+            return migrated_count > 0
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la migration depuis {json_file_path}: {e}")
+            return False

@@ -20,8 +20,8 @@ class TestUserDeletionIntegration:
         # Mock repository pour éviter toute interaction avec base réelle
         self.mock_repository = Mock()
     
-    @patch('src.web.condo_app.user_service')
-    def test_delete_user_api_endpoint_success(self, mock_user_service):
+    @patch('src.application.services.user_service.UserService')
+    def test_delete_user_api_endpoint_success(self, mock_user_service_class):
         """Test de l'endpoint API DELETE /api/user/<username> - SERVICE MOCKÉ"""
         # Arrange - Simuler un administrateur connecté
         with self.client.session_transaction() as sess:
@@ -31,6 +31,8 @@ class TestUserDeletionIntegration:
             sess['user_name'] = 'Administrator'
         
         # Mock du service pour éviter interaction base de données
+        mock_user_service = Mock()
+        mock_user_service_class.return_value = mock_user_service
         mock_user_service.can_delete_user.return_value = True
         mock_user_service.delete_user_by_username.return_value = True
         

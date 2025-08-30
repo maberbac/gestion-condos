@@ -26,12 +26,12 @@ class CondoStatus(Enum):
     """Statut d'une unité de condo."""
     ACTIVE = "active"
     INACTIVE = "inactive"
-    MAINTENANCE = "maintenance"
     SOLD = "sold"
+    MAINTENANCE = "maintenance"
 
 
 class CondoType(Enum):
-    """Type d'unité de condo."""
+    """Type d'unité de condo selon la fonction."""
     RESIDENTIAL = "residential"
     COMMERCIAL = "commercial"
     PARKING = "parking"
@@ -55,21 +55,29 @@ class Condo:
         status: Statut actuel de l'unité
         purchase_date: Date d'achat (optionnel)
         monthly_fees_base: Frais de base mensuels personnalisés (optionnel)
+        building_name: Nom du projet/bâtiment (pour compatibilité projets)
+        is_sold: Indicateur de vente (pour statistiques projets)
     """
     
     unit_number: str
-    owner_name: str
     square_feet: float
     condo_type: CondoType = CondoType.RESIDENTIAL
     status: CondoStatus = CondoStatus.ACTIVE
+    owner_name: str = "Disponible"
+    floor: int = 1
+    price: float = 0.0
     purchase_date: Optional[datetime] = None
     monthly_fees_base: Optional[Decimal] = None
+    building_name: Optional[str] = None
+    is_sold: bool = False
+    address: Optional[str] = None
+    construction_year: Optional[int] = None
     
     # Constantes métier - Peuvent être configurées via infrastructure
-    RATE_PER_SQFT_RESIDENTIAL = Decimal('0.45')  # 0.45$ par pied carré
-    RATE_PER_SQFT_COMMERCIAL = Decimal('0.60')   # 0.60$ par pied carré
-    RATE_PER_SQFT_PARKING = Decimal('0.15')     # 0.15$ par pied carré
-    RATE_PER_SQFT_STORAGE = Decimal('0.25')     # 0.25$ par pied carré
+    RATE_PER_SQFT_RESIDENTIAL = Decimal('0.45')   # 0.45$ par pied carré pour résidentiel
+    RATE_PER_SQFT_COMMERCIAL = Decimal('0.60')    # 0.60$ par pied carré pour commercial
+    RATE_PER_SQFT_PARKING = Decimal('0.15')       # 0.15$ par pied carré pour parking  
+    RATE_PER_SQFT_STORAGE = Decimal('0.25')       # 0.25$ par pied carré pour entreposage
     
     def __post_init__(self):
         """Validation après initialisation."""
@@ -127,7 +135,7 @@ class Condo:
             CondoType.PARKING: self.RATE_PER_SQFT_PARKING,
             CondoType.STORAGE: self.RATE_PER_SQFT_STORAGE,
         }
-        return rate_mapping[self.condo_type]
+        return rate_mapping.get(self.condo_type, self.RATE_PER_SQFT_RESIDENTIAL)
     
     def calculate_annual_fees(self) -> Decimal:
         """Calcule les frais annuels de copropriété."""
@@ -173,8 +181,13 @@ class Condo:
         if not new_owner or not new_owner.strip():
             raise ValueError("Le nom du nouveau propriétaire ne peut pas être vide")
         
+        old_owner = self.owner_name
         self.owner_name = new_owner.strip()
         self.purchase_date = transfer_date or datetime.now()
+        self.status = CondoStatus.SOLD
+        self.is_sold = True
+        
+        logger.info(f"Transfert de propriété - Unité {self.unit_number}: {old_owner} → {new_owner}")
     
     def to_dict(self) -> dict:
         """
@@ -194,6 +207,15 @@ class Condo:
             'calculated_monthly_fees': str(self.calculate_monthly_fees())
         }
     
+    def is_owned(self) -> bool:
+        """
+        Vérifie si l'unité a un propriétaire défini (n'est pas disponible).
+        
+        Returns:
+            bool: True si l'unité a un propriétaire
+        """
+        return self.owner_name.strip() not in ['', 'Disponible', 'À vendre', 'Vacant']
+    
     @classmethod
     def from_dict(cls, data: dict) -> 'Condo':
         """
@@ -209,7 +231,11 @@ class Condo:
             condo_type=CondoType(data.get('condo_type', 'residential')),
             status=CondoStatus(data.get('status', 'active')),
             purchase_date=datetime.fromisoformat(data['purchase_date']) if data.get('purchase_date') else None,
-            monthly_fees_base=Decimal(data['monthly_fees_base']) if data.get('monthly_fees_base') else None
+            monthly_fees_base=Decimal(data['monthly_fees_base']) if data.get('monthly_fees_base') else None,
+            building_name=data.get('building_name'),
+            is_sold=data.get('is_sold', False),
+            address=data.get('address'),
+            construction_year=data.get('construction_year')
         )
     
     def __str__(self) -> str:

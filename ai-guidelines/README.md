@@ -6,27 +6,37 @@ Ce répertoire contient toutes les instructions, directives et contextes spécif
 
 ```
 ai-guidelines/
-├── README.md                # Ce fichier - Vue d'ensemble du répertoire
-├── checklist-concepts.md    # Checklist des 4 concepts techniques obligatoires
-├── consignes-projet.md      # Exigences et contraintes du projet
-├── debut-session.md         # Guide de début de session pour l'IA
-├── guidelines-code.md       # Standards de code et bonnes pratiques
-├── instructions-ai.md       # Instructions spécifiques au projet
-└── regles-developpement.md  # ⭐ MIS À JOUR - Règles avec standards TDD et mocking
+├── README.md                    # Ce fichier - Vue d'ensemble du répertoire
+├── checklist-concepts.md        # Checklist des 4 concepts techniques obligatoires
+├── consignes-projet.md          # Exigences et contraintes du projet
+├── debut-session.md             # Guide de début de session pour l'IA
+├── guidelines-code.md           # Standards de code et bonnes pratiques
+├── instructions-ai.md           # Instructions spécifiques au projet
+├── regles-developpement.md      # Règles TDD et standards de développement
+├── development-checklists.md    # Checklists pré/post développement
+├── documentation-standards.md   # Standards documentation et logging
+├── language-guidelines.md       # Directives Python spécifiques au projet
+└── project-integration.md       # Guide d'intégration contextuelle
 ```
 
-## Mise à Jour Récente (30 août 2025)
+## Mise à Jour Récente
 
-### Nouvelles Consignes de Mocking
-- **Standards TDD stricts** intégrés dans `regles-developpement.md`
-- **Checklist de validation** pour mocking des tests
-- **Templates obligatoires** pour tests unitaires, intégration, acceptance
-- **Anti-patterns documentés** à éviter absolument
+### Consolidation des Guidelines IA
+- **Fusion réalisée** : Intégration des guidelines de `.github/ai-guidelines/` dans ce répertoire
+- **Structure unifiée** : Tous les fichiers d'instructions IA centralisés ici
+- **Standards appliqués** : Respect des directives `.github/copilot-instructions.md`
 
-### Instructions GitHub Copilot Étendues
-- **Obligations strictes de mocking** des bases de données
-- **Checklist étendue** avec validation d'isolation des tests
-- **Règles d'indépendance** des tests (ordre d'exécution libre)
+### Standards de Centralisation
+- **Migrations de base de données** : Centralisées dans `SQLiteAdapter` uniquement
+- **Système de logging** : Import obligatoire, interdiction des `print()`
+- **Tests TDD stricts** : Mocking complet, isolation totale des tests
+- **Séparation HTML/Python** : Templates externes obligatoires
+
+### Nouvelles Guidelines Intégrées
+- **Development Checklists** : Validation pré/post développement
+- **Documentation Standards** : Normes de documentation et logging
+- **Language Guidelines** : Directives Python spécifiques au projet
+- **Project Integration** : Guide d'intégration contextuelle automatique
 
 ## Principe
 
