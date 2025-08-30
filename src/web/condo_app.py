@@ -289,39 +289,22 @@ def finance():
 @app.route('/users')
 @require_admin
 def users():
-    """Gestion des utilisateurs."""
-    # Données fictives d'utilisateurs
-    sample_users = [
-        {
-            'username': 'admin',
-            'full_name': 'Administrateur Système',
-            'email': 'admin@condos.com',
-            'role': {'value': 'admin'},
-            'condo_unit': 'N/A',
-            'last_login': '2024-12-01 09:30:00',
-            'status': 'Actif'
-        },
-        {
-            'username': 'jean.dupont',
-            'full_name': 'Jean Dupont',
-            'email': 'jean.dupont@email.com',
-            'role': {'value': 'resident'},
-            'condo_unit': 'A-101',
-            'last_login': '2024-11-30 18:45:00',
-            'status': 'Actif'
-        },
-        {
-            'username': 'marie.martin',
-            'full_name': 'Marie Martin',
-            'email': 'marie.martin@email.com',
-            'role': {'value': 'resident'},
-            'condo_unit': 'B-205',
-            'last_login': '2024-11-29 14:20:00',
-            'status': 'Actif'
-        }
-    ]
+    """Gestion des utilisateurs depuis la base de données."""
+    from src.application.services.user_service import UserService
     
-    return render_template('users.html', users=sample_users)
+    try:
+        # Utiliser le service utilisateur pour récupérer les vraies données
+        user_service = UserService()
+        users_data = user_service.get_users_for_web_display()
+        
+        logger.info(f"Affichage de {len(users_data)} utilisateurs depuis la base de données")
+        
+        return render_template('users.html', users=users_data)
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des utilisateurs: {e}")
+        # En cas d'erreur, afficher une liste vide plutôt que planter
+        return render_template('users.html', users=[])
 
 @app.route('/users/new', methods=['GET', 'POST'])
 @require_admin

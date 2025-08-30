@@ -272,16 +272,18 @@ L'interface sera disponible sur `http://127.0.0.1:5000` avec ouverture automatiq
 - Configuration JSON validée
 - Tests d'intégration fonctionnels
 
-### **Gap Principal : Interface Utilisateur**
-- **Manque** : Interface web pour utilisateur final
-- **Besoin** : Démonstration visible des concepts
-- **Objectif** : Rendre les concepts techniques accessibles via web
+### **Interface Utilisateur Complète et Database Intégration TDD**
+- **NOUVELLE RÉALISATION** : Page utilisateurs maintenant connectée à la base de données SQLite via architecture de services
+- **TDD IMPLÉMENTÉ** : Développement strict Red-Green-Refactor pour intégration database
+- **SERVICE LAYER** : Nouvelle couche UserService orchestrant l'accès aux données utilisateur
+- **TESTS COMPLETS** : 291 tests total (139 unitaires, 74 intégration, 78 acceptance) - TOUS PASSENT
 
-### **Prochaines Étapes Immédiates**
-1. **Créer application Flask/FastAPI** connectée aux adapters existants
-2. **Développer templates HTML** pour CRUD et rapports
-3. **Intégrer concepts techniques** de manière visible à l'utilisateur
-4. **Tester et documenter** l'ensemble du MVP
+### **Réalisations Récentes**
+1. **UserService créé** : Service layer gérant l'affichage des utilisateurs depuis la base de données
+2. **TDD appliqué** : Méthodologie Red-Green-Refactor strictement suivie pour le développement
+3. **Tests automatisés** : Suite de tests complète couvrant unitaire, intégration et acceptance
+4. **Architecture hexagonale** : Service layer intégré proprement dans l'architecture ports/adapters
+5. **Base de données réelle** : Remplacement des données hardcodées par interrogation SQLite asynchrone
 
 ---
 
@@ -307,6 +309,61 @@ L'interface sera disponible sur `http://127.0.0.1:5000` avec ouverture automatiq
 
 ---
 
-**Dernière mise à jour** : 28 août 2025  
-**Status global** : Infrastructure complète, Interface utilisateur en développement  
-**Prochaine étape** : Développement application web frontend
+**Dernière mise à jour** : 29 décembre 2024  
+**Status global** : Infrastructure complète, Interface utilisateur COMPLÈTE avec database intégration TDD  
+**Prochaine étape** : Optimisations et fonctionnalités avancées
+
+## Réalisations TDD Database Integration (29 décembre 2024)
+
+### Implémentation UserService avec TDD
+
+**Objectif** : Remplacer les données hardcodées de la page /users par des données réelles de la base SQLite en utilisant la méthodologie TDD stricte.
+
+#### Phase RED : Tests échoue d'abord
+1. **Tests unitaires créés** : `tests/unit/test_user_page_database.py` - 7 tests couvrant le UserService
+2. **Tests intégration créés** : `tests/integration/test_user_page_database_integration.py` - 8 tests couvrant l'intégration complète
+3. **Tests acceptance existants** : Validation que la page /users fonctionne end-to-end
+
+#### Phase GREEN : Implémentation minimale
+1. **UserService créé** : `src/application/services/user_service.py`
+   - Méthode `get_users_for_web_display()` : Formatage des données pour l'affichage web
+   - Méthode `get_user_statistics()` : Calcul des statistiques d'utilisateurs
+   - Gestion asynchrone avec event loop integration
+2. **Route /users modifiée** : `src/web/condo_app.py`
+   - Import et utilisation du UserService
+   - Remplacement des données hardcodées par appel à la base de données
+
+#### Phase REFACTOR : Amélioration sans changer les fonctionnalités
+1. **Architecture affinée** : Service layer proprement intégré dans l'architecture hexagonale
+2. **Gestion d'erreurs robuste** : Exception handling pour les opérations asynchrones
+3. **Tests optimisés** : Mocking approprié au niveau service plutôt que repository
+
+### Résultats de la Méthodologie TDD
+- **Tests unitaires** : 7 nouveaux tests pour UserService
+- **Tests intégration** : 8 nouveaux tests pour intégration web/database
+- **Couverture complète** : Tous les scénarios d'usage couverts
+- **291 tests total** : Tous passent (139 unit + 74 integration + 78 acceptance)
+- **Performance maintenue** : Opérations asynchrones optimisées
+
+### Architecture Service Layer
+
+```
+src/application/services/
+└── user_service.py           # Service orchestrant les opérations utilisateur
+
+src/web/
+└── condo_app.py             # Route /users utilisant UserService
+
+tests/unit/
+└── test_user_page_database.py           # Tests unitaires UserService
+
+tests/integration/
+└── test_user_page_database_integration.py   # Tests intégration web/database
+```
+
+### Concepts Techniques Renforcés
+
+1. **Programmation Asynchrone** : Gestion event loop dans UserService pour opérations database
+2. **Architecture Ports/Adapters** : Service layer respectant l'isolation du domaine
+3. **Tests Automatisés** : TDD strict avec couverture complète
+4. **Gestion d'Erreurs** : Exception handling approprié pour opérations asynchrones

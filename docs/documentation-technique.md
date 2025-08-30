@@ -42,28 +42,57 @@ Le système de gestion de condominiums est une application web développée pour
 
 ## Architecture du système
 
-### Architecture générale
-L'application suit une architecture web classique à trois niveaux :
+### Architecture Hexagonale (Ports et Adapters)
+L'application suit une architecture hexagonale moderne garantissant l'isolation du domaine métier :
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Présentation  │    │    Logique      │    │    Données      │
-│   (Frontend)    │◄──►│   Métier        │◄──►│   (Fichiers)    │
-│   HTML/CSS/JS   │    │  (Backend)      │    │   JSON/CSV      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     COUCHE WEB (Interface)                  │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │   Templates     │    │   Flask Routes  │                │
+│  │   HTML/CSS      │◄──►│   Controllers   │                │
+│  └─────────────────┘    └─────────────────┘                │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────┐
+│                  COUCHE APPLICATION (Services)              │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │   UserService   │    │ FinancialService│                │
+│  │   (Orchestration│◄──►│  (Calculs)      │                │
+│  │    & Logique)   │    │                 │                │
+│  └─────────────────┘    └─────────────────┘                │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────┐
+│                 COUCHE DOMAINE (Métier)                     │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │   Entités       │    │    Ports        │                │
+│  │ (User, Condo)   │    │  (Interfaces)   │                │
+│  └─────────────────┘    └─────────────────┘                │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────┐
+│               COUCHE INFRASTRUCTURE (Adapters)              │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  SQLite Adapter │    │  File Adapter   │                │
+│  │  (Base données) │    │  (JSON/CSV)     │                │
+│  └─────────────────┘    └─────────────────┘                │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Patterns architecturaux
-- **MVC (Model-View-Controller)** : Séparation claire des responsabilités
+- **Architecture Hexagonale** : Isolation du domaine métier avec ports et adapters
+- **Service Layer** : Orchestration de la logique métier pour l'interface web
+- **Repository Pattern** : Abstraction de l'accès aux données
 - **RESTful API** : Interface standardisée pour les communications
-- **Layered Architecture** : Organisation en couches logiques
+- **Dependency Injection** : Inversion des dépendances via interfaces
 
 ### Flux de données
-1. **Interface utilisateur** → Requêtes HTTP
-2. **Routeur** → Distribution des requêtes
-3. **Contrôleurs** → Logique métier
-4. **Services** → Traitement des données
-5. **Gestionnaires de fichiers** → Persistance
+1. **Interface web** → Requêtes HTTP vers Flask routes
+2. **Controllers** → Délégation vers la couche Application Services
+3. **Services** → Orchestration de la logique métier et appel aux Ports
+4. **Adapters** → Implémentation concrète des Ports (SQLite, Files)
+5. **Domaine** → Entités métier avec logique business encapsulée
 
 ---
 
@@ -153,17 +182,43 @@ class FinanceError(GestionCondosError):
 ```
 
 ### 4. Programmation asynchrone
-**Implémentation** : Opérations non-bloquantes avec asyncio
-- Traitement parallèle des fichiers multiples
-- Requêtes API externes asynchrones
-- Gestion des sessions utilisateur
-- Opérations de persistance en arrière-plan
+**Implémentation** : Opérations non-bloquantes avec asyncio intégrées dans l'architecture hexagonale
+
+**Réalisations actuelles** :
+- **UserService** : Gestion asynchrone des opérations base de données utilisateur
+- **UserRepositorySQLite** : Requêtes SQLite asynchrones avec gestion event loop
+- **FileAdapter** : Opérations fichiers non-bloquantes avec aiofiles
+- **Flask Integration** : Intégration async/await dans les routes web
+
+**Architecture async** :
+```python
+# Service Layer avec async
+class UserService:
+    async def get_users_for_web_display(self):
+        return await self.user_repository.get_all()
+
+# Repository async avec event loop management
+class UserRepositorySQLite:
+    async def get_all(self):
+        # Gestion automatique de l'event loop
+        if asyncio.get_event_loop().is_running():
+            # Délégation vers thread séparé
+        else:
+            # Exécution directe
+```
+
+**Concepts techniques démontrés** :
+- **Event loop management** : Gestion appropriée des boucles d'événements
+- **Thread integration** : Intégration async/sync dans Flask
+- **Database async** : Opérations SQLite non-bloquantes
+- **Error handling async** : Gestion d'exceptions dans le contexte asynchrone
 
 **Technologies** :
 ```python
 import asyncio
-import aiohttp
 import aiofiles
+import threading
+import concurrent.futures
 ```
 
 ---
@@ -265,36 +320,87 @@ Fichier `config/app_config.json` :
 
 ## Composants principaux
 
+### Couche Application - Services
+
+#### UserService (Service d'Orchestration Utilisateur)
+**Responsabilité** : Orchestration des opérations utilisateur pour l'interface web
+
+**Fichier** : `src/application/services/user_service.py`
+
+**Fonctionnalités principales** :
+- `get_users_for_web_display()` : Récupère et formate les utilisateurs pour affichage web
+- `get_user_statistics()` : Calcule les statistiques d'utilisateurs (total, par rôle)
+- Gestion asynchrone avec intégration event loop
+- Interface entre la couche web et la couche domaine
+
+**Architecture** :
+```python
+class UserService:
+    def __init__(self, user_repository):
+        self.user_repository = user_repository
+    
+    async def get_users_for_web_display(self):
+        """Récupère les utilisateurs formatés pour l'affichage web"""
+        
+    def get_user_statistics(self, users):
+        """Calcule les statistiques à partir d'une liste d'utilisateurs"""
+```
+
+**Concepts techniques démontrés** :
+- **Programmation asynchrone** : Méthodes async/await pour opérations non-bloquantes
+- **Gestion d'erreurs** : Exception handling pour opérations database
+- **Architecture ports/adapters** : Service utilisant les ports du domaine
+
+#### FinancialService (Service Financier)
+**Responsabilité** : Calculs financiers avec programmation fonctionnelle
+
+**Fonctionnalités** :
+- Calculs de revenus et projections
+- Utilisation systématique de map(), filter(), reduce()
+- Fonctions pures pour garantir la reproductibilité
+- Pipeline de transformation de données
+
+### Couche Domaine - Entités et Ports
+
+#### Entités Métier
+**User** : Entité utilisateur avec rôles et validation
+**Condo** : Entité condo avec types et calculs métier
+
+#### Ports (Interfaces)
+**UserRepository** : Interface pour l'accès aux données utilisateur
+**CondoRepository** : Interface pour l'accès aux données condo
+
+### Couche Infrastructure - Adapters
+
+#### UserRepositorySQLite
+**Responsabilité** : Implémentation concrète de l'accès aux données utilisateur via SQLite
+- Opérations CRUD asynchrones
+- Requêtes SQL optimisées
+- Gestion des connexions database
+
+#### FileAdapter  
+**Responsabilité** : Lecture/écriture de fichiers JSON/CSV
+- Opérations asynchrones avec aiofiles
+- Validation des formats
+- Gestion d'erreurs I/O
+
+### Interface utilisateur
+**Responsabilité** : Présentation et interaction
+- Pages HTML responsives avec thème moderne (gradients, animations)
+- Interface JavaScript interactive
+- Validation côté client
+- Communication avec l'API Flask
+
 ### Gestionnaire de résidents
-**Responsabilité** : Gestion CRUD des informations des résidents
+**Responsabilité** : Gestion CRUD des informations des résidents (legacy - remplacé par UserService)
 - Création, lecture, mise à jour, suppression
 - Validation des données
 - Recherche et filtrage
 
 **Fichiers principaux** :
-- `src/app/services/resident_service.py`
-- `src/app/models/resident.py`
-- `data/residents.json`
-
-### Gestionnaire d'unités
-**Responsabilité** : Gestion des unités de copropriété
-- Association résidents-unités
-- Calcul des charges par unité
-- Historique des occupations
-
-### Gestionnaire financier
-**Responsabilité** : Suivi financier de la copropriété
-- Calcul des frais de copropriété
-- Suivi des paiements
-- Génération de rapports
-- Export des données comptables
-
-### Interface utilisateur
-**Responsabilité** : Présentation et interaction
-- Pages HTML responsives
-- Interface JavaScript interactive
-- Validation côté client
-- Communication avec l'API
+- `src/application/services/user_service.py` (nouveau)
+- `src/domain/entities/user.py`
+- `src/adapters/sqlite/user_repository_sqlite.py`
 
 ---
 
@@ -449,25 +555,91 @@ Bien qu'utilisant des fichiers, l'application maintient un modèle de données s
 
 ## Tests
 
-### Stratégie de test
-- **Tests unitaires** : Fonctions individuelles
-- **Tests d'intégration** : Interaction entre composants
-- **Tests fonctionnels** : Scénarios utilisateur complets
-- **Tests de performance** : Charge et stress
+### Méthodologie TDD (Test-Driven Development)
+Le projet suit une méthodologie de développement TDD stricte avec le cycle Red-Green-Refactor :
 
-### Structure des tests
+1. **RED** : Écrire un test qui échoue avant d'écrire le code
+2. **GREEN** : Écrire le minimum de code pour faire passer le test  
+3. **REFACTOR** : Améliorer le code sans changer les fonctionnalités
+
+### Architecture de Tests en 3 Niveaux
+
+#### Tests Unitaires (139 tests)
+**Objectif** : Tester la logique métier isolée
+**Répertoire** : `tests/unit/`
+**Couverture** : Services, entités, calculs métier
+
+**Exemples** :
+- `test_user_page_database.py` : Tests du UserService (7 tests)
+- `test_financial_service.py` : Tests des calculs financiers
+- `test_condo_entity.py` : Tests des entités métier
+
+#### Tests d'Intégration (74 tests)  
+**Objectif** : Tester l'interaction entre composants
+**Répertoire** : `tests/integration/`
+**Couverture** : Services + Adapters, Database + Web
+
+**Exemples** :
+- `test_user_page_database_integration.py` : Intégration web/database (8 tests)
+- `test_api_endpoints.py` : Tests des routes Flask
+- `test_database_operations.py` : Tests des opérations SQLite
+
+#### Tests d'Acceptance (78 tests)
+**Objectif** : Valider les fonctionnalités end-to-end
+**Répertoire** : `tests/acceptance/`
+**Couverture** : Scénarios utilisateur complets
+
+**Exemples** :
+- `test_user_creation_acceptance.py` : Création d'utilisateur bout en bout
+- `test_condo_management_acceptance.py` : Gestion des condos
+- `test_authentication_flow.py` : Flux d'authentification
+
+### Scripts d'Exécution des Tests
+
+```bash
+# Tests unitaires uniquement
+python tests/run_all_unit_tests.py
+
+# Tests d'intégration uniquement  
+python tests/run_all_integration_tests.py
+
+# Tests d'acceptance uniquement
+python tests/run_all_acceptance_tests.py
+
+# Tous les tests (291 total)
+python tests/run_all_tests.py
 ```
-tests/
-├── unit/
-│   ├── test_resident_service.py
-│   ├── test_finance_service.py
-│   └── test_utils.py
-├── integration/
-│   ├── test_api_endpoints.py
-│   └── test_file_operations.py
-├── functional/
-│   └── test_user_scenarios.py
-└── performance/
+
+### Couverture et Qualité
+- **291 tests total** avec 100% de succès
+- **Temps d'exécution** : ~4.5 secondes total
+- **Couverture fonctionnelle** : Toutes les fonctionnalités utilisateur
+- **Mocking approprié** : Mock au niveau service plutôt que repository
+
+### Exemples de Tests TDD Récents
+
+#### UserService - Tests Unitaires
+```python
+def test_get_users_for_web_display_returns_formatted_data():
+    """Test que le service formate correctement les données pour l'affichage web"""
+    
+def test_get_user_statistics_calculates_correct_totals():
+    """Test que les statistiques d'utilisateurs sont calculées correctement"""
+```
+
+#### Intégration Web/Database
+```python  
+def test_users_page_displays_real_database_data():
+    """Test que la page /users affiche les vraies données de la base"""
+    
+def test_users_page_handles_empty_database():
+    """Test que la page gère gracieusement une base de données vide"""
+```
+
+### Validation Continue
+- Tests exécutés avant chaque commit
+- Validation automatique de l'architecture hexagonale
+- Détection des régressions en temps réel
     └── test_load.py
 ```
 
