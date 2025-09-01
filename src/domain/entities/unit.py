@@ -127,6 +127,78 @@ class Unit:
         base_rate = rate_per_sqft.get(self.unit_type, 0.45)
         return float(self.area * base_rate)
     
+    @property
+    def monthly_fees(self) -> float:
+        """
+        Propriété pour accéder aux frais mensuels calculés.
+        
+        Returns:
+            float: Frais mensuels pour cette unité
+        """
+        return self.calculate_monthly_fees()
+    
+    @property
+    def square_feet(self) -> float:
+        """
+        Propriété pour accéder à la superficie (alias pour area).
+        
+        Returns:
+            float: Superficie en pieds carrés
+        """
+        return self.area
+    
+    @property
+    def type_icon(self) -> str:
+        """
+        Icône correspondant au type d'unité.
+        
+        Returns:
+            str: Emoji représentant le type d'unité
+        """
+        icons = {
+            UnitType.RESIDENTIAL: "🏠",
+            UnitType.COMMERCIAL: "🏢",
+            UnitType.PARKING: "🚗",
+            UnitType.STORAGE: "📦"
+        }
+        return icons.get(self.unit_type, "🏠")
+    
+    @property
+    def status_icon(self) -> str:
+        """
+        Icône correspondant au statut de l'unité.
+        
+        Returns:
+            str: Emoji représentant le statut
+        """
+        icons = {
+            UnitStatus.AVAILABLE: "✅",
+            UnitStatus.SOLD: "🔒",
+            UnitStatus.RESERVED: "⏳",
+            UnitStatus.MAINTENANCE: "🔧"
+        }
+        return icons.get(self.status, "❓")
+    
+    @property
+    def building_name(self) -> Optional[str]:
+        """
+        Nom du bâtiment (pour compatibilité template).
+        
+        Returns:
+            Optional[str]: Nom du bâtiment s'il est défini
+        """
+        return getattr(self, '_building_name', None)
+    
+    @building_name.setter
+    def building_name(self, value: Optional[str]) -> None:
+        """
+        Setter pour le nom du bâtiment.
+        
+        Args:
+            value: Nom du bâtiment à assigner
+        """
+        self._building_name = value
+    
     def is_available(self) -> bool:
         """Vérifie si l'unité est disponible."""
         return self.status == UnitStatus.AVAILABLE

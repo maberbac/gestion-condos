@@ -156,7 +156,7 @@
             <div class="stat-card stats-card revenue">
                 <div class="stat-icon">💰</div>
                 <div class="stat-content">
-                    <div class="stat-number">${{ "{:,}".format(condos|map(attribute='monthly_fees')|sum) }}</div>
+                    <div class="stat-number">${{ "{:,}".format((condos|selectattr('monthly_fees')|map(attribute='monthly_fees')|sum) or 0) }}</div>
                     <div class="stat-label">Revenus/mois</div>
                 </div>
             </div>
@@ -179,22 +179,22 @@
                     <div class="condo-details">
                         <div class="detail-item">
                             <span class="detail-icon">👤</span>
-                            <span class="detail-text">{{ condo.owner_name }}</span>
+                            <span class="detail-text">{{ condo.owner_name or 'Disponible' }}</span>
                         </div>
                         
                         <div class="detail-item">
                             <span class="detail-icon">📐</span>
-                            <span class="detail-text">{{ condo.square_feet }} pi²</span>
+                            <span class="detail-text">{{ "%.0f"|format(condo.square_feet or 0) }} pi²</span>
                         </div>
                         
                         <div class="detail-item">
                             <span class="detail-icon">💰</span>
-                            <span class="detail-text">${{ condo.monthly_fees }}/mois</span>
+                            <span class="detail-text">${{ "%.2f"|format(condo.monthly_fees or 0) }}/mois</span>
                         </div>
                         
                         <div class="detail-item">
                             <span class="detail-icon">{{ condo.status_icon }}</span>
-                            <span class="detail-text">{{ condo.status|title }}</span>
+                            <span class="detail-text">{{ condo.status.value|title if condo.status else 'Inconnu' }}</span>
                         </div>
 
                         {% if condo.building_name %}

@@ -61,9 +61,12 @@ condo_modifications = {}
 
 # Service pour gÃ©rer les unitÃ©s comme des condos dans l'interface
 class SQLiteCondoService:
-    def __init__(self):
-        from src.application.services.project_service import ProjectService
-        self.project_service = ProjectService()
+    def __init__(self, project_service=None):
+        if project_service:
+            self.project_service = project_service
+        else:
+            from src.application.services.project_service import ProjectService
+            self.project_service = ProjectService()
     
     def get_all_condos(self, user_role='guest'):
         """récupÃ¨re tous les condos depuis SQLite."""
@@ -166,14 +169,20 @@ class SQLiteCondoService:
                 estimated_price=float(condo_data.get('estimated_price', 0)) if condo_data.get('estimated_price') else None
             )
             
-            # Ajouter l'unité au projet et sauvegarder
-            if projects_result['success'] and projects_result['projects']:
-                project = projects_result['projects'][0]
-                project.units.append(unit)
-                save_result = self.project_service.update_project(project)
-                if not save_result['success']:
-                    logger.error(f"Erreur sauvegarde unité: {save_result['error']}")
-                    return False
+            # Récupérer le projet cible et ajouter l'unité
+            target_project_result = self.project_service.get_project_by_id(project_id)
+            if not target_project_result['success']:
+                logger.error(f"Impossible de récupérer le projet cible: {target_project_result['error']}")
+                return False
+            
+            target_project = target_project_result['project']
+            target_project.units.append(unit)
+            
+            # Sauvegarder le projet avec la nouvelle unité
+            save_result = self.project_service.update_project(target_project)
+            if not save_result['success']:
+                logger.error(f"Erreur sauvegarde unité: {save_result['error']}")
+                return False
             
             logger.info(f"Condo créé avec succès: {condo_data['unit_number']}")
             return True
@@ -355,12 +364,12 @@ def init_services():
         user_repository = UserRepositorySQLite()
         auth_service = AuthenticationService(user_repository)
         
-        # Utiliser le ProjectService qui gÃ¨re les unitÃ©s via SQLite
+        # Utiliser le ProjectService qui gère les unités via SQLite
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
         
-        # Utiliser notre service SQLiteCondoService dÃ©fini au niveau module
-        condo_service = SQLiteCondoService()
+        # Utiliser notre service SQLiteCondoService avec le projet service partagé
+        condo_service = SQLiteCondoService(project_service)
         
         # Initialiser le service utilisateur
         from src.application.services.user_service import UserService
@@ -372,17 +381,22 @@ def init_services():
         raise
 
 def ensure_services_initialized():
-    """S'assure que les services sont initialisÃ©s, notamment pour les tests."""
-    global condo_service, user_service
+    """S'assure que les services sont initialisés, notamment pour les tests."""
+    global condo_service, user_service, project_service
     if condo_service is None:
         try:
             init_services()
         except Exception as e:
-            logger.warning(f"Ã‰chec d'initialisation complÃ¨te des services, utilisation du service de base: {e}")
-            # En cas d'Ã©chec, utiliser notre wrapper SQLite
-            condo_service = SQLiteCondoService()
+            logger.warning(f"Échec d'initialisation complète des services, utilisation du service de base: {e}")
+            # En cas d'échec, créer les services de base
+            if project_service is None:
+                from src.application.services.project_service import ProjectService
+                project_service = ProjectService()
             
-            # Initialiser user_service mÃªme en cas d'Ã©chec
+            # Utiliser notre wrapper SQLite avec le service projet partagé
+            condo_service = SQLiteCondoService(project_service)
+            
+            # Initialiser user_service même en cas d'échec
             from src.application.services.user_service import UserService
             user_service = UserService()
 
@@ -537,28 +551,66 @@ def dashboard():
 @app.route('/condos')
 @require_login
 def condos():
-    """Liste des condos avec actions de gestion."""
+    """Liste des unités avec actions de gestion."""
     try:
         ensure_services_initialized()
         user_role = session.get('user_role', 'guest')
         
-        # récupÃ©rer la liste des condos via le service
-        condos_list = condo_service.get_all_condos(user_role)
+        # Initialiser le project_service s'il n'existe pas
+        global project_service
+        if project_service is None:
+            from src.application.services.project_service import ProjectService
+            project_service = ProjectService()
         
-        # récupÃ©rer les statistiques
-        stats = condo_service.get_statistics()
+        # Vérifier si on filtre par projet
+        project_id = request.args.get('project_id')
         
-        logger.info(f"Affichage de {len(condos_list)} condos pour rÃ´le {user_role}")
+        units_list = []
+        project_name = None
+        
+        if project_id:
+            # Récupérer le projet spécifique et ses unités
+            project_result = project_service.get_project_by_id(project_id)
+            if project_result['success']:
+                project = project_result['project']
+                units_list = project.units
+                project_name = project.name
+                logger.info(f"Affichage de {len(units_list)} unités pour le projet {project_name}")
+            else:
+                logger.warning(f"Projet avec ID {project_id} non trouvé")
+                flash(f"Projet avec ID {project_id} non trouvé", "warning")
+                units_list = []
+                project_name = None
+        else:
+            # Récupérer toutes les unités de tous les projets
+            all_projects_result = project_service.get_all_projects()
+            if all_projects_result['success']:
+                all_projects = all_projects_result['projects']
+                for project in all_projects:
+                    units_list.extend(project.units)
+                logger.info(f"Affichage de {len(units_list)} unités (toutes)")
+            else:
+                logger.warning("Erreur lors de la récupération de tous les projets")
+                units_list = []
+        
+        # Générer des statistiques basiques
+        stats = {
+            'total_units': len(units_list),
+            'occupied_units': len([u for u in units_list if u.status == 'OCCUPIED']),
+            'available_units': len([u for u in units_list if u.status == 'AVAILABLE']),
+            'maintenance_units': len([u for u in units_list if u.status == 'MAINTENANCE'])
+        }
         
         return render_template('condos.html', 
-                             condos=condos_list, 
+                             condos=units_list,  # Garde le nom 'condos' pour compatibilité template
                              user_role=user_role,
-                             stats=stats)
+                             stats=stats,
+                             project_filter=project_name)
         
     except Exception as e:
         logger.error(f"Erreur dans la route /condos: {e}")
-        flash("Erreur lors du chargement des condos", "error")
-        return render_template('condos.html', condos=[], user_role='guest', stats={})
+        flash("Erreur lors du chargement des unités", "error")
+        return render_template('condos.html', condos=[], user_role='guest', stats={}, project_filter=None)
 
 @app.route('/condos/<unit_number>')
 @require_login

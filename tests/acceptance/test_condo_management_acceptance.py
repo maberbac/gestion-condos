@@ -15,16 +15,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 class TestCondoManagementAcceptance(unittest.TestCase):
     """Tests d'acceptance pour la gestion des condos."""
     
-    @patch('src.web.condo_app.ensure_services_initialized')
-    def setUp(self, mock_ensure_services):
-        """Configuration initiale pour chaque test."""
-        # Mock pour éviter l'initialisation des services réels
-        mock_ensure_services.return_value = None
-        
+    def setUp(self):
+        """Configuration initiale pour chaque test."""        
         from src.web.condo_app import app
         self.app = app
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
+        
+        # S'assurer que les services sont initialisés pour les tests
+        from src.web.condo_app import ensure_services_initialized
+        ensure_services_initialized()
         
         # Configuration de session pour simuler un utilisateur admin connecté
         with self.client.session_transaction() as sess:
@@ -125,6 +125,12 @@ class TestCondoManagementAcceptance(unittest.TestCase):
         Et que je le supprime
         Alors toutes les opérations réussissent
         """
+        # Étant donné que je suis connecté en tant qu'admin
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user_role'] = 'admin'
+            sess['user_name'] = 'admin'
+        
         # Étape 1: Créer un nouveau condo
         create_data = {
             'unit_number': 'ACCEPT-001',
@@ -150,7 +156,25 @@ class TestCondoManagementAcceptance(unittest.TestCase):
         )
         
         # Étape 2: Vérifier que le condo apparaît dans la liste
+        # Ajouter un petit délai pour s'assurer que la base de données est synchronisée
+        import time
+        time.sleep(0.1)
+        
         list_response = self.client.get('/condos')
+        
+        # Debug: afficher le contenu pour diagnostiquer
+        response_content = list_response.data.decode('utf-8', errors='ignore')
+        if 'ACCEPT-001' not in response_content:
+            # Chercher des traces du nouveau condo
+            import re
+            unit_numbers = re.findall(r'class="condo-unit">([^<]+)</h3>', response_content)
+            print(f"Unités trouvées dans la réponse: {unit_numbers[:10]}...")  # Afficher les 10 premières
+            # Vérifier si le condo est vraiment absent ou si c'est un problème d'encodage
+            if any('ACCEPT' in unit for unit in unit_numbers):
+                print("Un condo ACCEPT est présent dans la réponse")
+            else:
+                print("Aucun condo ACCEPT trouvé dans la réponse HTML")
+        
         self.assertIn(b'ACCEPT-001', list_response.data)
         self.assertIn(b'Test Acceptance Owner', list_response.data)
         

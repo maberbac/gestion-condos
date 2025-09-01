@@ -87,13 +87,13 @@
                 <span class="project-status status-active">Actif</span>
             </div>
             <div class="project-actions">
-                <button class="btn-icon btn-primary" onclick="viewProjectUnits('{{ project.name }}')" title="Voir les unités">
+                <button class="btn-icon btn-primary" onclick="viewProjectUnits('{{ project.project_id }}')" title="Voir les unités">
                     <span>👁️</span>
                 </button>
-                <button class="btn-icon" onclick="editProject('{{ project.name }}')" title="Modifier">
+                <button class="btn-icon" onclick="editProject('{{ project.project_id }}')" title="Modifier">
                     <span>✏️</span>
                 </button>
-                <button class="btn-icon btn-danger" onclick="confirmDeleteProject('{{ project.name }}', {{ project.unit_count }})" title="Supprimer">
+                <button class="btn-icon btn-danger" onclick="confirmDeleteProject('{{ project.project_id }}', '{{ project.name }}', {{ project.unit_count }})" title="Supprimer">
                     <span>🗑️</span>
                 </button>
             </div>
@@ -910,11 +910,9 @@ function viewProject(projectId) {
     window.location.href = `/condominium/${projectId}`;
 }
 
-function viewProjectUnits(projectName) {
-    // Rediriger vers la page des condos de ce projet en utilisant le nom
-    // Encoder le nom pour l'URL
-    const encodedName = encodeURIComponent(projectName);
-    window.location.href = `/condominium?project=${encodedName}`;
+function viewProjectUnits(projectId) {
+    // Rediriger vers la page des condos de ce projet en utilisant l'ID
+    window.location.href = `/condos?project_id=${projectId}`;
 }
 
 function editProject(projectId) {
@@ -938,7 +936,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Fonction pour confirmer la suppression d'un projet
-function confirmDeleteProject(projectName, totalUnits) {
+function confirmDeleteProject(projectId, projectName, totalUnits) {
     const message = `Êtes-vous sûr de vouloir supprimer le projet "${projectName}" ?\n\n` +
                    `Cette action supprimera définitivement :\n` +
                    `- Le projet et toutes ses données\n` +
@@ -948,14 +946,14 @@ function confirmDeleteProject(projectName, totalUnits) {
     
     if (confirm(message)) {
         // Appeler la fonction de suppression réelle
-        deleteProject(projectName);
+        deleteProject(projectId);
     }
 }
 
 // Fonction pour supprimer un projet (à implémenter plus tard)
-function deleteProject(projectName) {
+function deleteProject(projectId) {
     // Appel API pour supprimer le projet
-    fetch(`/api/projects/${encodeURIComponent(projectName)}/delete`, {
+    fetch(`/api/projects/${projectId}/delete`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
