@@ -1849,10 +1849,10 @@ def condominium(project_id):
         return redirect(url_for('projets'))
 
 
-@app.route('/projets/edit/<project_id>')
+@app.route('/api/projets/<project_id>')
 @require_admin
-def edit_project(project_id):
-    """Ã‰dition d'un projet existant."""
+def get_project_for_edit(project_id):
+    """API pour récupérer les données d'un projet pour édition."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1860,14 +1860,95 @@ def edit_project(project_id):
         
         if result['success']:
             project = result['project']
-            return render_template('edit_project.html', project=project)
+            return jsonify({
+                'success': True,
+                'project': {
+                    'id': project.project_id,  # Utiliser project_id, pas id
+                    'name': project.name,
+                    'address': project.address,
+                    'builder_name': project.constructor,  # Utiliser constructor, pas builder_name
+                    'construction_year': project.construction_year,
+                    'land_area': project.total_area,  # Utiliser total_area pour land_area
+                    'building_area': project.total_area * 0.8,  # Estimation: 80% du terrain
+                    'total_units': project.unit_count,  # Utiliser unit_count, pas total_units
+                    'status': project.status.value if hasattr(project.status, 'value') else str(project.status)
+                }
+            })
         else:
-            flash(f"Projet non trouvÃ©: {result['error']}", 'error')
-            return redirect(url_for('projets'))
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 404
             
     except Exception as e:
-        logger.error(f"Erreur lors du chargement de l'Ã©dition pour {project_id}: {e}")
-        flash('Erreur lors du chargement de l\'Ã©dition', 'error')
+        logger.error(f"Erreur lors du chargement des données pour {project_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erreur lors du chargement des données'
+        }), 500
+
+
+@app.route('/projets/update/<project_id>', methods=['POST'])
+@require_admin
+def update_project(project_id):
+    """Mise à jour d'un projet existant."""
+    try:
+        from src.application.services.project_service import ProjectService
+        project_service = ProjectService()
+        
+        # Récupérer le projet existant
+        result = project_service.get_project_by_id(project_id)
+        if not result['success']:
+            flash(f"Projet non trouvé: {result['error']}", 'error')
+            return redirect(url_for('projets'))
+        
+        project = result['project']
+        
+        # Mettre à jour uniquement les champs modifiables
+        project.name = request.form.get('name', '').strip()
+        project.address = request.form.get('address', '').strip()
+        project.constructor = request.form.get('builder_name', '').strip()  # Utiliser constructor
+        project.construction_year = int(request.form.get('construction_year', 0))
+        
+        # Pour les superficies, utiliser total_area comme terrain
+        land_area = float(request.form.get('land_area', 0))
+        building_area = float(request.form.get('building_area', 0))
+        
+        # Mise à jour de total_area avec la superficie terrain
+        project.total_area = land_area
+        
+        # Gérer le statut (enum)
+        from src.domain.entities.project import ProjectStatus
+        status_str = request.form.get('status', 'active').upper()
+        try:
+            project.status = ProjectStatus[status_str]
+        except KeyError:
+            project.status = ProjectStatus.ACTIVE
+        
+        # Note: unit_count n'est PAS modifiable
+        
+        # Validation
+        if not project.name:
+            flash('Le nom du projet est requis', 'error')
+            return redirect(url_for('projets'))
+        
+        if building_area > land_area:
+            flash('La superficie du bâtiment ne peut pas dépasser celle du terrain', 'error')
+            return redirect(url_for('projets'))
+        
+        # Sauvegarder
+        save_result = project_service.update_project(project)
+        if save_result['success']:
+            flash(f'Projet "{project.name}" mis à jour avec succès', 'success')
+            logger.info(f"Projet mis à jour: {project.name} (ID: {project.project_id})")
+        else:
+            flash(f'Erreur lors de la mise à jour: {save_result["error"]}', 'error')
+            
+        return redirect(url_for('projets'))
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du projet {project_id}: {e}")
+        flash('Erreur lors de la mise à jour du projet', 'error')
         return redirect(url_for('projets'))
 
 

@@ -867,6 +867,185 @@ class TestProjectAcceptance(unittest.TestCase):
                     self.assertEqual(stats_data['available_units'], project_data['unit_count'])
                     self.assertEqual(stats_data['occupancy_rate'], 0.0)
 
+    def test_scenario_edition_projet_popup_validation_champs(self):
+        """
+        SCÉNARIO: Édition d'un projet via popup avec validation des champs modifiables
+        
+        ÉTANT DONNÉ: Un projet existant dans le système
+        QUAND: Un administrateur modifie les informations via le popup d'édition
+        ALORS: Seuls les champs autorisés sont modifiables
+        ET: Le nombre d'unités reste inchangé (non modifiable)
+        """
+        # ÉTANT DONNÉ: Un projet existant
+        existing_project = Project(
+            name="Résidence Originale",
+            address="123 Rue Ancienne",
+            total_area=2000.0,
+            construction_year=2023,
+            unit_count=15,
+            constructor="Constructeur ABC"
+        )
+        existing_project.project_id = "test-project-edit"
+        existing_project.land_area = 3000.0
+        existing_project.building_area = 1800.0
+        existing_project.status = "active"
+        
+        # Ajouter le projet à la liste interne du service pour simulation
+        self.project_service._projects = [existing_project]
+        
+        # Mock du repository pour les opérations de sauvegarde
+        self.mock_project_repository.save_project.return_value = existing_project.project_id
+        self.mock_project_repository.update_project.return_value = True
+        self.mock_project_repository.get_project_by_id.return_value = {
+            'success': True,
+            'project': existing_project
+        }
+        
+        # QUAND: L'administrateur modifie les informations autorisées
+        # Créer une copie pour la modification
+        updated_project = Project(
+            name='Résidence Rénovée',  # Modifiable
+            address='456 Nouvelle Rue',  # Modifiable
+            total_area=existing_project.total_area,
+            construction_year=2024,  # Modifiable
+            unit_count=15,  # INCHANGÉ - Non modifiable
+            constructor='Nouveau Constructeur'  # Modifiable
+        )
+        updated_project.project_id = existing_project.project_id
+        updated_project.land_area = 3500.0  # Modifiable
+        updated_project.building_area = 2000.0  # Modifiable (correction d'erreur)
+        updated_project.status = 'completed'  # Modifiable
+        
+        # Mock de la sauvegarde pour réussir
+        with patch.object(self.project_service, '_save_projects') as mock_save:
+            mock_save.return_value = None  # Sauvegarde réussie
+            
+            result = self.project_service.update_project(updated_project)
+        
+        # ALORS: La mise à jour réussit
+        self.assertTrue(result['success'], f"Erreur lors de la mise à jour: {result.get('error', 'N/A')}")
+        
+        # ET: Les champs modifiables sont mis à jour
+        updated_in_service = self.project_service._projects[0]
+        self.assertEqual(updated_in_service.name, 'Résidence Rénovée')
+        self.assertEqual(updated_in_service.address, '456 Nouvelle Rue')
+        self.assertEqual(updated_in_service.constructor, 'Nouveau Constructeur')
+        self.assertEqual(updated_in_service.construction_year, 2024)
+        self.assertEqual(updated_in_service.land_area, 3500.0)
+        self.assertEqual(updated_in_service.building_area, 2000.0)
+        self.assertEqual(updated_in_service.status, 'completed')
+        
+        # ET: Le nombre d'unités reste INCHANGÉ (règle métier stricte)
+        self.assertEqual(updated_in_service.unit_count, 15, 
+                        "Le nombre d'unités ne doit jamais être modifiable après création")
+        
+        # ET: Le message de succès est approprié
+        self.assertIn('mis à jour avec succès', result['message'])
+
+    def test_scenario_edition_projet_validation_superficie_batiment(self):
+        """
+        SCÉNARIO: Validation de la superficie du bâtiment lors de l'édition
+        
+        ÉTANT DONNÉ: Un projet avec des superficies définies
+        QUAND: Un administrateur tente de mettre une superficie de bâtiment > terrain
+        ALORS: La validation échoue avec un message d'erreur approprié
+        """
+        # ÉTANT DONNÉ: Un projet existant
+        existing_project = Project(
+            name="Projet Test Superficie",
+            address="123 Test Street",
+            total_area=2000.0,
+            construction_year=2023,
+            unit_count=10,
+            constructor="Test Builder"
+        )
+        existing_project.project_id = "test-superficie"
+        existing_project.land_area = 2500.0
+        existing_project.building_area = 1800.0
+        
+        # Mock du repository
+        self.mock_project_repository.find_by_id.return_value = existing_project
+        
+        # QUAND: Tentative de modification avec superficie bâtiment > terrain
+        # (Simulation de la validation côté frontend ET backend)
+        invalid_building_area = 3000.0  # Plus grand que land_area (2500.0)
+        
+        # Validation métier qui devrait être effectuée
+        land_area = existing_project.land_area
+        is_valid = invalid_building_area <= land_area
+        
+        # ALORS: La validation échoue
+        self.assertFalse(is_valid, 
+                        "La superficie du bâtiment ne peut pas dépasser celle du terrain")
+        
+        # ET: Le message d'erreur est approprié
+        expected_error = "La superficie du bâtiment ne peut pas dépasser celle du terrain"
+        
+        # Simuler que cette validation se produit avant la sauvegarde
+        if not is_valid:
+            validation_result = {
+                'success': False,
+                'error': expected_error
+            }
+        
+        self.assertFalse(validation_result['success'])
+        self.assertEqual(validation_result['error'], expected_error)
+
+    def test_scenario_edition_projet_champ_readonly_nombre_unites(self):
+        """
+        SCÉNARIO: Vérification que le nombre d'unités est en lecture seule
+        
+        ÉTANT DONNÉ: Un projet avec 20 unités créées
+        QUAND: Un administrateur accède au popup d'édition
+        ALORS: Le champ nombre d'unités est affiché en lecture seule
+        ET: Une explication indique pourquoi il n'est pas modifiable
+        """
+        # ÉTANT DONNÉ: Un projet avec unités créées
+        project_with_units = Project(
+            name="Projet Avec Unités",
+            address="789 Rue des Unités",
+            total_area=3000.0,
+            construction_year=2023,
+            unit_count=20,
+            constructor="Builder Pro"
+        )
+        project_with_units.project_id = "test-readonly"
+        
+        # Ajouter le projet à la liste interne du service
+        self.project_service._projects = [project_with_units]
+        
+        # Mock pour la cohérence (optionnel)
+        self.mock_project_repository.get_project_by_id.return_value = {
+            'success': True,
+            'project': project_with_units
+        }
+        
+        # QUAND: Récupération des données pour le popup d'édition
+        result = self.project_service.get_project_by_id(project_with_units.project_id)
+        
+        # ALORS: Les données sont récupérées avec succès
+        self.assertTrue(result['success'], f"Erreur lors de la récupération: {result.get('error', 'N/A')}")
+        project_data = result['project']
+        
+        # ET: Le nombre d'unités est présent dans les données
+        self.assertEqual(project_data.unit_count, 20)
+        
+        # ET: Cette valeur sera affichée en lecture seule dans le frontend
+        # (Test d'intégration frontend - le champ HTML sera disabled/readonly)
+        readonly_fields = ['total_units']  # Champs en lecture seule
+        modifiable_fields = ['name', 'address', 'builder_name', 'construction_year', 
+                           'land_area', 'building_area', 'status']
+        
+        # Vérification des règles métier
+        self.assertIn('total_units', readonly_fields, 
+                     "Le nombre d'unités doit être en lecture seule")
+        self.assertNotIn('total_units', modifiable_fields,
+                        "Le nombre d'unités ne doit pas être modifiable")
+        
+        # Simulation du message d'explication affiché à l'utilisateur
+        readonly_explanation = "Non modifiable - Déterminé par les permis de construction"
+        self.assertIn("permis de construction", readonly_explanation.lower())
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -243,6 +243,88 @@
     </div>
 </div>
 
+<!-- Modal d'Édition de Projet -->
+<div id="editProjectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Modifier le Projet</h2>
+            <button type="button" class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editProjectForm" method="post">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="editProjectName">Nom du Projet *</label>
+                    <input type="text" id="editProjectName" name="name" required 
+                           placeholder="Ex: Résidence Le Château">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editProjectAddress">Adresse du Condominium *</label>
+                    <input type="text" id="editProjectAddress" name="address" required 
+                           placeholder="Ex: 123 Rue des Condos, Montréal, QC H1A 1A1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editBuilderName">Nom du Constructeur *</label>
+                    <input type="text" id="editBuilderName" name="builder_name" required 
+                           placeholder="Ex: Construction ABC Inc.">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editConstructionYear">Année de Construction *</label>
+                    <input type="number" id="editConstructionYear" name="construction_year" required 
+                           min="1900" max="2040">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editLandArea">Superficie du Terrain (m²) *</label>
+                    <input type="number" id="editLandArea" name="land_area" required 
+                           min="100" step="0.1" placeholder="Ex: 2500.5">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editBuildingArea">Superficie du Bâtiment (m²) *</label>
+                    <input type="number" id="editBuildingArea" name="building_area" required 
+                           min="50" step="0.1" placeholder="Ex: 1800.0">
+                    <small class="form-note">
+                        Modifiable pour corriger les erreurs de saisie
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editTotalUnits">Nombre d'Unités</label>
+                    <input type="number" id="editTotalUnits" name="total_units" 
+                           readonly disabled class="form-control-readonly">
+                    <small class="form-note readonly-note">
+                        <i class="fas fa-lock"></i>
+                        Non modifiable - Déterminé par les permis de construction
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editProjectStatus">Statut</label>
+                    <select id="editProjectStatus" name="status">
+                        <option value="planning">Planification</option>
+                        <option value="active">Actif</option>
+                        <option value="completed">Terminé</option>
+                        <option value="inactive">Inactif</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
+                    Annuler
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="icon">💾</span>
+                    Mettre à Jour
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
 .projects-header {
     display: flex;
@@ -705,6 +787,26 @@
     transform: translateY(-2px);
 }
 
+/* Styles pour les champs en lecture seule */
+.form-control-readonly {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+}
+
+.readonly-note {
+    color: #6c757d !important;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.readonly-note i {
+    color: #dc3545;
+}
+
 @media (max-width: 768px) {
     .projects-header {
         flex-direction: column;
@@ -862,6 +964,81 @@ function closeCreateModal() {
     }
 }
 
+function openEditModal(project) {
+    const modal = document.getElementById('editProjectModal');
+    if (modal) {
+        // Remplir les champs avec les données du projet
+        document.getElementById('editProjectName').value = project.name || '';
+        document.getElementById('editProjectAddress').value = project.address || '';
+        document.getElementById('editBuilderName').value = project.builder_name || '';
+        document.getElementById('editConstructionYear').value = project.construction_year || '';
+        document.getElementById('editLandArea').value = project.land_area || '';
+        document.getElementById('editBuildingArea').value = project.building_area || '';
+        document.getElementById('editTotalUnits').value = project.total_units || '';
+        document.getElementById('editProjectStatus').value = project.status || 'active';
+        
+        // Configurer l'action du formulaire
+        const form = document.getElementById('editProjectForm');
+        if (form) {
+            form.action = `/projets/update/${project.id}`;
+        }
+        
+        // Afficher le modal
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Focus sur le premier champ
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input[required]:not([readonly])');
+            if (firstInput) firstInput.focus();
+        }, 100);
+        
+        // Configurer la validation
+        setupEditFormValidation();
+    }
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editProjectModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Réinitialiser le formulaire
+        const form = document.getElementById('editProjectForm');
+        if (form) form.reset();
+    }
+}
+
+function setupEditFormValidation() {
+    const landAreaInput = document.getElementById('editLandArea');
+    const buildingAreaInput = document.getElementById('editBuildingArea');
+    
+    if (landAreaInput && buildingAreaInput) {
+        buildingAreaInput.addEventListener('input', function() {
+            const landArea = parseFloat(landAreaInput.value) || 0;
+            const buildingArea = parseFloat(this.value) || 0;
+            
+            if (buildingArea > landArea && landArea > 0) {
+                this.setCustomValidity('La superficie du bâtiment ne peut pas dépasser celle du terrain');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        
+        landAreaInput.addEventListener('input', function() {
+            const landArea = parseFloat(this.value) || 0;
+            const buildingArea = parseFloat(buildingAreaInput.value) || 0;
+            
+            if (buildingArea > landArea && buildingArea > 0) {
+                buildingAreaInput.setCustomValidity('La superficie du bâtiment ne peut pas dépasser celle du terrain');
+            } else {
+                buildingAreaInput.setCustomValidity('');
+            }
+        });
+    }
+}
+
 function setupFormValidation() {
     const landAreaInput = document.getElementById('landArea');
     const buildingAreaInput = document.getElementById('buildingArea');
@@ -916,22 +1093,45 @@ function viewProjectUnits(projectId) {
 }
 
 function editProject(projectId) {
-    // Rediriger vers la page d'édition du projet
-    window.location.href = `/projets/edit/${projectId}`;
+    // Charger les données du projet et ouvrir le modal d'édition
+    fetch(`/api/projets/${projectId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                openEditModal(data.project);
+            } else {
+                alert('Erreur lors du chargement du projet: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors du chargement du projet');
+        });
 }
 
-// Fermer le modal si on clique à l'extérieur
+// Fermer les modals si on clique à l'extérieur
 window.addEventListener('click', function(event) {
-    const modal = document.getElementById('createProjectModal');
-    if (event.target === modal) {
+    const createModal = document.getElementById('createProjectModal');
+    const editModal = document.getElementById('editProjectModal');
+    
+    if (event.target === createModal) {
         closeCreateModal();
+    } else if (event.target === editModal) {
+        closeEditModal();
     }
 });
 
-// Échapper pour fermer le modal
+// Échapper pour fermer les modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        closeCreateModal();
+        const createModal = document.getElementById('createProjectModal');
+        const editModal = document.getElementById('editProjectModal');
+        
+        if (createModal && createModal.style.display === 'block') {
+            closeCreateModal();
+        } else if (editModal && editModal.style.display === 'block') {
+            closeEditModal();
+        }
     }
 });
 
