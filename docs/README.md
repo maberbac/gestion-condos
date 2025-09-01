@@ -23,7 +23,7 @@ docs/
 ## Documentation par Catégorie
 
 ### Architecture et Conception
-- **[Architecture](architecture.md)** - Architecture hexagonale, patterns et décisions techniques
+- **[Architecture](architecture.md)** - Architecture hexagonale avec API standardisée project_id
 - **[Conception Extensibilité](conception-extensibilite.md)** - Préparation aux extensions futures
 
 ### Méthodologie et Tests
@@ -31,12 +31,12 @@ docs/
 - **[Guide Tests avec Mocking](guide-tests-mocking.md)** - Standards complets de test isolé
 
 ### Fonctionnalités et Guides
-- **[Guide de Démarrage](guide-demarrage.md)** - Installation et premiers pas
+- **[Guide de Démarrage](guide-demarrage.md)** - Installation et API standardisée project_id
 - **[Guide Logging](guide-logging.md)** - Configuration et utilisation du système de logs
 - **[Fonctionnalités Détails Utilisateur](fonctionnalites-details-utilisateur.md)** - Guide complet de la consultation des détails utilisateur
 
 ### Documentation Technique
-- **[Documentation Technique](documentation-technique.md)** - Spécifications complètes avec dernières fonctionnalités
+- **[Documentation Technique](documentation-technique.md)** - Spécifications complètes avec API standardisée
 
 ### Suivi de Projet
 - **[Journal de Développement](journal-developpement.md)** - Historique et roadmap avec dernières implémentations

@@ -221,6 +221,27 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **REDIRECTION** vers la documentation existante uniquement
 - **FOCUS** exclusif sur le développement fonctionnel réel
 
+## INTERDICTION DE DÉMARRAGE D'APPLICATION POUR TESTS
+
+### Règle Stricte de Non-Démarrage
+- **JAMAIS** démarrer l'application Flask/web pour valider des corrections ou modifications
+- **JAMAIS** lancer `python -m src.web.condo_app` ou équivalent pour tester des changements
+- **JAMAIS** utiliser `run_in_terminal` pour démarrer l'application sauf débogage critique
+- **TOUJOURS** se fier aux tests automatisés (unitaires, intégration, acceptance) pour la validation
+- **PRIVILÉGIER** l'exécution des runners de tests (`run_all_tests.py`, `run_all_acceptance_tests.py`, etc.)
+
+### Exception Unique : Débogage Critique
+- **AUTORISATION EXCEPTIONNELLE** : Démarrer l'application UNIQUEMENT pour récupérer des logs de débogage
+- **CONTEXTE AUTORISÉ** : Quand les tests passent mais qu'il faut analyser des logs d'erreur spécifiques
+- **CONDITION** : Problème complexe nécessitant l'observation du comportement en temps réel
+- **OBLIGATION** : Arrêter l'application immédiatement après récupération des informations nécessaires
+
+### Méthodes de Validation Privilégiées
+- **Tests automatisés** : Exécuter les suites de tests appropriées (unitaires, intégration, acceptance)
+- **Analyse statique** : Vérifier le code, les templates, les configurations sans exécution
+- **Inspection de fichiers** : Lire et analyser les fichiers modifiés pour validation
+- **Simulation** : Utiliser les tests d'acceptance qui simulent les scénarios utilisateur complets
+
 ## INTERDICTION ABSOLUE DES FICHIERS DE RÉSUMÉ MARKDOWN
 
 ### Règle Anti-Résumé Stricte
@@ -644,6 +665,8 @@ Avant toute implémentation de code, vérifier :
 - [ ] **UTILISER les pages de référence comme modèles : profile, dashboard, success**
 - [ ] **RESPECTER les standards de design : border-radius, shadows, responsive**
 - [ ] **VÉRIFIER qu'AUCUNE démo ou simulation n'est créée pour l'utilisateur**
+- [ ] **VÉRIFIER que l'application N'A PAS été démarrée inutilement pour validation**
+- [ ] **PRIVILÉGIER les tests automatisés plutôt que le démarrage d'application**
 - [ ] **INTERDICTION ABSOLUE: Aucun fichier .md de résumé de travail créé**
 - [ ] **VALIDATION ANTI-RÉSUMÉ: SE POSER LES 3 QUESTIONS AVANT TOUT NOUVEAU .md**
 - [ ] **VÉRIFIER: Le fichier documente-t-il une fonctionnalité permanente ?**

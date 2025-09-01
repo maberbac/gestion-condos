@@ -8,12 +8,13 @@ Le Système de Gestion de Condominiums est une application web moderne qui facil
 
 ## Fonctionnalités Principales
 
-- **Gestion des Projets** : Administration des projets de condominiums avec création automatique d'unités
+- **Gestion des Projets** : Administration des projets de condominiums avec API standardisée (project_id)
 - **Gestion des Unités** : Administration des appartements individuels avec calculs financiers
 - **Gestion des Utilisateurs** : Système d'authentification avec rôles (Admin, Resident, Guest)
 - **Finances** : Calculs automatiques des frais mensuels selon superficie et type d'unité
-- **Rapports** : Génération de rapports financiers et statistiques par projet
+- **Rapports** : Génération de rapports financiers et statistiques par projet en temps réel
 - **Interface Web** : Interface moderne avec design responsive et animations
+- **API Cohérente** : Services standardisés utilisant project_id avec backward compatibility
 
 ## Concepts Techniques Démontrés
 
@@ -29,7 +30,8 @@ Ce projet illustre l'implémentation de quatre concepts techniques avancés :
 - Services financiers utilisant `map()`, `filter()`, `reduce()`
 - Calculs de frais avec fonctions pures dans FinancialService
 - Transformation de données avec approches immutables
-- Architecture service orientée fonctionnelle
+- Architecture service orientée fonctionnelle avec API standardisée
+- Patterns de delegation dans ProjectService (name→ID→operations)
 
 ### 3. Gestion des Erreurs par Exceptions
 - Système de logging centralisé via LoggerManager
@@ -105,13 +107,20 @@ tests/
 
 #### Résultats Actuels - SUCCÈS COMPLET
 - **Tests Unitaires** : 168/168 tests (100% succès) - Logique métier isolée
-- **Tests d'Intégration** : 108/108 tests (100% succès) - Composants ensemble
-- **Tests d'Acceptance** : 101/101 tests (100% succès) - Scénarios end-to-end
-- **TOTAL** : **377/377 tests passent** (100% succès)
-- **Temps d'Exécution** : ~5.2 secondes pour la suite complète
+- **Tests d'Intégration** : 110/110 tests (100% succès) - Composants ensemble
+- **Tests d'Acceptance** : 58/58 tests (100% succès) - Scénarios end-to-end
+- **TOTAL** : **336/336 tests passent** (100% succès)
+- **Temps d'Exécution** : ~4.8 secondes pour la suite complète
 - **Fiabilité** : Aucun effet de bord entre tests (isolation complète)
 - **Reproductibilité** : Tests indépendants dans n'importe quel ordre
 - **Qualité** : Couverture complète du système avec validation TDD
+
+#### API Standardisée (project_id) ✅
+- **Standardisation Complète** : Tous les services utilisent `project_id` comme paramètre principal
+- **Architecture de Delegation** : Méthodes de compatibilité pour `project_name` qui délèguent vers les méthodes ID-based
+- **Cohérence Maintenue** : Une seule source de vérité pour les opérations sur les projets
+- **Performance Optimisée** : Recherches directes par ID plus efficaces qu'avec les noms
+- **Maintenabilité Renforcée** : Élimination des recherches manuelles dispersées dans les routes web
 
 ## Architecture : Hexagonale (Ports & Adapters)
 

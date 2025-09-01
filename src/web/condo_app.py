@@ -31,6 +31,7 @@ from src.domain.services.authentication_service import AuthenticationService
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
 from src.adapters.sqlite_adapter import SQLiteAdapter
 from src.infrastructure.config_manager import ConfigurationManager
+from src.infrastructure.logger_manager import get_logger
 from src.application.services.project_service import ProjectService
 
 # Configuration de l'application
@@ -47,14 +48,14 @@ except Exception as e:
     app.secret_key = 'fallback-dev-key'
     logging.error(f"Erreur chargement configuration: {e}")
 
-# Services globaux - initialisation diffÃ©rée
+# Services globaux - initialisation différée
 auth_service = None
 repository = None
 user_repository = None
 condo_service = None
 project_service = None
 user_service = None
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Stockage temporaire pour simuler la persistance des modifications
 condo_modifications = {}
@@ -142,7 +143,7 @@ class SQLiteCondoService:
                 project = Project(
                     name=condo_data.get('building_name', 'Résidence par défaut'),
                     address="Adresse par défaut",
-                    total_area=1000.0,
+                    building_area=1000.0,
                     construction_year=2023,
                     unit_count=1,
                     constructor="Default Constructor",
@@ -401,21 +402,41 @@ def ensure_services_initialized():
             user_service = UserService()
 
 def require_admin(f):
-    """DÃ©corateur pour vÃ©rifier que l'utilisateur est un administrateur."""
+    """Décorateur pour vérifier que l'utilisateur est un administrateur."""
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-        # D'abord vÃ©rifier si l'utilisateur est connectÃ©
+        logger.debug(f"Vérification admin pour {f.__name__}")
+        
+        # D'abord vérifier si l'utilisateur est connecté
         user_name = session.get('user_name') or session.get('user_id') or session.get('username')
         logged_in = session.get('logged_in', False)
         
-        # Si pas connectÃ©, rediriger vers login
+        logger.debug(f"Session info: user_name={user_name}, logged_in={logged_in}")
+        
+        # Si pas connecté, rediriger vers login ou retourner erreur JSON
         if not (logged_in or user_name):
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentification requise'
+                }), 401
             return redirect(url_for('login'))
         
-        # Ensuite vÃ©rifier le rÃ´le admin
+        # Ensuite vérifier le rôle admin
         user_role_value = session.get('user_role') or session.get('role')
+        logger.debug(f"Role utilisateur: {user_role_value}")
+        
         if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+            logger.debug(f"Accès autorisé pour {f.__name__}")
             return f(*args, **kwargs)
+        
+        # Retourner erreur appropriée selon le type de requête
+        if request.path.startswith('/api/'):
+            return jsonify({
+                'success': False,
+                'error': 'Droits administrateur requis'
+            }), 403
+        
         return render_template('errors/access_denied.html'), 403
     return decorated_function
 
@@ -1780,8 +1801,9 @@ def create_project():
             'address': request.form.get('address'),
             'constructor': request.form.get('builder_name'),
             'construction_year': int(request.form.get('construction_year')),
-            'total_area': float(request.form.get('building_area')),  # Utilise building_area comme total_area
-            'unit_count': int(request.form.get('total_units')),
+            'building_area': float(request.form.get('building_area')),  # Utilise building_area directement
+            'unit_count': int(request.form.get('unit_count')),
+            'status': request.form.get('status', 'ACTIVE'),  # Ajout du statut avec valeur par défaut
         }
         
         # Validation supplÃ©mentaire cÃ´tÃ© serveur
@@ -1849,45 +1871,6 @@ def condominium(project_id):
         return redirect(url_for('projets'))
 
 
-@app.route('/api/projets/<project_id>')
-@require_admin
-def get_project_for_edit(project_id):
-    """API pour récupérer les données d'un projet pour édition."""
-    try:
-        from src.application.services.project_service import ProjectService
-        project_service = ProjectService()
-        result = project_service.get_project_by_id(project_id)
-        
-        if result['success']:
-            project = result['project']
-            return jsonify({
-                'success': True,
-                'project': {
-                    'id': project.project_id,  # Utiliser project_id, pas id
-                    'name': project.name,
-                    'address': project.address,
-                    'builder_name': project.constructor,  # Utiliser constructor, pas builder_name
-                    'construction_year': project.construction_year,
-                    'land_area': project.total_area,  # Utiliser total_area pour land_area
-                    'building_area': project.total_area * 0.8,  # Estimation: 80% du terrain
-                    'total_units': project.unit_count,  # Utiliser unit_count, pas total_units
-                    'status': project.status.value if hasattr(project.status, 'value') else str(project.status)
-                }
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['error']
-            }), 404
-            
-    except Exception as e:
-        logger.error(f"Erreur lors du chargement des données pour {project_id}: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erreur lors du chargement des données'
-        }), 500
-
-
 @app.route('/projets/update/<project_id>', methods=['POST'])
 @require_admin
 def update_project(project_id):
@@ -1907,42 +1890,55 @@ def update_project(project_id):
         # Mettre à jour uniquement les champs modifiables
         project.name = request.form.get('name', '').strip()
         project.address = request.form.get('address', '').strip()
-        project.constructor = request.form.get('builder_name', '').strip()  # Utiliser constructor
-        project.construction_year = int(request.form.get('construction_year', 0))
+        project.constructor = request.form.get('builder_name', '').strip()
         
-        # Pour les superficies, utiliser total_area comme terrain
-        land_area = float(request.form.get('land_area', 0))
-        building_area = float(request.form.get('building_area', 0))
+        # Conversion sécurisée de l'année de construction
+        try:
+            project.construction_year = int(request.form.get('construction_year', project.construction_year))
+        except (ValueError, TypeError):
+            project.construction_year = project.construction_year  # Garder la valeur existante
         
-        # Mise à jour de total_area avec la superficie terrain
-        project.total_area = land_area
+        # Conversion sécurisée de la superficie
+        try:
+            land_area_form = float(request.form.get('land_area', project.land_area))
+            building_area_form = float(request.form.get('building_area', project.building_area))
+            
+            # Validation: bâtiment <= terrain
+            if building_area_form > land_area_form:
+                flash('La superficie du bâtiment ne peut pas dépasser celle du terrain', 'error')
+                return redirect(url_for('projets'))
+            
+            # Mettre à jour les deux valeurs
+            project.building_area = building_area_form  # Modifie building_area directement
+            project.land_area = land_area_form  # Stocke dans land_area
+            
+        except (ValueError, TypeError):
+            # En cas d'erreur, garder la valeur existante
+            pass
         
-        # Gérer le statut (enum)
+        # Gérer le statut avec une valeur par défaut sécurisée
         from src.domain.entities.project import ProjectStatus
         status_str = request.form.get('status', 'active').upper()
         try:
             project.status = ProjectStatus[status_str]
         except KeyError:
-            project.status = ProjectStatus.ACTIVE
+            project.status = ProjectStatus.ACTIVE  # Valeur par défaut
         
-        # Note: unit_count n'est PAS modifiable
+        # Note: unit_count n'est PAS modifiable (respecter les permis de construction)
         
-        # Validation
+        # Validation des champs obligatoires
         if not project.name:
             flash('Le nom du projet est requis', 'error')
             return redirect(url_for('projets'))
         
-        if building_area > land_area:
-            flash('La superficie du bâtiment ne peut pas dépasser celle du terrain', 'error')
-            return redirect(url_for('projets'))
-        
-        # Sauvegarder
+        # Sauvegarder les modifications
         save_result = project_service.update_project(project)
         if save_result['success']:
             flash(f'Projet "{project.name}" mis à jour avec succès', 'success')
-            logger.info(f"Projet mis à jour: {project.name} (ID: {project.project_id})")
+            logger.info(f"Projet mis à jour avec succès: {project.name} (ID: {project.project_id})")
         else:
             flash(f'Erreur lors de la mise à jour: {save_result["error"]}', 'error')
+            logger.error(f"Échec de la mise à jour du projet {project_id}: {save_result['error']}")
             
         return redirect(url_for('projets'))
         
@@ -1950,6 +1946,50 @@ def update_project(project_id):
         logger.error(f"Erreur lors de la mise à jour du projet {project_id}: {e}")
         flash('Erreur lors de la mise à jour du projet', 'error')
         return redirect(url_for('projets'))
+
+
+@app.route('/api/projets/<project_id>')
+@require_login
+def project_api_get(project_id):
+    """API pour récupérer les données d'un projet pour l'édition."""
+    try:
+        from src.application.services.project_service import ProjectService
+        project_service = ProjectService()
+        result = project_service.get_project_by_id(project_id)
+        
+        if result['success']:
+            project = result['project']
+            # Sérialiser le projet pour l'API avec le statut
+            project_data = {
+                'project_id': project.project_id,
+                'name': project.name,
+                'address': project.address,
+                'constructor': project.constructor,
+                'builder_name': project.constructor,  # Alias pour compatibilité
+                'construction_year': project.construction_year,
+                'land_area': project.land_area,
+                'building_area': project.building_area,
+                'unit_count': project.unit_count,
+                'total_units': project.unit_count,  # Alias pour compatibilité
+                'status': project.status.value if hasattr(project.status, 'value') else str(project.status)
+            }
+            
+            return jsonify({
+                'success': True,
+                'project': project_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Erreur API lors de la récupération du projet {project_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erreur serveur lors de la récupération du projet'
+        }), 500
 
 
 @app.route('/api/projets/<project_id>/statistics')
@@ -1985,11 +2025,22 @@ def project_api_statistics(project_id):
 @app.route('/projects/<project_name>/statistics')
 @require_admin
 def project_statistics(project_name):
-    """Affichage des statistiques dÃ©taillÃ©es d'un projet."""
+    """Affichage des statistiques détaillées d'un projet."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
-        result = project_service.get_project_statistics(project_name)
+        
+        # Obtenir le projet par nom en utilisant la méthode du service
+        result = project_service.get_project_by_name(project_name)
+        
+        if not result['success']:
+            flash(f"Projet '{project_name}' non trouvé", 'error')
+            return redirect(url_for('projects'))
+            
+        project = result['project']
+            
+        # Utiliser la nouvelle méthode avec project_id
+        result = project_service.get_project_statistics(project.project_id)
         
         if result['success']:
             return render_template('project_statistics.html', 
@@ -2008,14 +2059,26 @@ def project_statistics(project_name):
 @app.route('/api/projects/<project_name>/update-units', methods=['POST'])
 @require_admin
 def update_project_units(project_name):
-    """API pour mettre à jour le nombre d'unitÃ©s d'un projet."""
+    """API pour mettre à jour le nombre d'unités d'un projet."""
     try:
         data = request.get_json()
         new_unit_count = int(data.get('unit_count', 0))
         
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
-        result = project_service.update_project_units(project_name, new_unit_count)
+        
+        # Obtenir le projet par nom en utilisant la méthode du service
+        result = project_service.get_project_by_name(project_name)
+        
+        if not result['success']:
+            return jsonify({
+                'success': False,
+                'error': f'Projet "{project_name}" non trouvé'
+            })
+            
+        project = result['project']
+        # Utiliser la nouvelle méthode avec project_id
+        result = project_service.update_project_units(project.project_id, new_unit_count)
         
         return jsonify(result)
         
@@ -2032,27 +2095,82 @@ def update_project_units(project_name):
         }), 500
 
 
-@app.route('/api/projects/<project_name>/delete', methods=['DELETE'])
+@app.route('/api/projects/<project_id>/delete', methods=['DELETE'])
 @require_admin
-def delete_project_api(project_name):
-    """API pour supprimer un projet et ses unitÃ©s."""
+def delete_project_by_id_api(project_id):
+    """API pour supprimer un projet par son ID."""
+    logger.info(f"Entrée dans delete_project_by_id_api avec project_id: {project_id}")
     try:
+        logger.info(f"Début suppression projet par ID: {project_id}")
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
-        result = project_service.delete_project(project_name)
+        
+        # Supprimer directement par ID
+        result = project_service.delete_project_by_id(project_id)
+        logger.info(f"Résultat suppression: {result}")
         
         if result['success']:
-            logger.info(f"Projet supprimé via API: {project_name}")
+            logger.info(f"Projet supprimé via API par ID: {project_id}")
             return jsonify(result)
         else:
+            logger.error(f"Échec suppression projet ID {project_id}: {result.get('error', 'Erreur inconnue')}")
             return jsonify(result), 400
         
     except Exception as e:
-        logger.error(f"Erreur API suppression projet {project_name}: {e}")
+        logger.error(f"Erreur API suppression projet par ID {project_id}: {e}")
         return jsonify({
             'success': False,
-            'error': f'Erreur systÃ¨me: {str(e)}'
+            'error': f'Erreur système: {str(e)}'
         }), 500
+
+
+@app.route('/projets/update/<project_id>', methods=['POST'])
+@require_admin
+def update_project_route(project_id):
+    """Met à jour un projet"""
+    from src.infrastructure.logger_manager import get_logger
+    logger = get_logger(__name__)
+    
+    try:
+        name = request.form.get('name')
+        description = request.form.get('description')
+        status_str = request.form.get('status')
+        
+        if not name or not status_str:
+            flash('Le nom et le statut sont requis', 'error')
+            return redirect(url_for('projets'))
+        
+        # Récupérer le projet existant
+        from src.application.services.project_service import ProjectService
+        from src.domain.entities.project import ProjectStatus
+        project_service = ProjectService()
+        result = project_service.get_project_by_id(project_id)
+        
+        if not result['success']:
+            flash('Projet non trouvé', 'error')
+            return redirect(url_for('projets'))
+        
+        project = result['project']
+        
+        # Mettre à jour les propriétés
+        project.name = name
+        if hasattr(project, 'description'):
+            project.description = description
+        project.status = ProjectStatus(status_str)
+        
+        # Sauvegarder avec la méthode appropriée
+        save_result = project_service.update_project(project)
+        
+        if save_result['success']:
+            flash('Projet mis à jour avec succès', 'success')
+        else:
+            flash(f'Erreur lors de la mise à jour: {save_result["message"]}', 'error')
+            
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du projet: {e}")
+        flash('Erreur lors de la mise à jour du projet', 'error')
+    
+    return redirect(url_for('projets'))
 
 
 # Application Flask pour export

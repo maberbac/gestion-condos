@@ -7,6 +7,7 @@ Ce répertoire contient toutes les instructions, directives et contextes spécif
 ```
 ai-guidelines/
 ├── README.md                    # Ce fichier - Vue d'ensemble du répertoire
+├── api-standardization.md       # Documentation standardisation API project_id
 ├── checklist-concepts.md        # Checklist des 4 concepts techniques obligatoires
 ├── consignes-projet.md          # Exigences et contraintes du projet
 ├── debut-session.md             # Guide de début de session pour l'IA
@@ -20,6 +21,12 @@ ai-guidelines/
 ```
 
 ## Mise à Jour Récente
+
+### Standardisation API Complète ✅
+- **API project_id standardisée** : Tous les services utilisent project_id comme paramètre principal
+- **Architecture de delegation** : Méthodes de compatibilité qui délèguent vers les méthodes ID-based
+- **Élimination des recherches manuelles** : Routes web refactorisées pour utiliser les services centralisés
+- **336/336 tests passent** : Validation complète sans régression
 
 ### Consolidation des Guidelines IA
 - **Fusion réalisée** : Intégration des guidelines de `.github/ai-guidelines/` dans ce répertoire

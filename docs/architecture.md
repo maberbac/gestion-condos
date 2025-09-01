@@ -220,7 +220,7 @@ class UserFileAdapter:
 ```
 
 ### 2. Programmation Fonctionnelle
-**Localisation** : `src/domain/services/`
+**Localisation** : `src/application/services/`
 ```python
 # Dans financial_service.py
 def calculate_fees_functional(units: List[Unit]) -> List[FinancialRecord]:
@@ -229,6 +229,22 @@ def calculate_fees_functional(units: List[Unit]) -> List[FinancialRecord]:
         lambda unit: calculate_individual_fee(unit),
         filter(lambda u: u.status == UnitStatus.SOLD, units)
     ))
+
+# Dans project_service.py - API Standardisée ✅
+class ProjectService:
+    # Méthodes standardisées (ID-based)
+    def get_project_statistics(self, project_id: str) -> Dict[str, Any]:
+        # [CONCEPT] Fonctions pures avec transformations
+        return self._transform_project_data(project_id)
+    
+    def update_project_units(self, project_id: str, count: int) -> Dict[str, Any]:
+        # [CONCEPT] Opérations fonctionnelles immutables
+        pass
+    
+    # Méthodes de compatibilité (avec delegation)
+    def get_project_by_name(self, project_name: str) -> Dict[str, Any]:
+        # [CONCEPT] Transformation name → ID puis delegation
+        pass
 ```
 
 ### 3. Gestion des Erreurs par Exceptions
@@ -259,6 +275,48 @@ def dashboard():
         ]
         return await asyncio.gather(*tasks)
 ```
+
+## Architecture API Standardisée ✅
+
+### Principe de Standardisation (project_id)
+
+L'architecture a été entièrement refactorisée pour utiliser `project_id` comme identifiant standard :
+
+#### 1. Couche Service (Application Layer)
+```python
+# STANDARD : Toutes les méthodes utilisent project_id
+class ProjectService:
+    def get_project_statistics(self, project_id: str) -> Dict[str, Any]
+    def update_project_units(self, project_id: str, count: int) -> Dict[str, Any]
+    def delete_project_by_id(self, project_id: str) -> Dict[str, Any]
+    
+    # COMPATIBILITÉ : Delegation vers les méthodes ID-based
+    def get_project_by_name(self, project_name: str) -> Dict[str, Any]:
+        # 1. Trouve le projet par nom
+        # 2. Délègue vers l'opération ID-based
+        pass
+```
+
+#### 2. Couche Web (Adapter Layer)
+```python
+# AVANT : Recherches manuelles dispersées
+@app.route('/projects/<project_name>/statistics')
+def project_statistics(project_name):
+    projects = project_repository.get_projects_by_name(project_name)  # PROBLÉMATIQUE
+    
+# APRÈS : Delegation centralisée vers le service
+@app.route('/projects/<project_name>/statistics')
+def project_statistics(project_name):
+    result = project_service.get_project_by_name(project_name)  # CENTRALISÉ
+    result = project_service.get_project_statistics(project.project_id)  # STANDARD
+```
+
+#### 3. Avantages Architecturaux
+- **Cohérence** : API unifiée à travers tous les services
+- **Maintenabilité** : Point unique de conversion name→ID
+- **Performance** : Recherches directes par ID plus efficaces
+- **Fiabilité** : Évite les ambiguïtés des noms de projets
+- **Évolutivité** : Base solide pour futures extensions
 
 ## Évolutivité pour Extensions Futures
 

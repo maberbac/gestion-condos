@@ -724,25 +724,29 @@ Bien qu'utilisant des fichiers, l'application maintient un modèle de données s
 
 ## API et interfaces
 
-### Endpoints principaux
+### Architecture API Standardisée (project_id) ✅
+
+L'API a été entièrement standardisée pour utiliser `project_id` comme identifiant principal, améliorant la cohérence et la maintenabilité :
+
+#### Endpoints principaux
 
 #### Authentification et Session
 - `POST /login` - Connexion utilisateur
 - `POST /logout` - Déconnexion utilisateur
 - `GET /profile` - Profil utilisateur connecté
 
+#### Gestion des Projets (API Standardisée)
+- `GET /projects` - Interface de gestion des projets
+- `GET /api/projects/<project_id>/statistics` - Statistiques d'un projet (ID-based)
+- `POST /api/projects/<project_id>/units/update` - Mise à jour nombre d'unités (ID-based)
+- `DELETE /api/projects/<project_id>` - Suppression projet (ID-based)
+- `POST /projects/new` - Créer un nouveau projet
+
 #### Gestion des Utilisateurs
 - `GET /users` - Interface de gestion des utilisateurs (admin)
 - `GET /api/user/<username>` - Détails d'un utilisateur via API
 - `GET /users/<username>/details` - Page complète de détails utilisateur
 - `POST /users/new` - Créer un nouvel utilisateur
-
-#### Résidents
-- `GET /api/residents` - Liste des résidents
-- `GET /api/residents/{id}` - Détails d'un résident
-- `POST /api/residents` - Créer un résident
-- `PUT /api/residents/{id}` - Modifier un résident
-- `DELETE /api/residents/{id}` - Supprimer un résident
 
 #### Unités
 - `GET /api/unites` - Liste des unités
@@ -755,6 +759,45 @@ Bien qu'utilisant des fichiers, l'application maintient un modèle de données s
 - `GET /api/finances/paiements` - Paiements reçus
 - `POST /api/finances/calculer-charges` - Calculer les charges
 - `GET /api/finances/rapport/{periode}` - Rapport financier
+
+### Standardisation Service Layer ✅
+
+#### ProjectService - API Unifiée
+Le `ProjectService` a été entièrement refactorisé pour utiliser `project_id` comme paramètre standard :
+
+**Méthodes Standardisées :**
+```python
+# API moderne standardisée (ID-based)
+get_project_statistics(project_id: str) -> Dict[str, Any]
+update_project_units(project_id: str, new_unit_count: int) -> Dict[str, Any]
+delete_project_by_id(project_id: str) -> Dict[str, Any]
+
+# Méthode de compatibilité (avec delegation)
+get_project_by_name(project_name: str) -> Dict[str, Any]
+delete_project(project_name: str) -> Dict[str, Any]  # Délègue vers delete_project_by_id
+```
+
+**Architecture de Delegation :**
+- Les méthodes basées sur `project_name` sont maintenues pour compatibilité
+- Elles utilisent `get_project_by_name()` pour convertir name → ID
+- Puis délèguent vers les méthodes ID-based standardisées
+- Avertissement documenté sur les limitations des recherches par nom
+
+**Avantages :**
+- Cohérence API : Tous les services utilisent project_id comme standard
+- Maintenabilité : Une seule source de vérité pour les opérations
+- Performance : Recherches directes par ID plus efficaces
+- Fiabilité : Évite les ambiguïtés des noms de projets
+
+#### Routes Web Refactorisées
+```python
+# Avant : Recherche manuelle dans les routes
+projects = project_repository.get_projects_by_name(project_name)
+
+# Après : Delegation vers le service
+result = project_service.get_project_by_name(project_name)
+result = project_service.get_project_statistics(project.project_id)
+```
 
 ### Nouvelles Fonctionnalités - Détails Utilisateur
 
@@ -881,21 +924,21 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 2. **GREEN** : Écrire le minimum de code pour faire passer le test ✅
 3. **REFACTOR** : Améliorer le code sans changer les fonctionnalités ✅
 
-### Suite de Tests Complète : 377/377 tests passent (100% succès) ✅
+### Suite de Tests Complète : 336/336 tests passent (100% succès) ✅
 
-**Résultats finaux** :
+**Résultats finaux** (après standardisation API) :
 ```
 Résumé Global:
-  Tests totaux exécutés: 377
-  Succès: 377
+  Tests totaux exécutés: 336
+  Succès: 336
   Échecs: 0
   Erreurs: 0
-  Temps total: 5.21s
+  Temps total: 4.77s
 
 Détail par Type:
-  run_all_unit_tests        : 168 tests |   0.72s | ✅ SUCCÈS
-  run_all_integration_tests : 108 tests |   2.03s | ✅ SUCCÈS
-  run_all_acceptance_tests  : 101 tests |   2.46s | ✅ SUCCÈS
+  run_all_unit_tests        : 168 tests |   0.74s | ✅ SUCCÈS
+  run_all_integration_tests : 110 tests |   2.11s | ✅ SUCCÈS
+  run_all_acceptance_tests  :  58 tests |   1.92s | ✅ SUCCÈS
 
 STATUT FINAL: PIPELINE RÉUSSI - TOUS LES TESTS PASSENT
 ```

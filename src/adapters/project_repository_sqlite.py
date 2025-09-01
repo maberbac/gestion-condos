@@ -94,19 +94,20 @@ class ProjectRepositorySQLite:
                 # Insérer ou mettre à jour le projet
                 conn.execute("""
                     INSERT OR REPLACE INTO projects 
-                    (project_id, name, address, total_area, construction_year, 
+                    (project_id, name, address, building_area, land_area, construction_year, 
                      unit_count, constructor, creation_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     project.project_id,
                     project.name,
                     project.address,
-                    project.total_area,
+                    project.building_area,
+                    project.land_area,
                     project.construction_year,
                     project.unit_count,
                     project.constructor,
                     project.creation_date.isoformat(),
-                    'active'
+                    project.status.value  # Utiliser la valeur du statut du projet
                 ))
                 
                 # Supprimer les anciennes unités
@@ -194,7 +195,7 @@ class ProjectRepositorySQLite:
                 
                 # Récupérer tous les projets
                 cursor = conn.execute("""
-                    SELECT project_id, name, address, total_area, construction_year,
+                    SELECT project_id, name, address, building_area, land_area, construction_year,
                            unit_count, constructor, creation_date, status
                     FROM projects 
                     ORDER BY creation_date DESC
@@ -206,7 +207,7 @@ class ProjectRepositorySQLite:
                     project = Project(
                         name=row['name'],
                         address=row['address'],
-                        total_area=row['total_area'],
+                        building_area=row['building_area'],
                         construction_year=row['construction_year'],
                         unit_count=row['unit_count'],
                         constructor=row['constructor'],
@@ -215,6 +216,19 @@ class ProjectRepositorySQLite:
                     
                     # Ajouter le project_id
                     project.project_id = row['project_id']
+                    
+                    # Restaurer le statut depuis la base de données
+                    from src.domain.entities.project import ProjectStatus
+                    if row['status']:
+                        try:
+                            project.status = ProjectStatus(row['status'])
+                        except ValueError:
+                            # Si le statut en DB n'est pas valide, utiliser PLANNING par défaut
+                            project.status = ProjectStatus.PLANNING
+                    
+                    # Restaurer land_area si présent
+                    if row['land_area'] is not None:
+                        project.land_area = row['land_area']
                     
                     # Récupérer les unités du projet
                     unit_cursor = conn.execute("""
@@ -315,20 +329,34 @@ class ProjectRepositorySQLite:
             bool: True si supprimé avec succès
         """
         try:
+            logger.info(f"Tentative de suppression du projet ID: {project_id}")
+            
             with sqlite3.connect(self.db_path) as conn:
+                # Vérifier d'abord si le projet existe
+                cursor = conn.execute("SELECT project_id, name FROM projects WHERE project_id = ?", (project_id,))
+                existing_project = cursor.fetchone()
+                
+                if not existing_project:
+                    logger.warning(f"Projet non trouvé en base de données: {project_id}")
+                    return False
+                
+                logger.info(f"Projet trouvé en base: {existing_project[1]} (ID: {existing_project[0]})")
+                
                 # Supprimer les unités d'abord (FK cascade)
-                conn.execute("DELETE FROM units WHERE project_id = ?", (project_id,))
+                units_cursor = conn.execute("DELETE FROM units WHERE project_id = ?", (project_id,))
+                units_deleted = units_cursor.rowcount
+                logger.info(f"Unités supprimées: {units_deleted}")
                 
                 # Supprimer le projet
-                cursor = conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+                project_cursor = conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
                 
                 conn.commit()
                 
-                if cursor.rowcount > 0:
-                    logger.info(f"Projet supprimé: {project_id}")
+                if project_cursor.rowcount > 0:
+                    logger.info(f"Projet supprimé avec succès: {project_id} ({units_deleted} unités)")
                     return True
                 else:
-                    logger.warning(f"Aucun projet trouvé avec l'ID: {project_id}")
+                    logger.error(f"Échec de la suppression du projet: {project_id}")
                     return False
                     
         except Exception as e:
