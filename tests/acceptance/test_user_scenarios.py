@@ -24,7 +24,7 @@ class TestUserScenariosAcceptance(unittest.TestCase):
                 'owner_name': 'Jean Dupont',
                 'square_feet': 850.0,
                 'condo_type': 'residential',
-                'status': 'active',
+                'status': 'available',
                 'monthly_fees_base': 350.0
             },
             {
@@ -32,7 +32,7 @@ class TestUserScenariosAcceptance(unittest.TestCase):
                 'owner_name': 'Marie Martin', 
                 'square_feet': 950.0,
                 'condo_type': 'commercial',
-                'status': 'active',
+                'status': 'available',
                 'monthly_fees_base': 500.0
             }
         ]
@@ -165,7 +165,7 @@ class TestUserScenariosAcceptance(unittest.TestCase):
             'owner_name': 'Pierre Durand',
             'square_feet': 750.0,
             'condo_type': 'residential',
-            'status': 'active',
+            'status': 'available',
             'monthly_fees_base': 320.0
         }
         

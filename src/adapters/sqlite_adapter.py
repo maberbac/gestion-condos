@@ -26,14 +26,8 @@ from datetime import datetime
 import logging
 import threading
 
-from src.domain.entities.condo import Condo, CondoStatus, CondoType
-from src.ports.condo_repository_sync import (
-    CondoRepositoryPort, 
-    CondoRepositoryError
-)
 
-
-class SQLiteAdapter(CondoRepositoryPort):
+class SQLiteAdapter:
     """
     Adapter SQLite pour la persistance des données de condos.
     
@@ -115,7 +109,7 @@ class SQLiteAdapter(CondoRepositoryPort):
             return config
             
         except FileNotFoundError:
-            raise CondoRepositoryError(f"Fichier de configuration introuvable: {config_path}")
+            raise ValueError(f"Fichier de configuration introuvable: {config_path}")
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             # Si erreur d'encodage, retourner config par défaut
             self.logger.warning(f"Erreur de lecture de config {config_path}: {e}, utilisation config par défaut")
@@ -163,7 +157,7 @@ class SQLiteAdapter(CondoRepositoryPort):
             
         except Exception as e:
             self.logger.error(f"Erreur lors de l'initialisation SQLite: {e}")
-            raise CondoRepositoryError(f"Impossible d'initialiser la base: {e}")
+            raise RuntimeError(f"Impossible d'initialiser la base: {e}")
     
     def _create_database(self) -> None:
         """Crée le fichier de base de données SQLite vide."""
@@ -203,7 +197,7 @@ class SQLiteAdapter(CondoRepositoryPort):
                 
         except Exception as e:
             self.logger.error(f"Erreur lors des migrations: {e}")
-            raise CondoRepositoryError(f"Migrations échouées: {e}")
+            raise RuntimeError(f"Migrations échouées: {e}")
     
     def _execute_migration_with_tracking(self, migration_file: Path, conn: sqlite3.Connection) -> None:
         """Exécute une migration et l'enregistre dans schema_migrations."""
@@ -225,7 +219,7 @@ class SQLiteAdapter(CondoRepositoryPort):
             
         except Exception as e:
             self.logger.error(f"Erreur lors de la migration {migration_file.name}: {e}")
-            raise CondoRepositoryError(f"Migration échouée: {e}")
+            raise RuntimeError(f"Migration échouée: {e}")
     
     def _configure_sqlite(self) -> None:
         """
@@ -257,305 +251,3 @@ class SQLiteAdapter(CondoRepositoryPort):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # Pour accès par nom de colonne
         return conn
-    
-    # ==================== Implémentation CondoRepositoryPort ====================
-    
-    def save_condo(self, condo: Condo) -> bool:
-        """
-        Sauvegarde ou met à jour un condo dans SQLite.
-        """
-        try:
-            with self._db_lock:
-                with self._get_connection() as conn:
-                    # Vérifier si le condo existe
-                    cursor = conn.execute(
-                        "SELECT id FROM condos WHERE unit_number = ?", 
-                        (condo.unit_number,)
-                    )
-                    existing = cursor.fetchone()
-                    
-                    if existing:
-                        # Mise à jour
-                        conn.execute("""
-                            UPDATE condos SET 
-                                owner_name = ?, square_feet = ?, condo_type = ?, 
-                                status = ?, purchase_date = ?, monthly_fees_base = ?
-                            WHERE unit_number = ?
-                        """, (
-                            condo.owner_name, condo.square_feet, condo.condo_type.value,
-                            condo.status.value, 
-                            condo.purchase_date.isoformat() if condo.purchase_date else None,
-                            float(condo.monthly_fees_base) if condo.monthly_fees_base else None,
-                            condo.unit_number
-                        ))
-                        self.logger.info(f"Condo {condo.unit_number} mis à jour")
-                    else:
-                        # Insertion
-                        conn.execute("""
-                            INSERT INTO condos (unit_number, owner_name, square_feet, condo_type, 
-                                              status, purchase_date, monthly_fees_base)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            condo.unit_number, condo.owner_name, condo.square_feet,
-                            condo.condo_type.value, condo.status.value,
-                            condo.purchase_date.isoformat() if condo.purchase_date else None,
-                            float(condo.monthly_fees_base) if condo.monthly_fees_base else None
-                        ))
-                        self.logger.info(f"Nouveau condo {condo.unit_number} créé")
-                    
-                    conn.commit()
-                    return True
-                    
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la sauvegarde du condo {condo.unit_number}: {e}")
-            raise CondoRepositoryError(f"Impossible de sauvegarder le condo: {e}")
-    
-    def get_condo_by_unit_number(self, unit_number: str) -> Optional[Condo]:
-        """Récupère un condo par son numéro d'unité."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos WHERE unit_number = ?
-                """, (unit_number,))
-                
-                row = cursor.fetchone()
-                if row:
-                    return self._row_to_condo(row)
-                return None
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la recherche du condo {unit_number}: {e}")
-            raise CondoRepositoryError(f"Impossible de récupérer le condo: {e}")
-    
-    def get_all_condos(self) -> List[Condo]:
-        """Récupère tous les condos."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos ORDER BY unit_number
-                """)
-                
-                rows = cursor.fetchall()
-                return [self._row_to_condo(row) for row in rows]
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la récupération des condos: {e}")
-            raise CondoRepositoryError(f"Impossible de récupérer les condos: {e}")
-    
-    def get_condos_by_status(self, status: CondoStatus) -> List[Condo]:
-        """Récupère tous les condos avec un statut spécifique."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos WHERE status = ? ORDER BY unit_number
-                """, (status.value,))
-                
-                rows = cursor.fetchall()
-                return [self._row_to_condo(row) for row in rows]
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la recherche par statut {status}: {e}")
-            raise CondoRepositoryError(f"Impossible de filtrer par statut: {e}")
-    
-    def get_condos_by_type(self, condo_type: CondoType) -> List[Condo]:
-        """Récupère tous les condos d'un type spécifique."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos WHERE condo_type = ? ORDER BY unit_number
-                """, (condo_type.value,))
-                
-                rows = cursor.fetchall()
-                return [self._row_to_condo(row) for row in rows]
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la recherche par type {condo_type}: {e}")
-            raise CondoRepositoryError(f"Impossible de filtrer par type: {e}")
-    
-    def delete_condo(self, unit_number: str) -> bool:
-        """Supprime un condo."""
-        try:
-            with self._db_lock:
-                with self._get_connection() as conn:
-                    cursor = conn.execute("DELETE FROM condos WHERE unit_number = ?", (unit_number,))
-                    conn.commit()
-                    
-                    if cursor.rowcount > 0:
-                        self.logger.info(f"Condo {unit_number} supprimé")
-                        return True
-                    return False
-                    
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la suppression du condo {unit_number}: {e}")
-            raise CondoRepositoryError(f"Impossible de supprimer le condo: {e}")
-    
-    def count_condos(self) -> int:
-        """Compte le nombre total de condos."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("SELECT COUNT(*) FROM condos")
-                result = cursor.fetchone()
-                return result[0] if result else 0
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors du comptage des condos: {e}")
-            raise CondoRepositoryError(f"Impossible de compter les condos: {e}")
-    
-    def _row_to_condo(self, row) -> Condo:
-        """Convertit une ligne SQLite en entité Condo."""
-        unit_number = row['unit_number'] if hasattr(row, '__getitem__') else row[0]
-        owner_name = row['owner_name'] if hasattr(row, '__getitem__') else row[1]
-        square_feet = row['square_feet'] if hasattr(row, '__getitem__') else row[2]
-        condo_type = row['condo_type'] if hasattr(row, '__getitem__') else row[3]
-        status = row['status'] if hasattr(row, '__getitem__') else row[4]
-        purchase_date = row['purchase_date'] if hasattr(row, '__getitem__') else row[5]
-        monthly_fees_base = row['monthly_fees_base'] if hasattr(row, '__getitem__') else row[6]
-        
-        return Condo(
-            unit_number=unit_number,
-            owner_name=owner_name,
-            square_feet=square_feet,
-            condo_type=CondoType(condo_type),
-            status=CondoStatus(status),
-            purchase_date=datetime.fromisoformat(purchase_date) if purchase_date else None,
-            monthly_fees_base=monthly_fees_base
-        )
-    
-    # Méthodes additionnelles pour compléter l'interface
-    def get_condos_by_owner(self, owner_name: str) -> List[Condo]:
-        """Récupère tous les condos d'un propriétaire."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos WHERE LOWER(owner_name) = LOWER(?) ORDER BY unit_number
-                """, (owner_name,))
-                
-                rows = cursor.fetchall()
-                return [self._row_to_condo(row) for row in rows]
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors de la recherche par propriétaire {owner_name}: {e}")
-            raise CondoRepositoryError(f"Impossible de filtrer par propriétaire: {e}")
-    
-    def get_condos_with_filters(self, filters: Dict[str, Any]) -> List[Condo]:
-        """Récupère des condos selon des critères de filtrage."""
-        try:
-            where_clauses = []
-            params = []
-            
-            if 'min_square_feet' in filters:
-                where_clauses.append("square_feet >= ?")
-                params.append(filters['min_square_feet'])
-            
-            if 'max_square_feet' in filters:
-                where_clauses.append("square_feet <= ?")
-                params.append(filters['max_square_feet'])
-            
-            if 'condo_type' in filters:
-                where_clauses.append("condo_type = ?")
-                params.append(filters['condo_type'])
-            
-            if 'status' in filters:
-                where_clauses.append("status = ?")
-                params.append(filters['status'])
-            
-            where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-            
-            with self._get_connection() as conn:
-                cursor = conn.execute(f"""
-                    SELECT unit_number, owner_name, square_feet, condo_type, 
-                           status, purchase_date, monthly_fees_base
-                    FROM condos WHERE {where_sql} ORDER BY unit_number
-                """, params)
-                
-                rows = cursor.fetchall()
-                return [self._row_to_condo(row) for row in rows]
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors du filtrage: {e}")
-            raise CondoRepositoryError(f"Impossible de filtrer les condos: {e}")
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """Récupère des statistiques sur les condos."""
-        try:
-            with self._get_connection() as conn:
-                # Statistiques générales
-                cursor = conn.execute("""
-                    SELECT 
-                        COUNT(*) as total,
-                        COALESCE(SUM(square_feet), 0) as total_square_feet,
-                        COALESCE(AVG(square_feet), 0) as avg_square_feet
-                    FROM condos
-                """)
-                general_stats = cursor.fetchone()
-                
-                # Statistiques par type
-                cursor = conn.execute("""
-                    SELECT condo_type, COUNT(*) as count
-                    FROM condos 
-                    GROUP BY condo_type
-                """)
-                type_stats = {row[0]: row[1] for row in cursor.fetchall()}
-                
-                # Statistiques par statut
-                cursor = conn.execute("""
-                    SELECT status, COUNT(*) as count
-                    FROM condos 
-                    GROUP BY status
-                """)
-                status_stats = {row[0]: row[1] for row in cursor.fetchall()}
-                
-                return {
-                    'total_condos': general_stats[0],
-                    'total_square_feet': general_stats[1],
-                    'average_square_feet': round(general_stats[2], 2),
-                    'by_type': type_stats,
-                    'by_status': status_stats
-                }
-                
-        except Exception as e:
-            self.logger.error(f"Erreur lors du calcul des statistiques: {e}")
-            raise CondoRepositoryError(f"Impossible de calculer les statistiques: {e}")
-
-
-# Exemple d'utilisation
-if __name__ == "__main__":
-    import logging
-    
-    # Configuration basique du logging pour le test
-    logging.basicConfig(level=logging.INFO)
-    
-    def demo_sqlite_adapter():
-        # Créer l'adapter SQLite
-        adapter = SQLiteAdapter()
-        
-        # Créer quelques condos de test
-        condos = [
-            Condo("A-101", "Jean Dupont", 850.0, CondoType.RESIDENTIAL),
-            Condo("B-205", "Marie Tremblay", 950.0, CondoType.RESIDENTIAL),
-            Condo("C-001", "Entreprise ABC", 200.0, CondoType.COMMERCIAL)
-        ]
-        
-        # Sauvegarder les condos
-        for condo in condos:
-            adapter.save_condo(condo)
-        
-        # Récupérer et afficher les statistiques
-        stats = adapter.get_statistics()
-        logger.info(f"Statistiques: {stats}")
-    
-    # Exécuter la démonstration
-    try:
-        demo_sqlite_adapter()
-    except Exception as e:
-        logger.error(f"Erreur lors de la démonstration: {e}")

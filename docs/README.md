@@ -10,7 +10,6 @@ Ce répertoire contient toute la documentation technique et utilisateur du proje
 docs/
 ├── README.md                                  # Ce fichier - Index de la documentation
 ├── architecture.md                           # Architecture technique hexagonale
-├── architecture-finale.md                    # Architecture finale complète
 ├── conception-extensibilite.md               # Conception pour extensions futures
 ├── documentation-technique.md                # Documentation technique complète
 ├── fonctionnalites-details-utilisateur.md    # Guide détaillé consultation utilisateur
@@ -25,7 +24,6 @@ docs/
 
 ### Architecture et Conception
 - **[Architecture](architecture.md)** - Architecture hexagonale, patterns et décisions techniques
-- **[Architecture Finale](architecture-finale.md)** - Architecture finale complète avec structure détaillée
 - **[Conception Extensibilité](conception-extensibilite.md)** - Préparation aux extensions futures
 
 ### Méthodologie et Tests

@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from application.services.project_service import ProjectService
 from domain.entities.project import Project
-from domain.entities.condo import Condo, CondoType, CondoStatus
+from domain.entities.unit import Unit, UnitType, UnitStatus
+# Condo entity supprimée - utilisation de Unit maintenant
 
 
 class TestProjectAcceptance(unittest.TestCase):
@@ -74,14 +75,14 @@ class TestProjectAcceptance(unittest.TestCase):
         # Mock des unités créées
         mock_units = []
         for i in range(25):
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,  # Superficie standard
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,  # Superficie standard
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                floor=1 + (i // 5),  # 5 unités par étage
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             mock_units.append(unit)
         
@@ -143,14 +144,14 @@ class TestProjectAcceptance(unittest.TestCase):
         mock_units = []
         for i in range(25):
             owner = "Disponible" if i >= 10 else f"Propriétaire_{i+1:02d}"
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id=" test-project"
             )
             mock_units.append(unit)
         
@@ -239,28 +240,28 @@ class TestProjectAcceptance(unittest.TestCase):
         original_units = []
         for i in range(25):
             owner = f"Client Existant {i+1}" if i < 2 else "Disponible"
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             original_units.append(unit)
         
         # Mock des unités après expansion (35 total)
         expanded_units = original_units.copy()
         for i in range(10):  # 10 nouvelles unités
-            new_unit = Condo(
+            new_unit = Unit(
                 unit_number=f"B-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                floor=2,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             expanded_units.append(new_unit)
         
@@ -424,14 +425,14 @@ class TestProjectAcceptance(unittest.TestCase):
         # Mock des unités initiales (toutes disponibles)
         initial_units = []
         for i in range(25):
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             initial_units.append(unit)
         
@@ -439,14 +440,14 @@ class TestProjectAcceptance(unittest.TestCase):
         phase1_units = []
         for i in range(25):
             owner = f"Acheteur_Phase1_{i+1:02d}" if i < 7 else "Disponible"
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             phase1_units.append(unit)
         
@@ -454,26 +455,26 @@ class TestProjectAcceptance(unittest.TestCase):
         expanded_units = []
         for i in range(25):
             owner = f"Acheteur_Phase1_{i+1:02d}" if i < 7 else "Disponible"
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             expanded_units.append(unit)
         
         for i in range(5):  # 5 nouvelles unités
-            new_unit = Condo(
+            new_unit = Unit(
                 unit_number=f"B-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                floor=2,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             expanded_units.append(new_unit)
         
@@ -481,27 +482,27 @@ class TestProjectAcceptance(unittest.TestCase):
         final_units = []
         for i in range(25):
             owner = f"Acheteur_Phase1_{i+1:02d}" if i < 7 else "Disponible"
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             final_units.append(unit)
         
         for i in range(5):  # 5 nouvelles unités dont 8 vendues (mais seulement 5 nouvelles, donc 5 vendues max)
             owner = f"Acheteur_Phase2_{i+1:02d}"  # Toutes les nouvelles sont vendues
-            new_unit = Condo(
+            new_unit = Unit(
                 unit_number=f"B-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                floor=2,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             final_units.append(new_unit)
         
@@ -652,14 +653,14 @@ class TestProjectAcceptance(unittest.TestCase):
         
         mock_units = []
         for i in range(25):
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=500.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
+                area=500.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                floor=1,
-                price=350000.0
+                monthly_fees_base=450.0,
+                project_id="test-project"
             )
             mock_units.append(unit)
         
@@ -787,14 +788,14 @@ class TestProjectAcceptance(unittest.TestCase):
                 else:  # Luxe
                     square_feet = 1200.0 + (i * 100)  # Luxe 1200-1900
                 
-                unit = Condo(
+                unit = Unit(
                     unit_number=f"A-{101 + i}",
-                    square_feet=square_feet,
-                    condo_type=CondoType.RESIDENTIAL,
-                    status=CondoStatus.ACTIVE,
+                    area=square_feet,
+                    unit_type=UnitType.RESIDENTIAL,
+                    status=UnitStatus.AVAILABLE,
                     owner_name="Disponible",
-                    floor=1 + (i // 5),
-                    price=250000.0 + (square_feet * 200)  # Prix basé sur superficie
+                    estimated_price=250000.0 + (square_feet * 200),  # Prix basé sur superficie
+                    project_id=mock_project.project_id
                 )
                 # Ajout des propriétés métier pour la cohérence
                 unit.building_name = project_data['name']
@@ -841,10 +842,10 @@ class TestProjectAcceptance(unittest.TestCase):
                         # Studio: 300-800, 1 chambre: 600-1200, 2 chambres: 900-1600, 3 chambres: 1200-2200
                         min_size = 300  # Minimum absolu
                         max_size = 2200  # Maximum absolu pour tous types d'appartements
-                        self.assertGreaterEqual(unit.square_feet, min_size,
-                            f"Unité {unit.unit_number} trop petite: {unit.square_feet} < {min_size}")
-                        self.assertLessEqual(unit.square_feet, max_size,
-                            f"Unité {unit.unit_number} trop grande: {unit.square_feet} > {max_size}")
+                        self.assertGreaterEqual(unit.area, min_size,
+                            f"Unité {unit.unit_number} trop petite: {unit.area} < {min_size}")
+                        self.assertLessEqual(unit.area, max_size,
+                            f"Unité {unit.unit_number} trop grande: {unit.area} > {max_size}")
                     
                     # Règle métier 2: Numérotation logique
                     unit_numbers = [unit.unit_number for unit in units]

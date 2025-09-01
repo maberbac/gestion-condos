@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 from src.infrastructure.logger_manager import get_logger
 from src.domain.entities.project import Project
-from src.domain.entities.condo import Condo
+from src.domain.entities.unit import Unit, UnitType, UnitStatus
 from src.adapters.project_repository_sqlite import ProjectRepositorySQLite
 
 logger = get_logger(__name__)
@@ -223,32 +223,10 @@ class ProjectService:
             project = Project(**adapted_data)
             
             # Générer automatiquement les unités pour le projet
-            # Les tests s'attendent à ce que les unités soient créées automatiquement
+            # Créer des unités vierges sans attribution automatique
             unit_count = adapted_data.get('unit_count', 25)
-            if hasattr(project, 'generate_units'):
-                units = project.generate_units(unit_count)
-                project.units = units
-            else:
-                # Générer les unités manuellement
-                from src.domain.entities.condo import Condo, CondoType, CondoStatus
-                import random
-                units = []
-                for i in range(unit_count):
-                    unit_number = f"{chr(65 + (i // 100))}-{(i % 100) + 1:03d}"
-                    condo_type = random.choice([CondoType.RESIDENTIAL, CondoType.COMMERCIAL, CondoType.PARKING])
-                    square_feet = random.randint(400, 1200)
-                    price = square_feet * random.uniform(300, 500)
-                    
-                    unit = Condo(
-                        unit_number=unit_number,
-                        floor=i // 4 + 1,
-                        square_feet=square_feet,
-                        condo_type=condo_type,
-                        status=CondoStatus.ACTIVE,
-                        price=price
-                    )
-                    units.append(unit)
-                project.units = units
+            units = project.generate_units(unit_count, blank_units=True)
+            project.units = units
             
             # Sauvegarder le projet en base de données
             project_id = self.project_repository.save_project(project)
@@ -513,7 +491,7 @@ class ProjectService:
         
         return {'valid': True}
     
-    async def _simulate_async_save(self, project: Project, units: List[Condo]) -> bool:
+    async def _simulate_async_save(self, project: Project, units: List[Unit]) -> bool:
         """
         Simule une opération de sauvegarde asynchrone
         

@@ -8,35 +8,40 @@ Le Système de Gestion de Condominiums est une application web moderne qui facil
 
 ## Fonctionnalités Principales
 
-- **Gestion des Résidents** : Suivi des informations des propriétaires et locataires
-- **Gestion des Unités** : Administration des appartements et espaces communs
-- **Finances** : Suivi des paiements, frais de copropriété et budgets
-- **Rapports** : Génération de rapports financiers et administratifs
-- **Communication** : Système de notifications et d'annonces
+- **Gestion des Projets** : Administration des projets de condominiums avec création automatique d'unités
+- **Gestion des Unités** : Administration des appartements individuels avec calculs financiers
+- **Gestion des Utilisateurs** : Système d'authentification avec rôles (Admin, Resident, Guest)
+- **Finances** : Calculs automatiques des frais mensuels selon superficie et type d'unité
+- **Rapports** : Génération de rapports financiers et statistiques par projet
+- **Interface Web** : Interface moderne avec design responsive et animations
 
 ## Concepts Techniques Démontrés
 
 Ce projet illustre l'implémentation de quatre concepts techniques avancés :
 
 ### 1. Lecture de Fichiers
-- Import/export de données en format JSON et CSV
-- Configuration de l'application via fichiers
-- Gestion robuste des erreurs de fichiers
+- Configuration système via fichiers JSON (`config/app.json`, `config/database.json`)
+- Gestion des utilisateurs via fichiers JSON avec UserFileAdapter
+- Import/export de données via SQLiteAdapter pour la base de données
+- Gestion robuste des erreurs de fichiers avec système de logging
 
 ### 2. Programmation Fonctionnelle
-- Utilisation de `map()`, `filter()`, `reduce()`
-- Fonctions pures sans effets de bord
-- Transformation et filtrage des données
+- Services financiers utilisant `map()`, `filter()`, `reduce()`
+- Calculs de frais avec fonctions pures dans FinancialService
+- Transformation de données avec approches immutables
+- Architecture service orientée fonctionnelle
 
 ### 3. Gestion des Erreurs par Exceptions
-- Structure try/catch complète
-- Messages d'erreur informatifs
-- Logging et traçabilité des erreurs
+- Système de logging centralisé via LoggerManager
+- Structure try/catch complète dans tous les adapters
+- Messages d'erreur informatifs avec niveaux appropriés
+- Traçabilité des erreurs à travers les couches
 
 ### 4. Programmation Asynchrone
-- Opérations non-bloquantes avec `asyncio`
-- Requêtes API asynchrones
-- Amélioration des performances
+- Interface web avec simulations d'opérations asynchrones
+- Gestion non-bloquante des requêtes dans l'application Flask
+- Préparation pour intégration API externes futures
+- Architecture prête pour extensions asynchrones
 
 ## Technologies
 
@@ -66,7 +71,7 @@ Ce projet illustre l'implémentation de quatre concepts techniques avancés :
 
 ### TDD avec Mocking Strict - APPLICATION COMPLÈTE
 
-Le projet applique une méthodologie **Test-Driven Development (TDD)** avec des **consignes strictes de mocking** pour garantir l'isolation complète des tests. **Statut : 306 tests fonctionnels (100% succès)**
+Le projet applique une méthodologie **Test-Driven Development (TDD)** avec des **consignes strictes de mocking** pour garantir l'isolation complète des tests. **Statut : 168 tests unitaires (100% succès)**
 
 #### Cycle TDD Obligatoire
 1. **RED** : Écrire les tests AVANT le code (tests qui échouent)
@@ -82,9 +87,9 @@ Le projet applique une méthodologie **Test-Driven Development (TDD)** avec des 
 #### Structure de Tests Finalisée
 ```
 tests/
-├── unit/                    # Tests unitaires (184 tests - logique métier)
-├── integration/             # Tests d'intégration (108 tests - composants)  
-├── acceptance/              # Tests d'acceptance (101 tests - scenarios)
+├── unit/                    # Tests unitaires (168 tests - logique métier)
+├── integration/             # Tests d'intégration (composants ensemble)  
+├── acceptance/              # Tests d'acceptance (scenarios end-to-end)
 ├── fixtures/                # Données et utilitaires de test
 ├── run_all_unit_tests.py    # Exécute TOUS les tests unitaires
 ├── run_all_integration_tests.py  # Exécute TOUS les tests d'intégration
@@ -92,8 +97,14 @@ tests/
 └── run_all_tests.py         # Exécute les 3 niveaux de tests
 ```
 
+#### Architecture Unit-Only Implémentée
+- **Élimination Complète** : L'entité Condo a été entièrement supprimée du système
+- **Entités Principales** : Project (conteneur) et Unit (unité individuelle)
+- **Migration Réussie** : Tous les tests passent avec la nouvelle architecture
+- **Intégrité Préservée** : Fonctionnalités métier maintenues avec les nouvelles entités
+
 #### Résultats Actuels
-- **Performance** : 393 tests avec 100% de succès
+- **Performance** : 168 tests unitaires avec 100% de succès
 - **Fiabilité** : Aucun effet de bord entre tests (isolation complète)
 - **Reproductibilité** : Tests indépendants dans n'importe quel ordre
 - **Debugging** : Isolation facilite l'identification des problèmes
@@ -115,29 +126,29 @@ Le projet adopte une **architecture hexagonale** pour plusieurs raisons stratég
 ```
 ┌─────────────────────────────────────────────────┐
 │              COUCHE EXTERNE                     │
-│   Web UI    │    Files     │   External APIs    │
-│  (Flask)    │  (JSON/CSV)  │    (Future)        │
+│   Web UI    │   SQLite DB  │   External APIs    │
+│  (Flask)    │  (Primary)   │    (Future)        │
 └─────────────────────────────────────────────────┘
                      │
 ┌─────────────────────────────────────────────────┐
 │             COUCHE ADAPTERS                     │
 │  [4 CONCEPTS TECHNIQUES INTÉGRÉS]              │
 │  - web_adapter.py    [Async Programming]       │
-│  - file_adapter.py   [File Reading]            │
-│  - error_adapter.py  [Exception Handling]      │
+│  - sqlite_adapter.py [File Reading]            │
+│  - logger_manager.py [Exception Handling]      │
 │  - *_service.py      [Functional Programming]  │
 └─────────────────────────────────────────────────┘
                      │
 ┌─────────────────────────────────────────────────┐
 │               COUCHE PORTS                      │
-│  - condo_repository_port.py                    │
-│  - file_handler_port.py                        │
+│  - project_repository_port.py                  │
+│  - user_repository_port.py                     │
 │  - notification_port.py                        │
 └─────────────────────────────────────────────────┘
                      │
 ┌─────────────────────────────────────────────────┐
 │           DOMAINE MÉTIER (CORE)                 │
-│  - entities/ (Condo, Resident)                 │
+│  - entities/ (Project, Unit, User)             │
 │  - services/ (Business Logic)                  │
 │  - use_cases/ (Application Logic)              │
 └─────────────────────────────────────────────────┘
@@ -151,22 +162,30 @@ gestion-condos/
 │   └── copilot-instructions.md
 ├── src/                          # Architecture Hexagonale
 │   ├── domain/                   # Domaine Métier (Core)
-│   │   ├── entities/            #   - Entités pures (Condo, Resident)
+│   │   ├── entities/            #   - Entités pures (Project, Unit, User)
+│   │   │   ├── project.py       #   - Entité Projet de condominiums
+│   │   │   ├── unit.py          #   - Entité Unité individuelle
+│   │   │   └── user.py          #   - Entité Utilisateur système
 │   │   ├── services/            #   - Services métier [Concept: Functional]
+│   │   │   ├── project_service.py     #   - Logique métier projets
+│   │   │   ├── financial_service.py   #   - Calculs financiers
+│   │   │   └── password_change_service.py  #   - Gestion mots de passe
 │   │   └── use_cases/           #   - Cas d'usage applicatifs
 │   ├── ports/                    # Interfaces (Contracts)
+│   │   ├── project_repository.py      #   - Interface repository projets
+│   │   └── user_repository.py         #   - Interface repository utilisateurs
 │   ├── adapters/                 # Implémentations Concrètes
 │   │   ├── sqlite_adapter.py    #   - Adapter SQLite centralisé (migrations)
 │   │   ├── project_repository_sqlite.py  #   - Repository projets SQLite
 │   │   ├── user_repository_sqlite.py     #   - Repository utilisateurs SQLite
-│   │   ├── user_file_adapter.py  #   - [Concept: File Reading]
-│   │   ├── web_adapter.py       #   - [Concept: Async Programming]
-│   │   ├── error_adapter.py     #   - [Concept: Exception Handling]
+│   │   ├── user_file_adapter.py  #   - [Concept: File Reading] Gestion utilisateurs fichier
+│   │   ├── web_adapter.py       #   - [Concept: Async Programming] Interface web
 │   │   └── future_extensions/   #   - Extensions futures (location, juridique)
 │   ├── application/             # Services Application
 │   │   └── services/            #   - Services orchestration métier
 │   ├── infrastructure/          # Configuration et utilitaires
-│   │   ├── logger_manager.py    #   - Système logging centralisé
+│   │   ├── logger_manager.py    #   - [Concept: Exception Handling] Système logging
+│   │   └── config_manager.py    #   - Gestionnaire configuration JSON
 │   │   └── config_manager.py    #   - Gestion configuration JSON
 │   └── web/                     # Interface Web Flask
 │       ├── condo_app.py         #   - Application Flask principale
@@ -189,6 +208,7 @@ gestion-condos/
 │   ├── conception-extensibilite.md #   - Conception pour extensions futures
 │   ├── documentation-technique.md  #   - Documentation technique complète
 │   ├── guide-demarrage.md       #   - Guide de démarrage rapide
+│   ├── guide-logging.md         #   - Documentation système de logging
 │   ├── guide-logging.md         #   - Documentation système de logging
 │   ├── journal-developpement.md    #   - Journal de développement et roadmap
 │   └── methodologie.md          #   - TDD avec unittest
@@ -552,7 +572,6 @@ gestion-condos/
 ├── docs/                        # Documentation du projet
 │   ├── README.md               # Index de la documentation
 │   ├── architecture.md         # Architecture hexagonale
-│   ├── architecture-finale.md  # Architecture finale complète
 │   ├── conception-extensibilite.md  # Conception extensions
 │   ├── documentation-technique.md   # Documentation technique
 │   ├── fonctionnalites-details-utilisateur.md  # Guide utilisateur

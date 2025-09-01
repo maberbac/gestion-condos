@@ -18,7 +18,7 @@ from decimal import Decimal
 
 from src.web.condo_app import app
 from src.domain.entities.user import User, UserRole
-from src.domain.entities.condo import Condo
+# Condo entity supprimée - utilisation de Unit maintenant
 
 
 class TestFinancialScenariosAcceptance(unittest.TestCase):

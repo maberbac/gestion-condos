@@ -24,15 +24,16 @@
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │              COUCHE ADAPTERS                        │ │
 │  │  [CONCEPT: Async] [CONCEPT: Files] [CONCEPT: Errors]│ │
-│  │  - web_adapter.py                                   │ │
+│  │  - web_adapter.py ✓ IMPLEMENTÉ                      │ │
 │  │  - sqlite_adapter.py ✓ IMPLEMENTÉ                   │ │
-│  │  - file_adapter.py                                  │ │
+│  │  - user_file_adapter.py ✓ IMPLEMENTÉ                │ │
 │  │  - api_adapter.py (future)                          │ │
 │  └─────────────────────────────────────────────────────┘ │
 │                           │                             │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │                COUCHE PORTS                         │ │
-│  │  - condo_repository_port.py ✓ IMPLEMENTÉ            │ │
+│  │  - project_repository_port.py ✓ IMPLEMENTÉ          │ │
+│  │  - user_repository_port.py ✓ IMPLEMENTÉ             │ │
 │  │  - notification_port.py                             │ │
 │  │  - report_generator_port.py                         │ │
 │  └─────────────────────────────────────────────────────┘ │
@@ -41,13 +42,15 @@
 │  │              DOMAINE MÉTIER (CORE)                  │ │
 │  │  [CONCEPT: Functional Programming]                  │ │
 │  │  - entities/                                        │ │
-│  │    - condo.py ✓ IMPLEMENTÉ                          │ │
-│  │    - resident.py                                    │ │
+│  │    - project.py ✓ IMPLEMENTÉ                        │ │
+│  │    - unit.py ✓ IMPLEMENTÉ                           │ │
+│  │    - user.py ✓ IMPLEMENTÉ                           │ │
 │  │  - services/                                        │ │
-│  │    - condo_service.py                               │ │
+│  │    - project_service.py ✓ IMPLEMENTÉ                │ │
 │  │    - financial_service.py ✓ IMPLEMENTÉ              │ │
+│  │    - password_change_service.py ✓ IMPLEMENTÉ        │ │
 │  │  - use_cases/                                       │ │
-│  │    - manage_condos.py                               │ │
+│  │    - manage_projects.py                             │ │
 │  │    - calculate_fees.py                              │ │
 │  └─────────────────────────────────────────────────────┘ │
 │                                                         │
@@ -96,10 +99,11 @@
 - **Fichiers** : `data/condos.db` + migrations
 - **Validation** : Tests d'intégration passés
 - **Fonctionnalités** :
-  - SQLite comme base principale
-  - Migrations automatiques avec scripts SQL
-  - Persistance des données intégrée
+  - SQLite comme base principale avec tables projects et units
+  - Migrations automatiques centralisées dans SQLiteAdapter
+  - Persistance des données intégrée (projets, unités, utilisateurs)
   - Performance optimisée (WAL mode, cache)
+  - Architecture Unit-only : élimination complète de l'entité Condo
 
 #### 3. Architecture Hexagonale
 - **Status** : COMPLÈTE ET VALIDÉE
@@ -148,17 +152,19 @@
 src/domain/
 ├── entities/                    # Entités métier pures
 │   ├── __init__.py
-│   ├── condo.py                # [Entité] Unité de condo
-│   ├── resident.py             # [Entité] Résident
+│   ├── project.py              # [Entité] Projet de condominiums
+│   ├── unit.py                 # [Entité] Unité individuelle
+│   ├── user.py                 # [Entité] Utilisateur système
 │   └── financial_record.py     # [Entité] Enregistrement financier
 ├── services/                    # Services métier
 │   ├── __init__.py
-│   ├── condo_service.py        # [CONCEPT: Functional] Logic métier condos
+│   ├── project_service.py      # [CONCEPT: Functional] Logic métier projets
 │   ├── financial_service.py    # [CONCEPT: Functional] Calculs financiers
+│   ├── password_change_service.py # Service changement mot de passe
 │   └── reporting_service.py    # [CONCEPT: Functional] Génération rapports
 └── use_cases/                   # Cas d'usage (Use Cases)
     ├── __init__.py
-    ├── manage_condos.py        # Gestion des condos
+    ├── manage_projects.py      # Gestion des projets
     ├── calculate_monthly_fees.py # Calcul frais mensuels
     └── generate_reports.py     # Génération rapports
 ```
@@ -167,7 +173,8 @@ src/domain/
 ```
 src/ports/
 ├── __init__.py
-├── condo_repository.py         # Interface repository condos
+├── project_repository.py       # Interface repository projets
+├── user_repository.py          # Interface repository utilisateurs
 ├── file_handler.py             # Interface gestion fichiers
 ├── notification_service.py     # Interface notifications
 └── external_api.py             # Interface APIs externes (future)
@@ -177,7 +184,8 @@ src/ports/
 ```
 src/adapters/
 ├── __init__.py
-├── file_adapter.py             # [CONCEPT: Files] Lecture/écriture fichiers
+├── sqlite_adapter.py           # [CONCEPT: Files] Base SQLite principale
+├── user_file_adapter.py        # [CONCEPT: Files] Gestion utilisateurs fichier
 ├── web_adapter.py              # [CONCEPT: Async] Interface web Flask
 ├── error_adapter.py            # [CONCEPT: Errors] Gestion erreurs
 └── future_extensions/          # Extensions futures
@@ -190,23 +198,24 @@ src/adapters/
 ```
 src/infrastructure/
 ├── __init__.py
-├── config.py                   # Configuration application
-├── logger.py                   # [CONCEPT: Errors] Logging
+├── config_manager.py           # Gestionnaire configuration JSON
+├── logger_manager.py           # [CONCEPT: Errors] Système logging avancé
 └── dependency_injection.py    # Injection dépendances
 ```
 
 ## Mapping des Concepts Techniques
 
 ### 1. Lecture de Fichiers
-**Localisation** : `src/adapters/file_adapter.py`
+**Localisation** : `src/adapters/sqlite_adapter.py` + `src/adapters/user_file_adapter.py`
 ```python
-class FileAdapter:
-    def read_condos_from_json(self, filepath: str) -> List[Condo]:
-        # [CONCEPT] Démonstration lecture fichiers
+class SQLiteAdapter:
+    def read_projects_from_database(self) -> List[Project]:
+        # [CONCEPT] Démonstration lecture base de données
         pass
     
-    def read_residents_from_csv(self, filepath: str) -> List[Resident]:
-        # [CONCEPT] Différents formats de fichiers
+class UserFileAdapter:
+    def read_users_from_json(self, filepath: str) -> List[User]:
+        # [CONCEPT] Lecture fichiers JSON
         pass
 ```
 
@@ -214,36 +223,39 @@ class FileAdapter:
 **Localisation** : `src/domain/services/`
 ```python
 # Dans financial_service.py
-def calculate_fees_functional(condos: List[Condo]) -> List[FinancialRecord]:
+def calculate_fees_functional(units: List[Unit]) -> List[FinancialRecord]:
     # [CONCEPT] Utilisation de map(), filter(), reduce()
     return list(map(
-        lambda condo: calculate_individual_fee(condo),
-        filter(lambda c: c.is_active, condos)
+        lambda unit: calculate_individual_fee(unit),
+        filter(lambda u: u.status == UnitStatus.SOLD, units)
     ))
 ```
 
 ### 3. Gestion des Erreurs par Exceptions
-**Localisation** : `src/adapters/error_adapter.py`
+**Localisation** : `src/infrastructure/logger_manager.py`
 ```python
-class ErrorAdapter:
-    def handle_file_errors(self, operation: Callable) -> Any:
-        # [CONCEPT] Try/catch structuré
+class LoggerManager:
+    def handle_operation_errors(self, operation: Callable) -> Any:
+        # [CONCEPT] Try/catch structuré avec logging
         try:
             return operation()
         except FileNotFoundError as e:
             # [CONCEPT] Gestion spécifique des erreurs
-            pass
+            logger.error(f"Fichier non trouvé: {e}")
+            raise
 ```
 
 ### 4. Programmation Asynchrone
-**Localisation** : `src/adapters/web_adapter.py`
+**Localisation** : `src/web/condo_app.py`
 ```python
-class WebAdapter:
-    async def generate_monthly_reports(self) -> Dict:
-        # [CONCEPT] Opérations asynchrones
+@app.route('/dashboard')
+def dashboard():
+    # [CONCEPT] Opérations avec simulation asynchrone
+    async def generate_statistics():
+        # Simulation d'opérations asynchrones
         tasks = [
-            asyncio.create_task(self.fetch_condo_data()),
-            asyncio.create_task(self.calculate_fees()),
+            fetch_project_data(),
+            calculate_financial_summary(),
         ]
         return await asyncio.gather(*tasks)
 ```

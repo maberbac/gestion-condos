@@ -236,18 +236,39 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **INTERDIT** : Créer de nouveaux `.md` uniquement pour résumer ce qui a été fait
 
 ### Types de Fichiers Strictement Interdits
-- Fichiers de résumé de travail (ex: `resume-transformation-*.md`)
-- Rapports d'activité ou de session
-- Synthèses d'interventions ou modifications
-- Fichiers markdown temporaires de documentation d'actions
-- Comptes-rendus de développement en format markdown
+- Fichiers de résumé de travail (ex: `resume-transformation-*.md`, `migration-*.md`)
+- Rapports d'activité ou de session (ex: `session-summary-*.md`, `work-report-*.md`)
+- Synthèses d'interventions ou modifications (ex: `changes-summary-*.md`, `updates-*.md`)
+- Fichiers markdown temporaires de documentation d'actions (ex: `actions-*.md`)
+- Comptes-rendus de développement en format markdown (ex: `development-summary-*.md`)
+- **EXEMPLES RÉCENTS INTERDITS** : `migration-unit-only.md` (synthèse d'intervention)
+
+### Vérification Obligatoire Avant Création
+**AVANT de créer tout nouveau fichier .md, SE POSER CES QUESTIONS :**
+1. Est-ce que ce fichier documente une **fonctionnalité permanente** du projet ?
+2. Est-ce que ce fichier sera **utile à long terme** aux utilisateurs/développeurs ?
+3. Est-ce que ce fichier contient de la **documentation technique réutilisable** ?
+4. **SI NON à une de ces questions** → **INTERDICTION ABSOLUE** de créer le fichier
+
+### Test de Validation du Contenu
+**UN FICHIER .MD EST INTERDIT S'IL CONTIENT :**
+- Des phrases comme "Voici un résumé de...", "Documentation des changements effectués..."
+- Des sections "Changements réalisés", "Travail accompli", "Modifications apportées"
+- Des chronologies d'actions effectuées
+- Des comptes-rendus d'interventions
+- Des synthèses de sessions de travail
 
 ### Exception Unique : Documentation Fonctionnelle
 - **AUTORISÉ UNIQUEMENT** : Création de nouveaux fichiers `.md` pour documenter des fonctionnalités, architectures ou guides d'utilisation
 - **CONDITION** : Le fichier doit avoir une valeur documentaire permanente pour le projet
 - **LOCALISATION** : Doit être placé dans `docs/` avec un nom descriptif de sa fonction
+- **VALIDATION** : Le contenu doit être intemporel et ne pas référencer des actions passées
 
 ### Conséquences de Non-Respect
+- **REFUS CATÉGORIQUE** de créer tout fichier de résumé markdown
+- **SUPPRESSION IMMÉDIATE** de tout fichier de résumé détecté
+- **REDIRECTION** vers la mise à jour de documentation existante uniquement
+- **AUTO-CORRECTION** : Supprimer immédiatement et corriger la documentation
 - **REFUS CATÉGORIQUE** de créer tout fichier de résumé markdown
 - **SUPPRESSION IMMÉDIATE** de tout fichier de résumé détecté
 - **REDIRECTION** vers la mise à jour de documentation existante uniquement
@@ -624,6 +645,11 @@ Avant toute implémentation de code, vérifier :
 - [ ] **RESPECTER les standards de design : border-radius, shadows, responsive**
 - [ ] **VÉRIFIER qu'AUCUNE démo ou simulation n'est créée pour l'utilisateur**
 - [ ] **INTERDICTION ABSOLUE: Aucun fichier .md de résumé de travail créé**
+- [ ] **VALIDATION ANTI-RÉSUMÉ: SE POSER LES 3 QUESTIONS AVANT TOUT NOUVEAU .md**
+- [ ] **VÉRIFIER: Le fichier documente-t-il une fonctionnalité permanente ?**
+- [ ] **VÉRIFIER: Le fichier sera-t-il utile à long terme ?**
+- [ ] **VÉRIFIER: Le fichier contient-il de la documentation technique réutilisable ?**
+- [ ] **SI NON à une question → INTERDICTION ABSOLUE de créer le fichier .md**
 - [ ] **SI fichiers pour IA interne nécessaires, les placer OBLIGATOIREMENT dans tmp/**
 
 Après toute implémentation de code, s'assurer que :
@@ -662,6 +688,9 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **APPLIQUER border-radius 15px/25px, shadows standardisées, responsive design**
 - [ ] **RESPECT INTERDICTION DÉMOS: Aucun contenu de démonstration créé pour utilisateur**
 - [ ] **RESPECT INTERDICTION RÉSUMÉS: Aucun fichier .md de résumé de travail créé**
+- [ ] **VALIDATION FINALE ANTI-RÉSUMÉ: Vérifier qu'aucun .md de synthèse d'intervention n'a été créé**
+- [ ] **AUTO-VÉRIFICATION: Relire TOUS les nouveaux .md pour détecter du contenu de résumé**
+- [ ] **SUPPRIMER IMMÉDIATEMENT tout fichier .md qui résume des actions accomplies**
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
 - [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
 - [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**

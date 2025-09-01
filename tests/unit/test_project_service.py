@@ -1,7 +1,6 @@
 """
 Tests unitaires pour le service de gestion des projets
-Tests pour valider la logique d'orchestration des projets avec créati            self.assertGreaterEqual(unit.area, expected_avg * 0.55)  # 55% minimum
-            self.assertLessEqual(unit.area, expected_avg * 1.5)   # 150% maximum d'unités
+Tests pour valider la logique d'orchestration des projets avec création d'unités
 """
 import unittest
 from unittest.mock import Mock, patch, AsyncMock
@@ -12,9 +11,9 @@ from datetime import datetime
 # Ajouter le répertoire src au chemin Python
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
-from application.services.project_service import ProjectService
-from domain.entities.project import Project
-from domain.entities.condo import Condo, CondoType, CondoStatus
+from src.application.services.project_service import ProjectService
+from src.domain.entities.project import Project
+from src.domain.entities.unit import Unit, UnitType, UnitStatus
 
 
 class TestProjectService(unittest.TestCase):
@@ -48,7 +47,7 @@ class TestProjectService(unittest.TestCase):
         # Arrange
         mock_asyncio_run.return_value = True  # Simulation succès save
         self.mock_project_repository.save_project.return_value = AsyncMock(return_value=True)
-        self.mock_condo_repository.save_condo.return_value = AsyncMock(return_value=True)
+        self.mock_condo_repository.save_unit.return_value = AsyncMock(return_value=True)
         
         # Act
         result = self.project_service.create_project_with_units(self.valid_project_data)
@@ -299,6 +298,42 @@ class TestProjectService(unittest.TestCase):
         # Assert
         self.assertFalse(result['success'])
         self.assertIn('base de données', result['error'])
+
+    def test_create_project_with_blank_units(self):
+        """Test de création d'un projet avec unités vierges automatiques"""
+        # Arrange
+        project_data = {
+            'name': 'Test Project',
+            'address': '123 Test Street',
+            'constructor': 'Test Builder',
+            'construction_year': 2024,
+            'total_area': 1000.0,
+            'unit_count': 5
+        }
+        
+        # Configuration des mocks - retourner liste vide au lieu de Mock
+        self.mock_project_repository.save_project.return_value = True
+        self.mock_project_repository.get_all_projects.return_value = []
+        
+        # Act
+        result = self.project_service.create_project_with_units(project_data)
+        
+        # Assert
+        self.assertTrue(result['success'])
+        self.assertIn('message', result)
+        self.assertIn('project', result)
+        
+        # Vérifier que le projet a des unités vierges
+        created_project = result['project']
+        self.assertEqual(len(created_project.units), 5)
+        
+        # Vérifier que les unités sont vierges (sans numéros ni attribution)
+        for unit in created_project.units:
+            self.assertEqual(unit.unit_number, "")  # Pas de numéro automatique
+            self.assertEqual(unit.owner_name, "Disponible")  # Pas d'attribution
+            self.assertEqual(unit.area, 0)  # Pas de superficie automatique (area, pas square_feet)
+            self.assertEqual(unit.status.value, "available")  # Statut disponible
+            self.assertEqual(unit.estimated_price, 0)  # Pas de prix automatique (estimated_price, pas price)
 
 
 if __name__ == '__main__':

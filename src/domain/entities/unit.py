@@ -79,14 +79,25 @@ class Unit:
     
     def __post_init__(self):
         """Validation et initialisation après création."""
-        if not self.unit_number or not self.unit_number.strip():
-            raise ValueError("Le numéro d'unité ne peut pas être vide")
+        # Permettre les numéros d'unité vides pour les unités vierges en configuration
+        # Dans ce cas, le gestionnaire assignera le numéro plus tard
+        if self.unit_number is None:
+            raise ValueError("Le numéro d'unité ne peut pas être None")
+            
+        # Chaîne vide autorisée pour les unités vierges
+        if self.unit_number == "":
+            pass  # OK pour unités vierges
+        elif not self.unit_number.strip():
+            raise ValueError("Le numéro d'unité ne peut pas être composé uniquement d'espaces")
         
         if not self.project_id or not self.project_id.strip():
             raise ValueError("L'ID du projet ne peut pas être vide")
             
-        if self.area <= 0:
-            raise ValueError("La superficie doit être positive")
+        # Permettre superficie 0 pour les unités vierges en configuration
+        if self.area == 0:
+            pass  # OK pour unités vierges
+        elif self.area < 0:
+            raise ValueError("La superficie ne peut pas être négative")
             
         # Initialiser les dates si nécessaire
         now = datetime.now()

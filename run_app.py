@@ -58,10 +58,15 @@ async def initialize_system():
         logger.info("2. Initialisation de la base de données...")
         repository = SQLiteAdapter()
         
-        # Vérifier que la base fonctionne
+        # Vérifier que la base fonctionne en testant la connexion
         try:
-            condos = repository.get_all_condos()
-            logger.info(f"Base de données opérationnelle ({len(condos)} condos)")
+            # Test simple de connexion à la base
+            conn = repository._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            conn.close()
+            logger.info(f"Base de données opérationnelle ({len(tables)} tables)")
         except Exception as e:
             logger.error(f"✗ Erreur base de données: {e}")
             raise

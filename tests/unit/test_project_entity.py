@@ -10,8 +10,8 @@ from datetime import datetime
 # Ajouter le répertoire src au chemin Python
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
-from domain.entities.project import Project
-from domain.entities.condo import Condo, CondoType, CondoStatus
+from src.domain.entities.project import Project
+from src.domain.entities.unit import Unit, UnitType, UnitStatus
 
 
 class TestProjectEntity(unittest.TestCase):

@@ -250,19 +250,19 @@
                     </div>
                     <div class="type-distribution">
                         <div class="distribution-item">
-                            <div class="distribution-bar residential" style="width: {{ (stats.residential / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%"></div>
+                            <div class="distribution-bar residential" style="width: {{ (stats.get('residential_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
                             <span class="distribution-label">Résidentiels</span>
-                            <span class="distribution-value">{{ (stats.residential / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%</span>
+                            <span class="distribution-value">{{ (stats.get('residential_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
                         </div>
                         <div class="distribution-item">
-                            <div class="distribution-bar commercial" style="width: {{ (stats.commercial / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%"></div>
+                            <div class="distribution-bar commercial" style="width: {{ (stats.get('commercial_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
                             <span class="distribution-label">Commerciaux</span>
-                            <span class="distribution-value">{{ (stats.commercial / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%</span>
+                            <span class="distribution-value">{{ (stats.get('commercial_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
                         </div>
                         <div class="distribution-item">
-                            <div class="distribution-bar parking" style="width: {{ (stats.parking / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%"></div>
+                            <div class="distribution-bar parking" style="width: {{ (stats.get('parking_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
                             <span class="distribution-label">Stationnements</span>
-                            <span class="distribution-value">{{ (stats.parking / stats.total_condos * 100)|round if stats.total_condos > 0 else 0 }}%</span>
+                            <span class="distribution-value">{{ (stats.get('parking_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
                         </div>
                     </div>
                 </div>
@@ -356,7 +356,7 @@
                 <div class="form-group">
                     <label for="status">Statut</label>
                     <select id="status" name="status">
-                        <option value="active" selected>Actif</option>
+                        <option value="available" selected>Disponible</option>
                         <option value="inactive">Inactif</option>
                         <option value="maintenance">Maintenance</option>
                         <option value="sold">Vendu</option>

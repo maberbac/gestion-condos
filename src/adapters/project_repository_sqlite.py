@@ -22,7 +22,7 @@ from datetime import datetime
 import uuid
 
 from src.domain.entities.project import Project
-from src.domain.entities.condo import Condo, CondoStatus, CondoType
+from src.domain.entities.unit import Unit, UnitStatus, UnitType
 
 
 class ProjectRepositorySQLite:
@@ -127,7 +127,7 @@ class ProjectRepositorySQLite:
     
     def _save_unit(self, conn: sqlite3.Connection, unit, project_id: str):
         """Sauvegarde une unité dans la base de données."""
-        # Gérer les différents formats d'unités (dict ou objet Condo)
+        # Gérer les différents formats d'unités (dict, objet Unit, ou objet Condo)
         if isinstance(unit, dict):
             unit_number = unit.get('unit_number', '')
             area = unit.get('square_feet', unit.get('area', 0))
@@ -137,11 +137,30 @@ class ProjectRepositorySQLite:
             purchase_date = unit.get('purchase_date')
             monthly_fees = unit.get('calculated_monthly_fees', unit.get('monthly_fees_base'))
         else:
-            # Objet Condo
+            # Objet Unit ou Condo - gérer les différents attributs
             unit_number = unit.unit_number
-            area = unit.square_feet
-            condo_type = unit.condo_type.value if hasattr(unit.condo_type, 'value') else str(unit.condo_type)
-            status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
+            
+            # Gérer les différents noms d'attributs pour la superficie
+            if hasattr(unit, 'area'):
+                area = unit.area  # Objet Unit
+            elif hasattr(unit, 'square_feet'):
+                area = unit.square_feet  # Objet Condo
+            else:
+                area = 0
+                
+            # Gérer les types et statuts
+            if hasattr(unit, 'unit_type'):
+                # Objet Unit
+                condo_type = unit.unit_type.value if hasattr(unit.unit_type, 'value') else str(unit.unit_type)
+                status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
+            elif hasattr(unit, 'condo_type'):
+                # Objet Condo
+                condo_type = unit.condo_type.value if hasattr(unit.condo_type, 'value') else str(unit.condo_type)
+                status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
+            else:
+                condo_type = 'residential'
+                status = 'active'
+                
             owner_name = getattr(unit, 'owner_name', 'Disponible')
             purchase_date = getattr(unit, 'purchase_date', None)
             monthly_fees = getattr(unit, 'calculated_monthly_fees', getattr(unit, 'monthly_fees_base', None))

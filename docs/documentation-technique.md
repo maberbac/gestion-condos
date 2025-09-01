@@ -23,14 +23,20 @@
 ## Vue d'ensemble du projet
 
 ### Objectif
-Le système de gestion de condominiums est une application web développée pour faciliter la gestion administrative et financière des copropriétés. L'application permet de gérer les informations des résidents, les unités, les finances et les communications.
+Le système de gestion de condominiums est une application web développée pour faciliter la gestion administrative et financière des copropriétés. L'application permet de gérer les projets de condominiums, les unités individuelles, les finances et les utilisateurs du système.
 
 ### Portée fonctionnelle
-- Gestion des résidents et des unités de condo
-- Suivi des paiements et des frais de copropriété
-- Génération de rapports financiers
-- Communication avec les résidents
-- Maintenance et gestion des installations communes
+- Gestion des projets de condominiums avec création automatique d'unités
+- Gestion des unités individuelles avec calculs financiers par type
+- Suivi des informations utilisateurs et authentification par rôles
+- Génération de rapports financiers et statistiques par projet
+- Interface web moderne avec design responsive et animations
+
+### Architecture Unit-Only
+Le système utilise une **architecture Unit-Only** basée sur :
+- **Project** : Conteneur principal pour grouper les unités
+- **Unit** : Unité individuelle avec calculs financiers spécifiques
+- **User** : Utilisateur système avec authentification et rôles
 
 ### Public cible
 - Gestionnaires de copropriété
@@ -67,7 +73,8 @@ L'application suit une architecture hexagonale moderne garantissant l'isolation 
 │                 COUCHE DOMAINE (Métier)                     │
 │  ┌─────────────────┐    ┌─────────────────┐                │
 │  │   Entités       │    │    Ports        │                │
-│  │ (User, Condo)   │    │  (Interfaces)   │                │
+│  │ (Project, Unit,  │    │  (Interfaces)   │                │
+│  │ User)           │    │                 │                │
 │  └─────────────────┘    └─────────────────┘                │
 └─────────────────┬───────────────────────────────────────────┘
                   │
@@ -254,7 +261,7 @@ gestion-condos/
 │   └── schemas/                # Schémas de validation JSON
 │
 ├── data/                        # Données et base de données
-│   ├── condos.db               # Base de données SQLite principale
+│   ├── condos.db               # Base de données SQLite principale (projects + units)
 │   ├── projects.json           # Données projets (transition)
 │   ├── users.json              # Données utilisateurs (transition)
 │   └── migrations/             # Scripts d'initialisation base de données
@@ -398,7 +405,7 @@ def get_user_details_for_api(self, user: User) -> dict:
         - Informations personnelles
         - Rôle et permissions
         - Historique de connexion
-        - Unité de condo assignée
+        - Authentification sécurisée
     """
 ```
 
@@ -440,12 +447,13 @@ class UserService:
 ### Couche Domaine - Entités et Ports
 
 #### Entités Métier
-**User** : Entité utilisateur avec rôles et validation
-**Condo** : Entité condo avec types et calculs métier
+**User** : Entité utilisateur avec rôles et validation  
+**Project** : Entité projet de condominiums avec métadonnées globales
+**Unit** : Entité unité individuelle avec calculs financiers
 
 #### Ports (Interfaces)
 **UserRepository** : Interface pour l'accès aux données utilisateur
-**CondoRepository** : Interface pour l'accès aux données condo
+**ProjectRepository** : Interface pour l'accès aux données projet et unités
 
 ### Couche Infrastructure - Adapters
 
@@ -519,7 +527,7 @@ Cela causait des **corruptions de données** où les projets/unités étaient re
 ##### 1. Source Unique de Vérité
 ```python
 # src/adapters/sqlite_adapter.py - SEUL POINT D'ENTRÉE MIGRATIONS
-class SQLiteAdapter(CondoRepositoryPort):
+class SQLiteAdapter(ProjectRepositoryPort):
     def _run_migrations(self) -> None:
         """Exécute TOUTES les migrations du système de façon centralisée"""
         # Utilise la table schema_migrations pour le tracking
@@ -665,9 +673,8 @@ Authorization: Session basée
     "username": "admin",
     "full_name": "Administrateur Principal",
     "email": "admin@condos.local",
-    "role": "admin",
+    "role": "admin", 
     "role_display": "Administrateur",
-    "condo_unit": null,
     "last_login": "2025-08-30T10:00:00Z",
     "permissions": ["read", "write", "admin"],
     "can_manage_users": true,
@@ -691,7 +698,7 @@ Authorization: Session basée avec contrôle d'accès
 - Informations personnelles complètes
 - Historique de connexions
 - Permissions et autorisations
-- Unité de condo assignée
+- Authentification et sécurité
 - Actions administratives (si autorisé)
 
 ### Format des réponses
@@ -799,7 +806,8 @@ tests/
 - **Performance** : Exécution ultra-rapide (pas d'I/O)
 
 **Exemples principaux** :
-- `test_condo_entity.py` - Validation logique métier entité Condo
+- `test_unit_entity.py` - Validation logique métier entité Unit
+- `test_project_entity.py` - Validation logique métier entité Project
 - `test_condo_service.py` - Service métier condos avec mocking
 - `test_config_manager.py` - Gestionnaire configuration
 - `test_financial_service.py` - Calculs financiers isolés

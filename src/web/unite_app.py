@@ -1728,15 +1728,12 @@ def projets():
 @app.route('/projets/create', methods=['POST'])
 @require_admin
 def create_project():
-    """Création d'un nouveau projet."""
+    """Création d'un nouveau projet avec unités vierges automatiques."""
     try:
         from src.application.services.project_service import ProjectService
-        from src.domain.entities.project import Project
-        import uuid
         
         # Récupération des données du formulaire
         project_data = {
-            'project_id': str(uuid.uuid4()),
             'name': request.form.get('name'),
             'address': request.form.get('address'),
             'constructor': request.form.get('builder_name'),
@@ -1752,15 +1749,15 @@ def create_project():
             flash('Erreur: La superficie du bâtiment ne peut pas dépasser celle du terrain.', 'error')
             return redirect(url_for('projets'))
         
-        # Création du projet
-        project = Project(**project_data)
-        
+        # Création du projet avec unités automatiques
         project_service = ProjectService()
-        result = project_service.create_project(project)
+        result = project_service.create_project_with_units(project_data)
         
         if result['success']:
-            flash(f"Projet '{project.name}' créé avec succès!", 'success')
-            logger.info(f"Nouveau projet créé: {project.name} avec {project.unit_count} unités")
+            project_name = project_data['name']
+            unit_count = project_data['unit_count']
+            flash(f"Projet '{project_name}' créé avec succès avec {unit_count} unités vierges!", 'success')
+            logger.info(f"Nouveau projet créé: {project_name} avec {unit_count} unités vierges")
         else:
             flash(f"Erreur lors de la création: {result['error']}", 'error')
             

@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 from src.web.condo_app import app
-from src.application.services.condo_service import CondoService
+from src.application.services.project_service import ProjectService
 
 
 class TestCondoRoutesIntegration(unittest.TestCase):
@@ -68,17 +68,21 @@ class TestCondoRoutesIntegration(unittest.TestCase):
     @patch('src.web.condo_app.condo_service')
     def test_condo_details_existing_unit(self, mock_condo_service):
         """Test accès aux détails d'un condo existant."""
-        # Mock du service pour retourner une unité existante
+        # Mock du service pour retourner une unité avec la structure dictionnaire attendue
         mock_condo = {
             'unit_number': 'TEST-001',
             'owner_name': 'Test Owner',
             'square_feet': 850,
-            'condo_type': 'residential',
-            'status': 'active',
+            'unit_type': {'name': 'RESIDENTIAL'},
+            'status': 'AVAILABLE',
             'monthly_fees': 450,
             'building_name': 'Test Building',
-            'is_sold': True
+            'is_available': True,
+            'type_icon': '🏠',
+            'status_icon': '✅',
+            'is_sold': False
         }
+        
         mock_condo_service.get_condo_by_unit_number.return_value = mock_condo
         mock_condo_service.get_all_condos.return_value = [mock_condo]
         
@@ -89,7 +93,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         # Vérifier que les détails sont affichés
         self.assertIn(b'Test Owner', response.data)
 
-    @patch('src.application.services.condo_service.CondoService.get_condo_by_unit_number')
+    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
     def test_condo_details_nonexistent_unit(self, mock_get_condo_by_unit_number):
         """Test accès aux détails d'un condo inexistant."""
         # Mock du service pour retourner None
@@ -122,7 +126,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertIn(b'TEST-001', response.data)
         mock_condo_service.get_condo_by_unit_number.assert_called_once_with('TEST-001')
 
-    @patch('src.application.services.condo_service.CondoService.get_condo_by_unit_number')
+    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
     def test_edit_condo_get_form_nonexistent(self, mock_get_condo_by_unit_number):
         """Test de récupération du formulaire d'édition pour un condo inexistant."""
         # Mock du service pour retourner None
@@ -160,7 +164,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_update_condo.assert_called_once()
 
-    @patch('src.application.services.condo_service.CondoService.get_condo_by_unit_number')
+    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
     def test_edit_condo_post_invalid_data(self, mock_get_condo_by_unit_number):
         """Test de soumission du formulaire d'édition avec données invalides."""
         # Mock du service pour retourner une unité existante
@@ -238,7 +242,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_delete_condo.assert_called_once_with('TEST-001')
 
-    @patch('src.application.services.condo_service.CondoService.get_condo_by_unit_number')
+    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
     def test_delete_condo_nonexistent_unit(self, mock_get_condo_by_unit_number):
         """Test de suppression d'un condo inexistant."""
         # Mock du service pour retourner None

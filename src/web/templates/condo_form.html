@@ -109,7 +109,7 @@
                     <div class="form-group">
                         <label for="status">Statut</label>
                         <select id="status" name="status">
-                            <option value="active" {{ 'selected' if action == 'edit' and condo.status.value == 'active' else '' }}>
+                            <option value="available" {{ 'selected' if action == 'edit' and condo.status.value == 'available' else '' }}>
                                 ✅ Actif
                             </option>
                             <option value="inactive" {{ 'selected' if action == 'edit' and condo.status.value == 'inactive' else '' }}>

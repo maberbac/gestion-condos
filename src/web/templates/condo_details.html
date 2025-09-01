@@ -46,11 +46,11 @@
                 </div>
                 <div class="info-item">
                     <span class="info-label">Type d'unité</span>
-                    <span class="info-value">{{ condo.condo_type.value|title }}</span>
+                    <span class="info-value">{{ condo.unit_type.name|title }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Statut</span>
-                    <span class="info-value status-{{ condo.status.value }}">{{ condo.status.value|title }}</span>
+                    <span class="info-value status-{{ condo.status }}">{{ condo.status|title }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Superficie</span>
@@ -104,10 +104,10 @@
                 <span class="card-icon">📊</span>
             </div>
             <div class="status-details">
-                <div class="status-badge-large {{ condo.status.value }}">
+                <div class="status-badge-large {{ condo.status }}">
                     <div class="status-icon">
-                        {% if condo.status.value == 'active' %}✅
-                        {% elif condo.status.value == 'inactive' %}❌
+                        {% if condo.status == 'ACTIVE' %}✅
+                        {% elif condo.status == 'INACTIVE' %}❌
                         {% elif condo.status.value == 'maintenance' %}🔧
                         {% elif condo.status.value == 'sold' %}💰
                         {% else %}❓{% endif %}

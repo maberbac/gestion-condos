@@ -16,8 +16,16 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import random
+from enum import Enum
 
 from .unit import Unit, UnitType, UnitStatus
+
+class ProjectStatus(Enum):
+    """Énumération des statuts de projet."""
+    PLANNING = "PLANNING"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 @dataclass
@@ -39,6 +47,7 @@ class Project:
     
     # Attributs optionnels avec valeurs par défaut
     project_id: str = field(default="")
+    status: ProjectStatus = field(default=ProjectStatus.PLANNING)
     creation_date: datetime = field(default_factory=datetime.now)
     units: List[Unit] = field(default_factory=list)
     
@@ -201,12 +210,13 @@ class Project:
             'revenue': revenue
         }
 
-    def generate_units(self, unit_count: int = None) -> List[Unit]:
+    def generate_units(self, unit_count: int = None, blank_units: bool = False) -> List[Unit]:
         """
         Génère automatiquement les unités pour le projet.
         
         Args:
             unit_count: Nombre d'unités à générer (optionnel, utilise self.unit_count par défaut)
+            blank_units: Si True, crée des unités vierges sans numéros ni attributions automatiques
             
         Returns:
             List[Condo]: Liste des unités générées
@@ -216,6 +226,27 @@ class Project:
             
         units = []
         
+        if blank_units:
+            # Créer des unités vierges sans attribution automatique
+            for i in range(unit_count):
+                unit = Unit(
+                    unit_number="",  # Pas de numéro automatique
+                    project_id=self.project_id,
+                    area=0,  # Superficie à définir par le gestionnaire
+                    unit_type=UnitType.RESIDENTIAL,  # Type par défaut
+                    status=UnitStatus.AVAILABLE,  # Statut disponible
+                    estimated_price=0,  # Prix à définir
+                    monthly_fees_base=0,  # Frais à définir
+                    owner_name="Disponible"  # Pas d'attribution automatique
+                )
+                units.append(unit)
+                
+            # Ajouter les unités vierges à la liste du projet
+            self.units.extend(units)
+            logger.info(f"Généré {len(units)} unités vierges pour le projet {self.name}")
+            return units
+        
+        # Code existant pour la génération automatique complète
         # Types de condos et leurs probabilités
         condo_types = [
             (UnitType.RESIDENTIAL, 0.8),

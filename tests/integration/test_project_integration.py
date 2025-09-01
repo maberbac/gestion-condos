@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from src.application.services.project_service import ProjectService
 from src.domain.entities.project import Project
-from src.domain.entities.condo import Condo, CondoType, CondoStatus
+from src.domain.entities.unit import Unit, UnitType, UnitStatus
 
 
 class TestProjectIntegration(unittest.TestCase):
@@ -31,17 +31,10 @@ class TestProjectIntegration(unittest.TestCase):
         self.mock_project_repository.find_by_name.return_value = None
         self.mock_project_repository.exists.return_value = False
         self.mock_project_repository.save.return_value = True
-        
-        self.mock_condo_repository = Mock()
-        self.mock_condo_repository.get_all_units.return_value = []  # Liste vide
-        self.mock_condo_repository.list.return_value = []  
-        self.mock_condo_repository.find_by_project.return_value = []
-        self.mock_condo_repository.save.return_value = True
 
-        # Service avec repositories mockés - AUCUNE BASE DE DONNÉES RÉELLE
+        # Service avec repository mocké - AUCUNE BASE DE DONNÉES RÉELLE
         self.project_service = ProjectService(
-            project_repository=self.mock_project_repository,
-            condo_repository=self.mock_condo_repository
+            project_repository=self.mock_project_repository
         )
         
         # Données de test standard
@@ -74,14 +67,14 @@ class TestProjectIntegration(unittest.TestCase):
         # Arrange - Configurer les mocks pour simuler la création réussie
         created_units = []
         for i in range(10):
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=150.0,
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
-                owner_name="Propriétaire Test",
-                floor=1,
-                price=250000.0
+                project_id="test-project-id",
+                area=150.0,
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
+                estimated_price=250000.0,
+                monthly_fees_base=500.0
             )
             created_units.append(unit)
         
@@ -114,10 +107,10 @@ class TestProjectIntegration(unittest.TestCase):
         # Vérifier que toutes les unités ont les bonnes propriétés
         unit_numbers_seen = []
         for unit in units:
-            # Vérifier les propriétés de base du Condo
-            self.assertGreater(unit.square_feet, 0)
-            self.assertEqual(unit.condo_type, CondoType.RESIDENTIAL)
-            self.assertEqual(unit.status, CondoStatus.ACTIVE)
+            # Vérifier les propriétés de base de l'Unit
+            self.assertGreater(unit.area, 0)
+            self.assertEqual(unit.unit_type, UnitType.RESIDENTIAL)
+            self.assertEqual(unit.status, UnitStatus.AVAILABLE)
             unit_numbers_seen.append(unit.unit_number)
         
         # Vérifier que nous avons des numéros d'unités valides (format A-101, A-102, etc.)
@@ -229,14 +222,14 @@ class TestProjectIntegration(unittest.TestCase):
         # Arrange - Mock des unités avec règles métier respectées
         mock_units = []
         for i in range(10):
-            unit = Condo(
+            unit = Unit(
                 unit_number=f"A-{101 + i}",
-                square_feet=150.0 + (i * 10),  # Superficies variables
-                condo_type=CondoType.RESIDENTIAL,
-                status=CondoStatus.ACTIVE,
-                owner_name="Propriétaire Test",
-                floor=1 + (i % 3),  # Variabilité d'étages
-                price=250000.0 + (i * 10000)  # Prix variables
+                project_id="test-project-id",
+                area=150.0 + (i * 10),  # Superficies variables
+                unit_type=UnitType.RESIDENTIAL,
+                status=UnitStatus.AVAILABLE,
+                estimated_price=250000.0 + (i * 10000),  # Prix variables
+                monthly_fees_base=500.0 + (i * 50)  # Frais variables
             )
             mock_units.append(unit)
         
@@ -257,7 +250,7 @@ class TestProjectIntegration(unittest.TestCase):
         
         # Règle 1: Toutes les unités doivent avoir des superficies positives
         for unit in units:
-            self.assertGreater(unit.square_feet, 0)
+            self.assertGreater(unit.area, 0)
         
         # Règle 2: Numérotation séquentielle
         unit_numbers = [unit.unit_number for unit in units]
@@ -265,7 +258,7 @@ class TestProjectIntegration(unittest.TestCase):
         
         # Règle 3: Statut initial de toutes les unités
         for unit in units:
-            self.assertEqual(unit.status, CondoStatus.ACTIVE)
+            self.assertEqual(unit.status, UnitStatus.AVAILABLE)
     
     def test_performance_integration(self):
         """Test d'intégration pour vérifier les performances avec mocks"""

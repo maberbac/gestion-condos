@@ -1,16 +1,16 @@
-﻿"""
-Application web Flask pour la gestion des unitÃ©s avec authentification.
+"""
+Application web Flask pour la gestion des unités avec authentification.
 
-CONCEPTS TECHNIQUES INTÃ‰GRÃ‰S :
-1. Lecture de fichiers : Configuration JSON et donnÃ©es utilisateur  
-2. Programmation fonctionnelle : DÃ©corateurs et fonctions lambda pour l'authentification
-3. Gestion d'erreurs : Try/catch avec exceptions personnalisÃ©es
-4. Programmation asynchrone : IntÃ©gration avec le service d'authentification async
+CONCEPTS TECHNIQUES INTÉGRÉS :
+1. Lecture de fichiers : Configuration JSON et données utilisateur  
+2. Programmation fonctionnelle : Décorateurs et fonctions lambda pour l'authentification
+3. Gestion d'erreurs : Try/catch avec exceptions personnalisées
+4. Programmation asynchrone : Intégration avec le service d'authentification async
 
 Architecture :
 - Interface web Flask avec sessions utilisateur
-- Authentification basÃ©e sur les rÃ´les (ADMIN/RESIDENT/GUEST)  
-- IntÃ©gration avec les services de domaine existants
+- Authentification basée sur les rôles (ADMIN/RESIDENT/GUEST)  
+- Intégration avec les services de domaine existants
 - Templates HTML pour l'interface utilisateur
 """
 
@@ -26,7 +26,6 @@ import json
 # Imports du domaine
 from src.domain.entities.user import User, UserRole, UserAuthenticationError, UserValidationError
 from src.domain.entities.unit import Unit, UnitType, UnitStatus
-from src.domain.entities.project import Project, ProjectStatus
 from src.domain.services.authentication_service import AuthenticationService
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
 from src.adapters.sqlite_adapter import SQLiteAdapter
@@ -47,7 +46,7 @@ except Exception as e:
     app.secret_key = 'fallback-dev-key'
     logging.error(f"Erreur chargement configuration: {e}")
 
-# Services globaux - initialisation diffÃ©rée
+# Services globaux - initialisation différée
 auth_service = None
 repository = None
 user_repository = None
@@ -59,19 +58,19 @@ logger = logging.getLogger(__name__)
 # Stockage temporaire pour simuler la persistance des modifications
 condo_modifications = {}
 
-# Service pour gÃ©rer les unitÃ©s comme des condos dans l'interface
+# Service pour gérer les unités comme des condos dans l'interface
 class SQLiteCondoService:
     def __init__(self):
         from src.application.services.project_service import ProjectService
         self.project_service = ProjectService()
     
     def get_all_condos(self, user_role='guest'):
-        """récupÃ¨re tous les condos depuis SQLite."""
+        """Récupère tous les condos depuis SQLite."""
         try:
-            # récupÃ©rer tous les projets
+            # Récupérer tous les projets
             projects_result = self.project_service.get_all_projects()
             if not projects_result['success']:
-                logger.error(f"Erreur récupÃ©ration projets: {projects_result['error']}")
+                logger.error(f"Erreur récupération projets: {projects_result['error']}")
                 return []
             
             condos = []
@@ -94,228 +93,40 @@ class SQLiteCondoService:
                         }
                         condos.append(condo)
             
-            logger.info(f"récupÃ©ration de {len(condos)} condos depuis SQLite pour rÃ´le {user_role}")
+            logger.info(f"Récupération de {len(condos)} condos depuis SQLite pour rôle {user_role}")
             return condos
         except Exception as e:
-            logger.error(f"Erreur lors de la récupÃ©ration des condos SQLite: {e}")
+            logger.error(f"Erreur lors de la récupération des condos SQLite: {e}")
             return []
     
     def _get_type_icon(self, unit_type):
-        """Retourne l'icÃ´ne du type d'unitÃ©."""
+        """Retourne l'icône du type d'unité."""
         icons = {
-            'RESIDENTIAL': 'ðŸ ',
-            'COMMERCIAL': 'ðŸ¢', 
-            'PARKING': 'ðŸš—',
-            'STORAGE': 'ðŸ“¦'
+            'RESIDENTIAL': '🏠',
+            'COMMERCIAL': '🏢', 
+            'PARKING': '🚗',
+            'STORAGE': '📦'
         }
-        return icons.get(unit_type.value.upper(), 'ðŸ ')
+        return icons.get(unit_type.value.upper(), '🏠')
     
     def _get_status_icon(self, status):
-        """Retourne l'icÃ´ne du statut."""
+        """Retourne l'icône du statut."""
         icons = {
-            'AVAILABLE': 'âœ…',
-            'RESERVED': 'â³', 
-            'SOLD': 'ðŸŽ¯',
-            'MAINTENANCE': 'ðŸ”§'
+            'AVAILABLE': '✅',
+            'RESERVED': '⏳', 
+            'SOLD': '🎯',
+            'MAINTENANCE': '🔧'
         }
-        return icons.get(status.value.upper(), 'âœ…')
-    
-    def create_condo(self, condo_data):
-        """Crée un nouveau condo (unité)."""
-        try:
-            from src.domain.entities.unit import Unit, UnitType, UnitStatus
-            from src.domain.entities.project import Project, ProjectStatus
-            
-            # Trouver ou créer un projet pour cette unité
-            projects_result = self.project_service.get_all_projects()
-            project_id = None
-            
-            if projects_result['success'] and projects_result['projects']:
-                # Utiliser le premier projet existant
-                project = projects_result['projects'][0]
-                project_id = project.project_id
-            else:
-                # Créer un nouveau projet d'abord
-                project = Project(
-                    name=condo_data.get('building_name', 'Résidence par défaut'),
-                    address="Adresse par défaut",
-                    total_area=1000.0,
-                    construction_year=2023,
-                    unit_count=1,
-                    constructor="Default Constructor",
-                    status=ProjectStatus.ACTIVE
-                )
-                save_result = self.project_service.create_project(project)
-                if not save_result['success']:
-                    logger.error(f"Erreur sauvegarde nouveau projet: {save_result['error']}")
-                    return False
-                project_id = project.project_id
-            
-            # Créer l'unité avec tous les paramètres requis
-            unit_type = UnitType(condo_data.get('condo_type', 'residential'))
-            status = UnitStatus(condo_data.get('status', 'available'))
-            
-            unit = Unit(
-                unit_number=condo_data['unit_number'],
-                project_id=project_id,
-                area=float(condo_data['square_feet']),
-                unit_type=unit_type,
-                status=status,
-                owner_name=condo_data.get('owner_name', ''),
-                monthly_fees_base=float(condo_data.get('monthly_fees', 0)),
-                estimated_price=float(condo_data.get('estimated_price', 0)) if condo_data.get('estimated_price') else None
-            )
-            
-            # Ajouter l'unité au projet et sauvegarder
-            if projects_result['success'] and projects_result['projects']:
-                project = projects_result['projects'][0]
-                project.units.append(unit)
-                save_result = self.project_service.update_project(project)
-                if not save_result['success']:
-                    logger.error(f"Erreur sauvegarde unité: {save_result['error']}")
-                    return False
-            
-            logger.info(f"Condo créé avec succès: {condo_data['unit_number']}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Erreur création condo: {e}")
-            return False
-    
-    def get_condo_by_unit_number(self, unit_number):
-        """Récupère un condo par son numéro d'unité."""
-        try:
-            condos = self.get_all_condos()
-            for condo in condos:
-                if condo['unit_number'] == unit_number:
-                    return condo
-            return None
-        except Exception as e:
-            logger.error(f"Erreur récupération condo {unit_number}: {e}")
-            return None
-    
-    def update_condo(self, unit_number, condo_data):
-        """Met à jour un condo."""
-        try:
-            # Récupérer tous les projets
-            projects_result = self.project_service.get_all_projects()
-            if not projects_result['success']:
-                logger.error(f"Erreur récupération projets: {projects_result['error']}")
-                return False
-            
-            # Trouver le projet et l'unité correspondante
-            unit_found = False
-            for project in projects_result['projects']:
-                for unit in project.units:
-                    if unit.unit_number == unit_number:
-                        # Mettre à jour les attributs de l'unité
-                        unit.owner_name = condo_data.get('owner_name', unit.owner_name)
-                        unit.area = float(condo_data.get('square_feet', unit.area))
-                        unit.monthly_fees_base = float(condo_data.get('monthly_fees', unit.monthly_fees_base))
-                        unit.estimated_price = float(condo_data.get('estimated_price', unit.estimated_price or 0)) if condo_data.get('estimated_price') else unit.estimated_price
-                        
-                        # Mettre à jour le type d'unité si fourni
-                        if 'condo_type' in condo_data:
-                            unit.unit_type = UnitType(condo_data['condo_type'])
-                        
-                        # Mettre à jour le statut si fourni
-                        if 'status' in condo_data:
-                            unit.status = UnitStatus(condo_data['status'])
-                        
-                        # Sauvegarder le projet mis à jour
-                        save_result = self.project_service.update_project(project)
-                        if not save_result['success']:
-                            logger.error(f"Erreur sauvegarde projet: {save_result['error']}")
-                            return False
-                        
-                        unit_found = True
-                        break
-                
-                if unit_found:
-                    break
-            
-            if not unit_found:
-                logger.error(f"Unité {unit_number} introuvable")
-                return False
-            
-            logger.info(f"Condo {unit_number} mis à jour")
-            return True
-        except Exception as e:
-            logger.error(f"Erreur mise à jour condo {unit_number}: {e}")
-            return False
-    
-    def delete_condo(self, unit_number):
-        """Supprime un condo."""
-        try:
-            # Trouver le projet qui contient cette unité
-            projects_result = self.project_service.get_all_projects()
-            if not projects_result.get('success', False):
-                logger.error(f"Erreur récupération projets: {projects_result.get('error', 'Erreur inconnue')}")
-                return False
-            
-            projects = projects_result.get('projects', [])
-            for project in projects:
-                # Trouver l'unité dans ce projet
-                unit_to_remove = None
-                for unit in project.units:
-                    if unit.unit_number == unit_number:
-                        unit_to_remove = unit
-                        break
-                
-                if unit_to_remove:
-                    # Supprimer l'unité du projet
-                    project.units.remove(unit_to_remove)
-                    # Sauvegarder le projet mis à jour
-                    self.project_service.update_project(project)
-                    logger.info(f"Condo {unit_number} supprimé")
-                    return True
-            
-            # Si on arrive ici, l'unité n'a pas été trouvée
-            logger.warning(f"Condo {unit_number} non trouvé pour suppression")
-            return False
-        except Exception as e:
-            logger.error(f"Erreur suppression condo {unit_number}: {e}")
-            return False
-    
-    def get_statistics(self):
-        """Génère les statistiques des condos."""
-        try:
-            condos = self.get_all_condos()
-            stats = {
-                'total_condos': len(condos),
-                'occupied_condos': len([c for c in condos if not c['is_available']]),
-                'available_condos': len([c for c in condos if c['is_available']]),
-                'residential_condos': len([c for c in condos if c['unit_type']['name'] == 'RESIDENTIAL']),
-                'commercial_condos': len([c for c in condos if c['unit_type']['name'] == 'COMMERCIAL']),
-                'parking_condos': len([c for c in condos if c['unit_type']['name'] == 'PARKING']),
-                'storage_condos': len([c for c in condos if c['unit_type']['name'] == 'STORAGE']),
-                'total_revenue': sum(c['monthly_fees'] for c in condos),
-                'average_fees': sum(c['monthly_fees'] for c in condos) / len(condos) if condos else 0
-            }
-            logger.debug(f"Statistiques générées: {stats}")
-            return stats
-        except Exception as e:
-            logger.error(f"Erreur génération statistiques: {e}")
-            return {
-                'total_condos': 0,
-                'occupied_condos': 0,
-                'available_condos': 0,
-                'residential_condos': 0,
-                'commercial_condos': 0,
-                'parking_condos': 0,
-                'storage_condos': 0,
-                'total_revenue': 0,
-                'average_fees': 0
-            }
+        return icons.get(status.value.upper(), '✅')
 
 def calculate_relative_time(dt):
-    """Calcule le temps relatif par rapport Ã  maintenant."""
+    """Calcule le temps relatif par rapport à maintenant."""
     if not dt:
         return "Jamais"
     
     if isinstance(dt, str):
         try:
-            # Essayer de parser diffÃ©rents formats de date
+            # Essayer de parser différents formats de date
             for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
                 try:
                     dt = datetime.strptime(dt, fmt)
@@ -323,7 +134,7 @@ def calculate_relative_time(dt):
                 except ValueError:
                     continue
             else:
-                return dt  # Retourner la chaÃ®ne originale si parsing Ã©choue
+                return dt  # Retourner la chaîne originale si parsing échoue
         except:
             return dt
     
@@ -345,7 +156,7 @@ def calculate_relative_time(dt):
         minutes = diff.seconds // 60
         return f"Il y a {minutes}min"
     else:
-        return "Ã€ l'instant"
+        return "À l'instant"
 
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
@@ -355,11 +166,11 @@ def init_services():
         user_repository = UserRepositorySQLite()
         auth_service = AuthenticationService(user_repository)
         
-        # Utiliser le ProjectService qui gÃ¨re les unitÃ©s via SQLite
+        # Utiliser le ProjectService qui gère les unités via SQLite
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
         
-        # Utiliser notre service SQLiteCondoService dÃ©fini au niveau module
+        # Utiliser notre service SQLiteCondoService défini au niveau module
         condo_service = SQLiteCondoService()
         
         # Initialiser le service utilisateur
@@ -372,33 +183,294 @@ def init_services():
         raise
 
 def ensure_services_initialized():
-    """S'assure que les services sont initialisÃ©s, notamment pour les tests."""
+                try:
+                    # Récupérer tous les projets
+                    projects_result = self.project_service.get_all_projects()
+                    if not projects_result['success']:
+                        logger.error(f"Erreur récupération projets: {projects_result['error']}")
+                        return []
+                    
+                    condos = []
+                    for project in projects_result['projects']:
+                        if project.units:
+                            for unit in project.units:
+                                # Formater pour l'affichage
+                                condo = {
+                                    'unit_number': unit.unit_number,
+                                    'owner_name': unit.owner_name,
+                                    'square_feet': unit.area,
+                                    'unit_type': {'name': unit.unit_type.value.upper()},
+                                    'status': unit.status.value.upper(),
+                                    'monthly_fees': float(unit.calculate_monthly_fees()),
+                                    'building_name': getattr(unit, 'building_name', project.name),
+                                    'is_available': unit.status == UnitStatus.AVAILABLE,
+                                    'type_icon': self._get_type_icon(unit.unit_type),
+                                    'status_icon': self._get_status_icon(unit.status),
+                                    'is_sold': unit.status == UnitStatus.SOLD
+                                }
+                                condos.append(condo)
+                    
+                    logger.info(f"Récupération de {len(condos)} condos depuis SQLite pour rôle {user_role}")
+                    return condos
+                except Exception as e:
+                    logger.error(f"Erreur lors de la récupération des condos SQLite: {e}")
+                    return []
+            
+            def get_condo_by_unit_number(self, unit_number):
+                """Récupère une unité par numéro d'unité depuis SQLite."""
+                try:
+                    projects_result = self.project_service.get_all_projects()
+                    if not projects_result['success']:
+                        return None
+                    
+                    for project in projects_result['projects']:
+                        if project.units:
+                            for unit in project.units:
+                                if unit.unit_number == unit_number:
+                                    # Créer un objet compatible avec le template
+                                    class UnitData:
+                                        def __init__(self, unit, project_name):
+                                            self.unit_number = unit.unit_number
+                                            self.owner_name = unit.owner_name
+                                            self.square_feet = unit.area
+                                            self.condo_type = unit.unit_type
+                                            self.status = unit.status
+                                            self.monthly_fees = float(unit.calculate_monthly_fees())
+                                            self.building_name = getattr(unit, 'building_name', project_name)
+                                            self.is_sold = unit.status == UnitStatus.SOLD
+                                    
+                                    return UnitData(unit, project.name)
+                    return None
+                except Exception as e:
+                    logger.error(f"Erreur recherche unité {unit_number}: {e}")
+                    return None
+            
+            def get_statistics(self):
+                """Calcule les statistiques des condos depuis SQLite."""
+                try:
+                    condos = self.get_all_condos('admin')
+                    if not condos:
+                        return {}
+                    
+                    total = len(condos)
+                    occupied = len([c for c in condos if c['is_sold']])
+                    vacant = total - occupied
+                    residential = len([c for c in condos if c['unit_type']['name'] == 'RESIDENTIAL'])
+                    commercial = len([c for c in condos if c['unit_type']['name'] == 'COMMERCIAL'])
+                    parking = len([c for c in condos if c['unit_type']['name'] == 'PARKING'])
+                    total_revenue = sum(c['monthly_fees'] for c in condos)
+                    total_area = sum(c['square_feet'] for c in condos)
+                    
+                    return {
+                        'total_condos': total,
+                        'occupied': occupied,
+                        'vacant': vacant,
+                        'residential': residential,
+                        'commercial': commercial,
+                        'parking': parking,
+                        'total_monthly_revenue': total_revenue,
+                        'total_area': total_area,
+                        'average_area': round(total_area / total if total > 0 else 0, 1)
+                    }
+                except Exception as e:
+                    logger.error(f"Erreur calcul statistiques: {e}")
+                    return {}
+            
+            def _get_type_icon(self, unit_type):
+                """Retourne l'icône du type d'unité."""
+                icons = {
+                    'RESIDENTIAL': '🏠',
+                    'COMMERCIAL': '🏢', 
+                    'PARKING': '🚗',
+                    'STORAGE': '📦'
+                }
+                return icons.get(unit_type.value.upper(), '🏠')
+            
+            def _get_status_icon(self, status):
+                """Retourne l'icône du statut."""
+                icons = {
+                    'AVAILABLE': '✅',
+                    'RESERVED': '⏳',
+                    'SOLD': '�',
+                    'MAINTENANCE': '�'
+                }
+                return icons.get(status.value.upper(), '✅')
+            
+            def create_condo(self, condo_data):
+                """Crée une nouvelle unité dans SQLite."""
+                try:
+                    # Validation de base
+                    if not condo_data.get('unit_number'):
+                        logger.error("Numéro d'unité requis")
+                        return False
+                    
+                    # Vérifier l'unicité
+                    if self.get_condo_by_unit_number(condo_data['unit_number']):
+                        logger.error(f"Unité {condo_data['unit_number']} existe déjà")
+                        return False
+                    
+                    # Récupérer tous les projets pour trouver où ajouter le condo
+                    projects_result = self.project_service.get_all_projects()
+                    if not projects_result['success']:
+                        logger.error("Erreur récupération projets pour création condo")
+                        return False
+                    
+                    # Prendre le premier projet actif (ou créer un projet par défaut)
+                    target_project = None
+                    for project in projects_result['projects']:
+                        if hasattr(project, 'status') and project.status == 'active':
+                            target_project = project
+                            break
+                    
+                    if not target_project and projects_result['projects']:
+                        target_project = projects_result['projects'][0]
+                    
+                    if not target_project:
+                        logger.error("Aucun projet disponible pour créer le condo")
+                        return False
+                    
+                    # Créer la nouvelle unité
+                    new_unit = Unit(
+                        unit_number=condo_data['unit_number'],
+                        project_id=target_project.project_id,
+                        area=float(condo_data.get('square_feet', 800)),
+                        unit_type=UnitType(condo_data.get('condo_type', 'residential')),
+                        status=UnitStatus.SOLD if condo_data.get('is_sold', False) else UnitStatus.AVAILABLE,
+                        owner_name=condo_data.get('owner_name', 'Disponible') if not condo_data.get('is_sold', False) else condo_data.get('owner_name'),
+                        monthly_fees_base=float(condo_data.get('square_feet', 800)) * 0.45
+                    )
+                    
+                    # Ajouter au projet
+                    if not hasattr(target_project, 'units') or target_project.units is None:
+                        target_project.units = []
+                    target_project.units.append(new_unit)
+                    
+                    # Sauvegarder dans SQLite
+                    update_result = self.project_service.update_project(target_project)
+                    
+                    if update_result['success']:
+                        logger.info(f"Unité créée avec succès: {new_unit.unit_number} dans projet {target_project.name}")
+                        return True
+                    else:
+                        logger.error(f"Erreur sauvegarde unité: {update_result.get('error', 'Erreur inconnue')}")
+                        return False
+                        
+                except Exception as e:
+                    logger.error(f"Erreur lors de la création de l'unité: {e}")
+                    return False
+            
+            def update_condo(self, unit_number, update_data):
+                """Met à jour une unité existante dans SQLite."""
+                try:
+                    # Trouver l'unité dans les projets
+                    projects_result = self.project_service.get_all_projects()
+                    if not projects_result['success']:
+                        logger.error("Erreur récupération projets pour modification unité")
+                        return False
+                    
+                    for project in projects_result['projects']:
+                        if project.units:
+                            for unit in project.units:
+                                if unit.unit_number == unit_number:
+                                    # Mettre à jour les propriétés
+                                    unit.owner_name = update_data.get('owner_name', unit.owner_name)
+                                    unit.area = float(update_data.get('area', unit.area))
+                                    
+                                    # Mettre à jour le type et statut si fournis
+                                    if 'unit_type' in update_data:
+                                        unit.unit_type = UnitType(update_data['unit_type'])
+                                    if 'status' in update_data:
+                                        unit.status = UnitStatus(update_data['status'])
+                                    
+                                    # Sauvegarder le projet mis à jour
+                                    update_result = self.project_service.update_project(project)
+                                    
+                                    if update_result['success']:
+                                        logger.info(f"Unité modifiée avec succès: {unit_number}")
+                                        return True
+                                    else:
+                                        logger.error(f"Erreur sauvegarde unité modifiée: {update_result.get('error', 'Erreur inconnue')}")
+                                        return False
+                    
+                    logger.error(f"Unité {unit_number} non trouvée pour modification")
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Erreur lors de la modification du condo: {e}")
+                    return False
+            
+            def delete_condo(self, unit_number):
+                """Supprime une unité de la base de données SQLite."""
+                try:
+                    # Trouver l'unité dans les projets
+                    projects_result = self.project_service.get_all_projects()
+                    if not projects_result['success']:
+                        logger.error("Erreur récupération projets pour suppression unité")
+                        return False
+                    
+                    for project in projects_result['projects']:
+                        if project.units:
+                            for unit in project.units:
+                                if unit.unit_number == unit_number:
+                                    # Supprimer l'unité du projet
+                                    project.units = [u for u in project.units if u.unit_number != unit_number]
+                                    
+                                    # Sauvegarder le projet mis à jour
+                                    update_result = self.project_service.update_project(project)
+                                    
+                                    if update_result['success']:
+                                        logger.info(f"Unité supprimée avec succès: {unit_number}")
+                                        return True
+                                    else:
+                                        logger.error(f"Erreur sauvegarde après suppression unité: {update_result.get('error', 'Erreur inconnue')}")
+                                        return False
+                    
+                    logger.error(f"Unité {unit_number} non trouvée pour suppression")
+                    return False
+                    
+                except Exception as e:
+                    logger.error(f"Erreur lors de la suppression de l'unité: {e}")
+                    return False
+        
+        condo_service = SQLiteCondoService()
+        
+        # Initialiser le service utilisateur
+        from src.application.services.user_service import UserService
+        user_service = UserService()
+        
+        logger.info("Services initialisés avec succès (avec SQLite et authentification BD)")
+    except Exception as e:
+        logger.error(f"Erreur initialisation services: {e}")
+        raise
+
+def ensure_services_initialized():
+    """S'assure que les services sont initialisés, notamment pour les tests."""
     global condo_service, user_service
     if condo_service is None:
         try:
             init_services()
         except Exception as e:
-            logger.warning(f"Ã‰chec d'initialisation complÃ¨te des services, utilisation du service de base: {e}")
-            # En cas d'Ã©chec, utiliser notre wrapper SQLite
+            logger.warning(f"Échec d'initialisation complète des services, utilisation du service de base: {e}")
+            # En cas d'échec, utiliser notre wrapper SQLite
             condo_service = SQLiteCondoService()
             
-            # Initialiser user_service mÃªme en cas d'Ã©chec
+            # Initialiser user_service même en cas d'échec
             from src.application.services.user_service import UserService
             user_service = UserService()
 
 def require_admin(f):
-    """DÃ©corateur pour vÃ©rifier que l'utilisateur est un administrateur."""
+    """Décorateur pour vérifier que l'utilisateur est un administrateur."""
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-        # D'abord vÃ©rifier si l'utilisateur est connectÃ©
+        # D'abord vérifier si l'utilisateur est connecté
         user_name = session.get('user_name') or session.get('user_id') or session.get('username')
         logged_in = session.get('logged_in', False)
         
-        # Si pas connectÃ©, rediriger vers login
+        # Si pas connecté, rediriger vers login
         if not (logged_in or user_name):
             return redirect(url_for('login'))
         
-        # Ensuite vÃ©rifier le rÃ´le admin
+        # Ensuite vérifier le rôle admin
         user_role_value = session.get('user_role') or session.get('role')
         if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
             return f(*args, **kwargs)
@@ -406,20 +478,20 @@ def require_admin(f):
     return decorated_function
 
 def require_login(f):
-    """DÃ©corateur pour vÃ©rifier que l'utilisateur est connectÃ©."""
+    """Décorateur pour vérifier que l'utilisateur est connecté."""
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-        # Support pour les diffÃ©rents formats de session (tests vs app)
+        # Support pour les différents formats de session (tests vs app)
         user_name = session.get('user_name') or session.get('user_id') or session.get('username')
         logged_in = session.get('logged_in', False)
         
-        # En mode test, Ãªtre plus permissif avec les sessions
+        # En mode test, être plus permissif avec les sessions
         if app.config.get('TESTING', False):
             if logged_in or user_name or session.get('username') or session.get('user_role'):
                 return f(*args, **kwargs)
         
         if not user_name and not logged_in:
-            # Redirection sans flash pour Ã©viter les redirections 302 en cascade
+            # Redirection sans flash pour éviter les redirections 302 en cascade
             return redirect(url_for('login', next=request.url), code=302)
         return f(*args, **kwargs)
     return decorated_function
@@ -428,14 +500,14 @@ def require_login(f):
 
 @app.route('/')
 def index():
-    """Page d'accueil avec informations gÃ©nÃ©rales."""
+    """Page d'accueil avec informations générales."""
     user_connected = 'user_name' in session
     user_role = session.get('user_role', '')
     return render_template('index.html', user_connected=user_connected, user_role=user_role)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Route de connexion avec authentification basÃ©e sur la base de donnÃ©es."""
+    """Route de connexion avec authentification basée sur la base de données."""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -444,15 +516,15 @@ def login():
             return render_template('login_error.html', error_message='Veuillez saisir vos identifiants')
         
         try:
-            # Initialiser les services si nÃ©cessaire
+            # Initialiser les services si nécessaire
             if auth_service is None:
                 init_services()
             
-            # Authentification via le service avec base de donnÃ©es
+            # Authentification via le service avec base de données
             async def authenticate_user():
                 return await auth_service.authenticate(username, password)
             
-            # ExÃ©cuter l'authentification asynchrone
+            # Exécuter l'authentification asynchrone
             authenticated_user = asyncio.run(authenticate_user())
             
             if authenticated_user:
@@ -462,7 +534,7 @@ def login():
                 session['user_role'] = authenticated_user.role.value
                 session['condo_unit'] = authenticated_user.condo_unit
                 
-                # Mettre à jour la derniÃ¨re connexion
+                # Mettre à jour la dernière connexion
                 async def update_last_login():
                     authenticated_user.last_login = datetime.now()
                     await user_repository.save_user(authenticated_user)
@@ -470,42 +542,42 @@ def login():
                 try:
                     asyncio.run(update_last_login())
                 except Exception as e:
-                    logger.warning(f"Erreur mise à jour derniÃ¨re connexion pour {username}: {e}")
+                    logger.warning(f"Erreur mise à jour dernière connexion pour {username}: {e}")
                 
                 flash(f'Connexion réussie! Bienvenue {authenticated_user.full_name}', 'success')
                 logger.info(f"Connexion réussie pour {username} ({authenticated_user.role.value})")
                 return redirect(url_for('dashboard'))
             else:
-                # Authentification Ã©chouÃ©e
-                logger.warning(f"Ã‰chec d'authentification pour {username}")
+                # Authentification échouée
+                logger.warning(f"Échec d'authentification pour {username}")
                 return render_template('login_error.html', error_message='Identifiants invalides')
                 
         except Exception as e:
             logger.error(f"Erreur lors de l'authentification de {username}: {e}")
             return render_template('login_error.html', 
-                                 error_message='Erreur systÃ¨me. Veuillez réessayer.')
+                                 error_message='Erreur système. Veuillez réessayer.')
 
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    """DÃ©connexion utilisateur."""
+    """Déconnexion utilisateur."""
     session.clear()
-    flash('DÃ©connexion réussie.', 'info')
+    flash('Déconnexion réussie.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/dashboard')
 def dashboard():
-    """Tableau de bord personnalisÃ© selon le rÃ´le utilisateur."""
-    # récupÃ©rer le rÃ´le utilisateur depuis la session avec gestion de None
+    """Tableau de bord personnalisé selon le rôle utilisateur."""
+    # Récupérer le rôle utilisateur depuis la session avec gestion de None
     user_role_value = session.get('user_role') or session.get('role')
     user_name = session.get('user_name') or session.get('user_id')
     
     if user_role_value is None or user_name is None:
-        # Rediriger vers la page de login si pas de rÃ´le en session
+        # Rediriger vers la page de login si pas de rôle en session
         return redirect(url_for('login'))
     
-    # Normaliser le rÃ´le
+    # Normaliser le rôle
     if user_role_value == 'admin':
         user_role = UserRole.ADMIN
     elif user_role_value == 'resident':
@@ -521,7 +593,7 @@ def dashboard():
     dashboard_data = {
         'user_name': session.get('full_name') or user_name,  # Prioriser le nom complet si disponible
         'user_role': user_role.value,
-        'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unitÃ© de condo
+        'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unité de condo
         'can_access_finance': can_access_finance(user_role),
         'can_manage_users': can_manage_users(user_role),
         'can_view_condos': can_view_condos(user_role),
@@ -542,13 +614,13 @@ def condos():
         ensure_services_initialized()
         user_role = session.get('user_role', 'guest')
         
-        # récupÃ©rer la liste des condos via le service
+        # Récupérer la liste des condos via le service
         condos_list = condo_service.get_all_condos(user_role)
         
-        # récupÃ©rer les statistiques
+        # Récupérer les statistiques
         stats = condo_service.get_statistics()
         
-        logger.info(f"Affichage de {len(condos_list)} condos pour rÃ´le {user_role}")
+        logger.info(f"Affichage de {len(condos_list)} condos pour rôle {user_role}")
         
         return render_template('condos.html', 
                              condos=condos_list, 
@@ -563,52 +635,52 @@ def condos():
 @app.route('/condos/<unit_number>')
 @require_login
 def condo_by_unit(unit_number):
-    """Redirection vers les dÃ©tails d'un condo."""
+    """Redirection vers les détails d'un condo."""
     return redirect(url_for('condo_details', unit_number=unit_number))
 
 @app.route('/condos/<unit_number>')
 @require_login  
 def condo_details_short(unit_number):
-    """Page de dÃ©tails d'un condo (route courte)."""
+    """Page de détails d'un condo (route courte)."""
     return condo_details(unit_number)
 
 @app.route('/condos/<unit_number>/details')
 @require_login
 def condo_details(unit_number):
-    """Page de dÃ©tails d'un condo."""
+    """Page de détails d'un condo."""
     try:
         ensure_services_initialized()
         user_role = session.get('user_role', 'guest')
         
-        # récupÃ©rer le condo
+        # Récupérer le condo
         condo = condo_service.get_condo_by_unit_number(unit_number)
         
         if not condo:
-            flash(f"Condo {unit_number} non trouvÃ©", "error")
+            flash(f"Condo {unit_number} non trouvé", "error")
             return redirect(url_for('condos'))
         
         return render_template('condo_details.html', condo=condo, user_role=user_role)
         
     except Exception as e:
-        logger.error(f"Erreur lors de l'affichage des dÃ©tails du condo {unit_number}: {e}")
-        flash("Erreur lors du chargement des dÃ©tails", "error")
+        logger.error(f"Erreur lors de l'affichage des détails du condo {unit_number}: {e}")
+        flash("Erreur lors du chargement des détails", "error")
         return redirect(url_for('condos'))
 
 @app.route('/api/condo/<unit_number>')
 @require_login
 def api_condo_details(unit_number):
-    """API REST pour récupÃ©rer les dÃ©tails d'un condo."""
+    """API REST pour récupérer les détails d'un condo."""
     try:
         user_role = session.get('user_role', 'guest')
         
-        # ContrÃ´le d'Accès
+        # Contrôle d'accès
         if user_role not in ['admin', 'resident']:
             return jsonify({'error': 'Accès non autorisé'}), 403
         
         condo = condo_service.get_condo_by_unit_number(unit_number)
         
         if not condo:
-            return jsonify({'error': 'Condo non trouvÃ©'}), 404
+            return jsonify({'error': 'Condo non trouvé'}), 404
         
         return jsonify(condo)
         
@@ -625,15 +697,15 @@ def create_condo():
     
     try:
         ensure_services_initialized()
-        # récupÃ©rer les donnÃ©es du formulaire
+        # Récupérer les données du formulaire
         condo_data = {
             'unit_number': request.form.get('unit_number'),
             'owner_name': request.form.get('owner_name', 'Disponible'),
             'square_feet': request.form.get('square_feet'),
             'condo_type': request.form.get('condo_type', 'residential'),
-            'status': request.form.get('status', 'available'),
+            'status': request.form.get('status', 'active'),
             'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name', 'BÃ¢timent Principal'),
+            'building_name': request.form.get('building_name', 'Bâtiment Principal'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
@@ -659,7 +731,7 @@ def edit_condo(unit_number):
         condo = condo_service.get_condo_by_unit_number(unit_number)
         
         if not condo:
-            flash(f"Condo {unit_number} non trouvÃ©", "error")
+            flash(f"Condo {unit_number} non trouvé", "error")
             return redirect(url_for('condos'))
         
         if request.method == 'GET':
@@ -708,8 +780,8 @@ def delete_condo(unit_number):
 @app.route('/finance')
 @require_admin  
 def finance():
-    """Page financiÃ¨re réservÃ©e aux admins."""
-    # DonnÃ©es financiÃ¨res fictives
+    """Page financière réservée aux admins."""
+    # Données financières fictives
     financial_data = {
         'total_condos': 15,
         'monthly_revenue': 15750.00,
@@ -723,63 +795,63 @@ def finance():
 @app.route('/users')
 @require_admin
 def users():
-    """Gestion des utilisateurs depuis la base de donnÃ©es."""
+    """Gestion des utilisateurs depuis la base de données."""
     global user_service
     ensure_services_initialized()
     
     try:
-        # Utiliser le service utilisateur global pour récupÃ©rer les vraies donnÃ©es
+        # Utiliser le service utilisateur global pour récupérer les vraies données
         users_data = user_service.get_users_for_web_display()
         
-        logger.info(f"Affichage de {len(users_data)} utilisateurs depuis la base de donnÃ©es")
+        logger.info(f"Affichage de {len(users_data)} utilisateurs depuis la base de données")
         
         return render_template('users.html', users=users_data)
         
     except Exception as e:
-        logger.error(f"Erreur lors de la récupÃ©ration des utilisateurs: {e}")
-        # En cas d'erreur, afficher une liste vide plutÃ´t que planter
+        logger.error(f"Erreur lors de la récupération des utilisateurs: {e}")
+        # En cas d'erreur, afficher une liste vide plutôt que planter
         return render_template('users.html', users=[])
 
 @app.route('/users/<username>/details')
 @require_login
 def user_details(username):
-    """Page de dÃ©tails d'un utilisateur."""
+    """Page de détails d'un utilisateur."""
     from src.application.services.user_service import UserService
     
     try:
-        # ContrÃ´le d'Accès par rÃ´le
+        # Contrôle d'accès par rôle
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role == 'admin' or current_user_role == 'ADMIN':
             # Les admins peuvent voir tous les utilisateurs
             pass
         elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
-            # Les résidents ne peuvent voir que leurs propres dÃ©tails
+            # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
-                flash('Vous ne pouvez consulter que vos propres dÃ©tails.', 'error')
+                flash('Vous ne pouvez consulter que vos propres détails.', 'error')
                 return redirect(url_for('users'))
         else:
-            # Les invitÃ©s ne peuvent pas voir de dÃ©tails d'utilisateur
-            flash('Accès non autorisé aux dÃ©tails d\'utilisateur.', 'error')
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            flash('Accès non autorisé aux détails d\'utilisateur.', 'error')
             return redirect(url_for('dashboard'))
         
-        # récupÃ©rer les dÃ©tails de l'utilisateur
+        # Récupérer les détails de l'utilisateur
         global user_service
         ensure_services_initialized()
         user_details = user_service.get_user_details_by_username(username)
         
         if not user_details:
-            flash(f'Utilisateur "{username}" non trouvÃ©.', 'error')
+            flash(f'Utilisateur "{username}" non trouvé.', 'error')
             return redirect(url_for('users'))
         
-        logger.info(f"Affichage des dÃ©tails de l'utilisateur '{username}' par {current_username}")
+        logger.info(f"Affichage des détails de l'utilisateur '{username}' par {current_username}")
         return render_template('user_details.html', user=user_details, current_user=current_username)
         
     except Exception as e:
-        logger.error(f"Erreur lors de l'affichage des dÃ©tails de '{username}': {e}")
-        flash('Erreur lors du chargement des dÃ©tails utilisateur.', 'error')
+        logger.error(f"Erreur lors de l'affichage des détails de '{username}': {e}")
+        flash('Erreur lors du chargement des détails utilisateur.', 'error')
         return redirect(url_for('users'))
 
 @app.route('/users/new', methods=['GET', 'POST'])
@@ -788,7 +860,7 @@ def users_new():
     """Création d'un nouvel utilisateur."""
     if request.method == 'POST':
         try:
-            # récupÃ©ration des donnÃ©es du formulaire
+            # Récupération des données du formulaire
             username = request.form.get('username', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
@@ -798,18 +870,18 @@ def users_new():
             
             # Validation de base
             if not all([username, email, password, full_name, role_str]):
-                logger.warning("Tentative de création d'utilisateur avec donnÃ©es manquantes")
+                logger.warning("Tentative de création d'utilisateur avec données manquantes")
                 return render_template('users_new.html', 
-                                     error="Tous les champs obligatoires doivent Ãªtre remplis"), 400
+                                     error="Tous les champs obligatoires doivent être remplis"), 400
             
-            # Conversion du rÃ´le
+            # Conversion du rôle
             try:
                 from src.domain.entities.user import UserRole
                 role = UserRole(role_str.lower())
             except ValueError:
-                logger.warning(f"RÃ´le invalide: {role_str}")
+                logger.warning(f"Rôle invalide: {role_str}")
                 return render_template('users_new.html', 
-                                     error="RÃ´le invalide"), 400
+                                     error="Rôle invalide"), 400
             
             # Utilisation du service de création
             asyncio.run(create_user_async(username, email, password, full_name, role, condo_unit))
@@ -834,7 +906,7 @@ async def create_user_async(username, email, password, full_name, role, condo_un
         # Utiliser le repository global
         global user_repository
         
-        # Initialiser les services si nÃ©cessaire
+        # Initialiser les services si nécessaire
         if user_repository is None:
             init_services()
         
@@ -858,41 +930,41 @@ async def create_user_async(username, email, password, full_name, role, condo_un
 @app.route('/api/user/<username>')
 @require_login
 def api_user(username):
-    """API pour récupÃ©rer les informations d'un utilisateur."""
+    """API pour récupérer les informations d'un utilisateur."""
     from src.application.services.user_service import UserService
     
     try:
-        # ContrÃ´le d'Accès par rÃ´le
+        # Contrôle d'accès par rôle
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role == 'admin' or current_user_role == 'ADMIN':
             # Les admins peuvent voir tous les utilisateurs
             pass
         elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
-            # Les résidents ne peuvent voir que leurs propres dÃ©tails
+            # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
-                logger.warning(f"Tentative d'Accès non autorisé: {current_username} -> {username}")
+                logger.warning(f"Tentative d'accès non autorisé: {current_username} -> {username}")
                 return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         else:
-            # Les invitÃ©s ne peuvent pas voir de dÃ©tails d'utilisateur
-            logger.warning(f"Tentative d'Accès invitÃ© non autorisé: {current_username} -> {username}")
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            logger.warning(f"Tentative d'accès invité non autorisé: {current_username} -> {username}")
             return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         
         # Initialiser le service utilisateur
         global user_service
         ensure_services_initialized()
         
-        # récupÃ©rer les dÃ©tails de l'utilisateur
+        # Récupérer les détails de l'utilisateur
         user_data = user_service.get_user_details_for_api(username)
         
         if not user_data.get('found', False):
-            logger.debug(f"Utilisateur '{username}' non trouvÃ© via API")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvÃ©'}), 404
+            logger.debug(f"Utilisateur '{username}' non trouvé via API")
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
         
-        logger.info(f"DÃ©tails utilisateur '{username}' récupÃ©rés via API par {current_username}")
-        # Retourner une structure cohÃ©rente avec success: true et les donnÃ©es utilisateur
+        logger.info(f"Détails utilisateur '{username}' récupérés via API par {current_username}")
+        # Retourner une structure cohérente avec success: true et les données utilisateur
         return jsonify({
             'success': True,
             'user': {
@@ -906,7 +978,7 @@ def api_user(username):
         
     except Exception as e:
         logger.error(f"Erreur API utilisateur {username}: {e}")
-        return jsonify({'success': False, 'error': 'Erreur systÃ¨me'}), 500
+        return jsonify({'success': False, 'error': 'Erreur système'}), 500
 
 @app.route('/api/user/<username>', methods=['DELETE'])
 @require_login
@@ -915,21 +987,21 @@ def api_delete_user(username):
     from src.application.services.user_service import UserService
     
     try:
-        # ContrÃ´le d'Accès - seuls les admins peuvent supprimer
+        # Contrôle d'accès - seuls les admins peuvent supprimer
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
         if current_user_role not in ['admin', 'ADMIN']:
-            logger.warning(f"Tentative de suppression non autorisée par {current_username} (rÃ´le: {current_user_role})")
+            logger.warning(f"Tentative de suppression non autorisée par {current_username} (rôle: {current_user_role})")
             return jsonify({'success': False, 'error': 'Accès non autorisé - Seuls les administrateurs peuvent supprimer des utilisateurs'}), 403
         
         # Initialiser le service utilisateur
         global user_service
         ensure_services_initialized()
         
-        # VÃ©rifier l'auto-suppression
+        # Vérifier l'auto-suppression
         if not user_service.can_delete_user(username, current_username):
-            logger.warning(f"Tentative d'auto-suppression refusÃ©e: {current_username}")
+            logger.warning(f"Tentative d'auto-suppression refusée: {current_username}")
             return jsonify({'success': False, 'error': 'Impossible de supprimer votre propre compte'}), 400
         
         # Supprimer l'utilisateur
@@ -942,12 +1014,12 @@ def api_delete_user(username):
                 'message': f"Utilisateur '{username}' supprimé avec succès"
             })
         else:
-            logger.warning(f"Utilisateur '{username}' non trouvÃ© pour suppression")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvÃ©'}), 404
+            logger.warning(f"Utilisateur '{username}' non trouvé pour suppression")
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
         
     except Exception as e:
         logger.error(f"Erreur suppression utilisateur {username}: {e}")
-        return jsonify({'success': False, 'error': 'Erreur systÃ¨me lors de la suppression'}), 500
+        return jsonify({'success': False, 'error': 'Erreur système lors de la suppression'}), 500
 
 @app.route('/api/user/<username>', methods=['PUT'])
 @require_login
@@ -956,18 +1028,18 @@ def api_update_user(username):
     from src.application.services.user_service import UserService
     
     try:
-        # ContrÃ´le d'Accès par rÃ´le
+        # Contrôle d'accès par rôle
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role not in ['admin', 'ADMIN']:
             # Les non-admins ne peuvent modifier que leur propre profil
             if current_username != username:
                 logger.warning(f"Tentative de modification non autorisée: {current_username} -> {username}")
                 return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         
-        # récupÃ©rer les donnÃ©es du formulaire
+        # Récupérer les données du formulaire
         new_username = request.form.get('username')
         email = request.form.get('email')
         full_name = request.form.get('full_name')
@@ -977,13 +1049,13 @@ def api_update_user(username):
         
         # Validation basique
         if not all([new_username, email, full_name, role]):
-            return jsonify({'success': False, 'error': 'Tous les champs obligatoires doivent Ãªtre remplis'}), 400
+            return jsonify({'success': False, 'error': 'Tous les champs obligatoires doivent être remplis'}), 400
         
         # Initialiser le service utilisateur
         global user_service
         ensure_services_initialized()
         
-        # Préparer les donnÃ©es de mise à jour
+        # Préparer les données de mise à jour
         update_data = {
             'username': new_username,
             'email': email,
@@ -995,7 +1067,7 @@ def api_update_user(username):
         # Ajouter le mot de passe seulement s'il est fourni
         if password and password.strip():
             if len(password) < 6:
-                return jsonify({'success': False, 'error': 'Le mot de passe doit contenir au moins 6 caractÃ¨res'}), 400
+                return jsonify({'success': False, 'error': 'Le mot de passe doit contenir au moins 6 caractères'}), 400
             update_data['password'] = password
         
         # Mettre à jour l'utilisateur
@@ -1013,77 +1085,77 @@ def api_update_user(username):
         
     except Exception as e:
         logger.error(f"Erreur mise à jour utilisateur {username}: {e}")
-        return jsonify({'success': False, 'error': 'Erreur systÃ¨me lors de la mise à jour'}), 500
+        return jsonify({'success': False, 'error': 'Erreur système lors de la mise à jour'}), 500
 
 @app.route('/profile')
 @require_login
 def profile():
     """Page de profil utilisateur."""
-    # récupÃ©rer les informations de session
+    # Récupérer les informations de session
     username = session.get('user_id')  # Le vrai username pour la recherche en base
     user_display_name = session.get('user_name')  # Le nom d'affichage (full_name)
     user_role_value = session.get('user_role') or session.get('role')
     
-    # Initialiser les services si nÃ©cessaire
+    # Initialiser les services si nécessaire
     global user_repository
     if user_repository is None:
         init_services()
     
-    # récupÃ©rer les vraies donnÃ©es utilisateur depuis la base de donnÃ©es
+    # Récupérer les vraies données utilisateur depuis la base de données
     try:
         async def get_user_data():
             return await user_repository.get_user_by_username(username)
         
         user_data = asyncio.run(get_user_data())
         
-        logger.info(f"DonnÃ©es utilisateur récupÃ©rées pour {username}: {user_data is not None}")
+        logger.info(f"Données utilisateur récupérées pour {username}: {user_data is not None}")
         if user_data:
-            logger.info(f"User data trouvÃ©: username={user_data.username}, last_login={user_data.last_login}")
-            # Utiliser les vraies donnÃ©es
+            logger.info(f"User data trouvé: username={user_data.username}, last_login={user_data.last_login}")
+            # Utiliser les vraies données
             full_name = user_data.full_name
             email = user_data.email
             member_since = user_data.created_at.strftime('%Y-%m-%d') if user_data.created_at else datetime.now().strftime('%Y-%m-%d')
-            # Utiliser la vraie derniÃ¨re connexion ou l'heure actuelle si c'est la premiÃ¨re connexion
+            # Utiliser la vraie dernière connexion ou l'heure actuelle si c'est la première connexion
             if user_data.last_login:
                 last_login = user_data.last_login.strftime('%Y-%m-%d %H:%M:%S')
-                logger.debug(f"Vraie derniÃ¨re connexion trouvÃ©e: {last_login}")
+                logger.debug(f"Vraie dernière connexion trouvée: {last_login}")
             else:
-                # Si pas de derniÃ¨re connexion enregistrée, utiliser l'heure actuelle (premiÃ¨re connexion)
+                # Si pas de dernière connexion enregistrée, utiliser l'heure actuelle (première connexion)
                 last_login = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                logger.debug(f"Pas de derniÃ¨re connexion, utilisation heure actuelle: {last_login}")
-            condo_unit = user_data.condo_unit or 'Non assignÃ©'
+                logger.debug(f"Pas de dernière connexion, utilisation heure actuelle: {last_login}")
+            condo_unit = user_data.condo_unit or 'Non assigné'
         else:
-            # Fallback si l'utilisateur n'est pas trouvÃ©
-            logger.info(f"Utilisateur {username} non trouvÃ© en base, utilisation fallback")
+            # Fallback si l'utilisateur n'est pas trouvé
+            logger.info(f"Utilisateur {username} non trouvé en base, utilisation fallback")
             full_name = user_display_name or f'Utilisateur {username}'
             email = f'{username}@condos.com'
-            member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codÃ©e
+            member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
             last_login = 'Jamais'
             condo_unit = session.get('condo_unit', 'A-101')
             
     except Exception as e:
-        logger.error(f"Erreur récupÃ©ration donnÃ©es utilisateur {username}: {e}")
+        logger.error(f"Erreur récupération données utilisateur {username}: {e}")
         logger.info(f"Utilisation fallback d'erreur pour {username}")
         # Fallback en cas d'erreur
         full_name = user_display_name or f'Utilisateur {username}'
         email = f'{username}@condos.com'
-        member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codÃ©e
+        member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
         last_login = 'Jamais'
         condo_unit = session.get('condo_unit', 'A-101')
     
-    # Normaliser le rÃ´le pour l'affichage
+    # Normaliser le rôle pour l'affichage
     if user_role_value == 'admin':
         role_display = 'Administrateur'
-        role_description = 'Accès complet au systÃ¨me de gestion'
+        role_description = 'Accès complet au système de gestion'
     elif user_role_value == 'resident':
-        role_display = 'résident'
+        role_display = 'Résident'
         role_description = 'Accès aux informations de condos et finances personnelles'
     else:
-        role_display = 'InvitÃ©'
-        role_description = 'Accès limitÃ© aux informations publiques'
+        role_display = 'Invité'
+        role_description = 'Accès limité aux informations publiques'
     
-    # DonnÃ©es du profil avec vraies donnÃ©es
-    logger.debug(f"DonnÃ©es profil pour {username}: last_login='{last_login}', member_since='{member_since}'")
+    # Données du profil avec vraies données
+    logger.debug(f"Données profil pour {username}: last_login='{last_login}', member_since='{member_since}'")
     profile_data = {
         'username': username,
         'full_name': full_name,
@@ -1116,7 +1188,7 @@ def change_password():
         new_password = request.form.get('new_password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
         
-        # Validation cÃ´tÃ© serveur
+        # Validation côté serveur
         if not current_password:
             return render_template('change_password.html', 
                                  error="Le mot de passe actuel est requis")
@@ -1131,9 +1203,9 @@ def change_password():
         
         if len(new_password) < 6:
             return render_template('change_password.html', 
-                                 error="Le nouveau mot de passe doit contenir au moins 6 caractÃ¨res")
+                                 error="Le nouveau mot de passe doit contenir au moins 6 caractères")
         
-        # récupÃ©rer le nom d'utilisateur de la session (user_id contient le username, pas user_name qui contient le full_name)
+        # Récupérer le nom d'utilisateur de la session (user_id contient le username, pas user_name qui contient le full_name)
         username = session.get('user_id') or session.get('username')
         if not username:
             flash('Session expirée. Veuillez vous reconnecter.', 'error')
@@ -1142,23 +1214,23 @@ def change_password():
         # Importer et utiliser le service de changement de mot de passe
         from src.domain.services.password_change_service import PasswordChangeService, PasswordChangeError
         
-        # Utiliser le service global d'authentification - initialiser si nÃ©cessaire
+        # Utiliser le service global d'authentification - initialiser si nécessaire
         if not auth_service or not user_repository:
-            logger.warning("Services non initialisÃ©s pour changement mot de passe, réinitialisation...")
+            logger.warning("Services non initialisés pour changement mot de passe, réinitialisation...")
             init_services()
             
-        # VÃ©rifier Ã  nouveau aprÃ¨s l'initialisation
+        # Vérifier à nouveau après l'initialisation
         if not auth_service or not user_repository:
             logger.error("Impossible d'initialiser les services pour changement mot de passe")
             return render_template('change_password.html', 
-                                 error="Service non disponible. réessayez plus tard.")
+                                 error="Service non disponible. Réessayez plus tard.")
         
         password_service = PasswordChangeService(
             user_repository=user_repository,
             authentication_service=auth_service
         )
         
-        # ExÃ©cuter le changement de mot de passe de maniÃ¨re asynchrone
+        # Exécuter le changement de mot de passe de manière asynchrone
         async def change_password_async():
             return await password_service.change_password(
                 username, current_password, new_password
@@ -1175,14 +1247,14 @@ def change_password():
                                  return_text="Retour au profil")
         else:
             return render_template('change_password.html', 
-                                 error="Ã‰chec de la modification du mot de passe")
+                                 error="Échec de la modification du mot de passe")
         
     except PasswordChangeError as e:
         return render_template('change_password.html', error=str(e))
     except Exception as e:
         logger.error(f"Erreur lors du changement de mot de passe pour {username}: {e}")
         return render_template('change_password.html', 
-                             error="Une erreur systÃ¨me s'est produite. réessayez plus tard.")
+                             error="Une erreur système s'est produite. Réessayez plus tard.")
 
 # === ROUTES ADMIN ===
 @app.route('/admin')
@@ -1202,15 +1274,15 @@ def admin_condos():
     search = request.args.get('search', '')
     building = request.args.get('building', '')
     
-    # Simulation de donnÃ©es de condos avec résidents
+    # Simulation de données de condos avec résidents
     condos_data = ['A-101 (Pierre Gagnon)', 'A-102', 'B-201', 'B-202', 'C-301']
     
     if search:
         condos_data = [c for c in condos_data if search in c]
     if building:
         condos_data = [c for c in condos_data if c.startswith(building)]
-        # Ajouter information de bÃ¢timent
-        building_info = f"BÃ¢timent {building}"
+        # Ajouter information de bâtiment
+        building_info = f"Bâtiment {building}"
     else:
         building_info = ""
     
@@ -1225,14 +1297,14 @@ def admin_condos():
     occupied_condos = len([c for c in condos_data if '(' in c])
     available_condos = len([c for c in condos_data if '(' not in c])
     
-    # Construction de l'en-tÃªte avec les informations de filtre
+    # Construction de l'en-tête avec les informations de filtre
     header_info = "Liste des condos"
     if building_info:
-        header_info += f" - résultats pour: {building_info}"
+        header_info += f" - Résultats pour: {building_info}"
     if search:
         header_info += f" - Recherche: {search}"
     
-    # Préparation des donnÃ©es pour le template
+    # Préparation des données pour le template
     condos_list = []
     for c in condos_data:
         unit = c.split(' ')[0]
@@ -1255,11 +1327,11 @@ def admin_condos():
 def admin_condos_new():
     """Création de nouveau condo."""
     if request.method == 'POST':
-        # VÃ©rifier si les donnÃ©es sont invalides pour test d'erreur
+        # Vérifier si les données sont invalides pour test d'erreur
         unit_number = request.form.get('unit_number', '')
         if 'invalid' in unit_number.lower() or unit_number == '':
             return render_template('error.html',
-                                 error_message="DonnÃ©es invalides pour la création du condo",
+                                 error_message="Données invalides pour la création du condo",
                                  return_url="/admin/condos/new",
                                  return_text="Retourner au formulaire"), 200
         return render_template('success.html',
@@ -1271,16 +1343,16 @@ def admin_condos_new():
 @app.route('/admin/condos/<condo_id>')
 @require_admin
 def admin_condo_detail(condo_id):
-    """DÃ©tail d'un condo."""
+    """Détail d'un condo."""
     if condo_id == '999' or condo_id == 'INEXISTANT':  # Condo inexistant pour test d'erreur
         return render_template('error.html',
                              error_message="Condo introuvable",
                              return_url="/admin/condos",
                              return_text="Retour aux condos"), 404
     
-    # VÃ©rifier s'il y a des modifications stockÃ©es
+    # Vérifier s'il y a des modifications stockées
     default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le mÃªme condo
+    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
         default_owner = 'Jean Dupont'
     
     owner_info = condo_modifications.get(condo_id, {}).get('owner', default_owner)
@@ -1294,7 +1366,7 @@ def admin_condo_detail(condo_id):
 @app.route('/admin/condos/<condo_id>/edit', methods=['GET', 'POST'])
 @require_admin
 def admin_condo_edit(condo_id):
-    """Ã‰dition d'un condo."""
+    """Édition d'un condo."""
     if request.method == 'POST':
         # Simuler la sauvegarde des modifications
         owner = request.form.get('owner', '') or request.form.get('owner_name', '')
@@ -1313,7 +1385,7 @@ def admin_condo_edit(condo_id):
     
     # Afficher le formulaire avec la valeur actuelle
     default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le mÃªme condo
+    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
         default_owner = 'Jean Dupont'
     
     current_owner = condo_modifications.get(condo_id, {}).get('owner', default_owner)
@@ -1336,7 +1408,7 @@ def admin_residents_new():
     """Création de nouveau résident."""
     if request.method == 'POST':
         return render_template('success.html',
-                             message="résident créé avec succès",
+                             message="Résident créé avec succès",
                              return_url="/admin/residents",
                              return_text="Retour aux résidents")
     return render_template('resident_new.html')
@@ -1344,23 +1416,23 @@ def admin_residents_new():
 @app.route('/admin/residents/<username>')
 @require_admin
 def admin_resident_detail(username):
-    """DÃ©tail d'un résident."""
+    """Détail d'un résident."""
     if username == 'new_resident':
         return render_template('resident_form.html')
 
-# === ROUTES RÃ‰SIDENTS ===
+# === ROUTES RÉSIDENTS ===
 @app.route('/resident/my-condo')
 @require_login
 def resident_my_condo():
-    """Page condo du résident connectÃ©."""
+    """Page condo du résident connecté."""
     user_role_value = session.get('user_role') or session.get('role')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
         return render_template('errors/access_denied.html', 
-                             message="Seuls les résidents peuvent accÃ©der Ã  cette page"), 403
+                             message="Seuls les résidents peuvent accéder à cette page"), 403
     
-    # DonnÃ©es du condo du résident
+    # Données du condo du résident
     condo_data = {
-        'user_name': session.get('user_name', 'résident'),
+        'user_name': session.get('user_name', 'Résident'),
         'condo_unit': session.get('condo_unit', 'A-101'),
         'condo_area': 85,
         'condo_type': 'Appartement',
@@ -1376,18 +1448,18 @@ def resident_my_fees():
     user_role_value = session.get('user_role', 'GUEST')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
         return render_template('errors/access_denied.html', 
-                             message="Seuls les résidents peuvent accÃ©der Ã  cette page"), 403
+                             message="Seuls les résidents peuvent accéder à cette page"), 403
     
-    # DonnÃ©es des frais du résident
+    # Données des frais du résident
     fees_data = {
-        'user_name': session.get('user_name', 'résident'),
+        'user_name': session.get('user_name', 'Résident'),
         'monthly_fees': 450,
-        'current_balance': 0,  # Ã€ jour
+        'current_balance': 0,  # À jour
         'yearly_total': 5400,  # 450 * 12
         'payment_history': [
             {
                 'date': '2024-12-01',
-                'description': 'Frais mensuels dÃ©cembre',
+                'description': 'Frais mensuels décembre',
                 'amount': 450,
                 'status': 'paid'
             },
@@ -1408,7 +1480,7 @@ def resident_my_fees():
     
     return render_template('resident/my_fees.html', **fees_data)
 
-# === ROUTES FINANCIÃˆRES ADMIN ===
+# === ROUTES FINANCIÈRES ADMIN ===
 @app.route('/admin/financial/monthly-report')
 @require_admin
 def admin_financial_monthly():
@@ -1418,23 +1490,23 @@ def admin_financial_monthly():
 @app.route('/admin/financial/budget-analysis')
 @require_admin
 def admin_financial_budget():
-    """Analyse budgÃ©taire."""
+    """Analyse budgétaire."""
     return render_template('admin/financial/budget_analysis.html')
 
 @app.route('/admin/financial/special-assessments')
 @require_admin
 def admin_financial_special():
-    """Cotisations spÃ©ciales."""
+    """Cotisations spéciales."""
     return render_template('admin/financial/special_assessments.html')
 
 @app.route('/admin/financial/special-assessments/new', methods=['POST'])
 @require_admin
 def admin_financial_special_new():
-    """Nouvelle cotisation spÃ©ciale."""
+    """Nouvelle cotisation spéciale."""
     return render_template('success.html',
                          message="Cotisation créée avec succès",
                          return_url="/admin/financial/special-assessments",
-                         return_text="Retour aux cotisations spÃ©ciales")
+                         return_text="Retour aux cotisations spéciales")
 
 @app.route('/admin/financial/payment-status')
 @require_admin
@@ -1457,7 +1529,7 @@ def admin_financial_delinquent():
 @app.route('/admin/financial/generate-notices', methods=['POST'])
 @require_admin
 def admin_financial_notices():
-    """GÃ©nÃ©rer des avis de paiement."""
+    """Générer des avis de paiement."""
     return render_template('admin/financial/notices_success.html')
 
 @app.route('/admin/financial/notices/pending')
@@ -1469,7 +1541,7 @@ def admin_financial_notices_pending():
 @app.route('/admin/financial/income-statement')
 @require_admin
 def admin_financial_income():
-    """Ã‰tat des revenus."""
+    """État des revenus."""
     return render_template('admin/financial/income_statement.html')
 
 @app.route('/admin/financial/balance-sheet')
@@ -1495,7 +1567,7 @@ def admin_financial_tax():
 @app.route('/admin/financial/variance-analysis')
 @require_admin
 def admin_financial_variance():
-    """Analyse des Ã©carts."""
+    """Analyse des écarts."""
     return render_template('admin/financial/variance_analysis.html')
                 
                 
@@ -1510,7 +1582,7 @@ def admin_financial_cashflow():
                 
                 
 
-# === ROUTES API SPÃ‰CIALISÃ‰ES ===
+# === ROUTES API SPÉCIALISÉES ===
 @app.route('/api/condos')
 def api_condos():
     """API liste des condos."""
@@ -1522,12 +1594,12 @@ def api_condos():
 
 @app.route('/api/financial/monthly-summary')
 def api_financial_monthly():
-    """API résumÃ© mensuel."""
+    """API résumé mensuel."""
     return jsonify({'status': 'ok', 'data': 'monthly_summary'})
 
 @app.route('/api/financial/budget-summary')
 def api_financial_budget():
-    """API résumÃ© budgÃ©taire."""
+    """API résumé budgétaire."""
     return jsonify({
         'status': 'ok', 
         'data': 'budget_summary',
@@ -1539,7 +1611,7 @@ def api_financial_budget():
 
 @app.route('/api/financial/special-assessment/<int:assessment_id>/distribution')
 def api_financial_special_distribution(assessment_id):
-    """API distribution cotisation spÃ©ciale."""
+    """API distribution cotisation spéciale."""
     # Retourner un format liste attendu par le test avec le bon montant total (50000)
     distribution = [
         {'unit': 'A-101', 'amount': 10000.00},
@@ -1566,20 +1638,20 @@ def api_financial_validation():
 
 @app.route('/api/financial/tax-summary')
 def api_financial_tax_summary():
-    """API résumÃ© fiscal."""
+    """API résumé fiscal."""
     return jsonify({'status': 'ok', 'data': 'tax_summary'})
 
 @app.route('/api/financial/variance-report')
 def api_financial_variance_report():
-    """API rapport d'Ã©carts."""
+    """API rapport d'écarts."""
     return jsonify({'status': 'ok', 'data': 'variance_report'})
 
-# === ROUTES GÃ‰NÃ‰RIQUES ===
+# === ROUTES GÉNÉRIQUES ===
 @app.route('/admin/condos/bulk-action', methods=['POST'])
 @require_admin
 def admin_condos_bulk():
     """Actions en lot sur les condos."""
-    action = request.form.get('action', 'Non spÃ©cifiÃ©e')
+    action = request.form.get('action', 'Non spécifiée')
     selected_condos = request.form.getlist('selected_condos')
     condos_count = len(selected_condos)
     
@@ -1595,7 +1667,7 @@ def admin_condos_bulk():
 @app.route('/admin/condos/export')
 @require_admin
 def admin_condos_export():
-    """Export des donnÃ©es de condos en CSV."""
+    """Export des données de condos en CSV."""
     csv_data = "unit_number,owner,building\nA-101,Pierre Gagnon,A\nA-102,Marie Dubois,A\nB-201,Jean Martin,B"
     
     response = app.response_class(
@@ -1608,13 +1680,13 @@ def admin_condos_export():
 @app.route('/admin/export/condos')
 @require_admin
 def admin_export_condos():
-    """Export des donnÃ©es de condos en CSV (route alternative)."""
+    """Export des données de condos en CSV (route alternative)."""
     return admin_condos_export()
 
 @app.route('/finance/expenses')
 @require_admin
 def finance_expenses():
-    """Gestion des dÃ©penses."""
+    """Gestion des dépenses."""
                 
                 
                 
@@ -1631,7 +1703,7 @@ def finance_income():
 def projects():
     """Page de gestion des projets de condominiums."""
     try:
-        # récupÃ©rer la liste des projets existants
+        # Récupérer la liste des projets existants
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
         projects_summary = project_service.get_all_projects_summary()
@@ -1659,11 +1731,11 @@ def projets():
         if result['success']:
             projects = result['projects']
             
-            # Calcul des statistiques globales basÃ©es sur les vraies donnÃ©es
+            # Calcul des statistiques globales basées sur les vraies données
             total_units = sum(p.unit_count for p in projects)
             total_units_with_data = sum(len(p.units) for p in projects if p.units)
             
-            # Calculer les unitÃ©s vendues et disponibles
+            # Calculer les unités vendues et disponibles
             sold_units = 0
             available_units = 0
             for project in projects:
@@ -1682,7 +1754,7 @@ def projets():
             
             # Statistiques pour la page
             stats = {
-                'active_projects_count': len(projects),  # Tous les projets chargÃ©s sont actifs
+                'active_projects_count': len(projects),  # Tous les projets chargés sont actifs
                 'completed_projects_count': 0,  # Pas de statut de projet pour l'instant
                 'total_units': total_units,
                 'sold_units': sold_units,
@@ -1691,7 +1763,7 @@ def projets():
                 'projects_with_units': sum(1 for p in projects if p.units)
             }
             
-            logger.info(f"Page projets chargÃ©e: {len(projects)} projets, {total_units} unitÃ©s totales")
+            logger.info(f"Page projets chargée: {len(projects)} projets, {total_units} unités totales")
             
             return render_template('projects.html', 
                                  projects=projects,
@@ -1718,11 +1790,11 @@ def projets():
 @app.route('/projets/create', methods=['POST'])
 @require_admin
 def create_project():
-    """Création d'un nouveau projet avec unitÃ©s vierges automatiques."""
+    """Création d'un nouveau projet avec unités vierges automatiques."""
     try:
         from src.application.services.project_service import ProjectService
         
-        # récupÃ©ration des donnÃ©es du formulaire
+        # Récupération des données du formulaire
         project_data = {
             'name': request.form.get('name'),
             'address': request.form.get('address'),
@@ -1732,27 +1804,27 @@ def create_project():
             'unit_count': int(request.form.get('total_units')),
         }
         
-        # Validation supplÃ©mentaire cÃ´tÃ© serveur
+        # Validation supplémentaire côté serveur
         land_area = float(request.form.get('land_area'))
         building_area = float(request.form.get('building_area'))
         if building_area > land_area:
-            flash('Erreur: La superficie du bÃ¢timent ne peut pas dÃ©passer celle du terrain.', 'error')
+            flash('Erreur: La superficie du bâtiment ne peut pas dépasser celle du terrain.', 'error')
             return redirect(url_for('projets'))
         
-        # Création du projet avec unitÃ©s automatiques
+        # Création du projet avec unités automatiques
         project_service = ProjectService()
         result = project_service.create_project_with_units(project_data)
         
         if result['success']:
             project_name = project_data['name']
             unit_count = project_data['unit_count']
-            flash(f"Projet '{project_name}' créé avec succès avec {unit_count} unitÃ©s vierges!", 'success')
-            logger.info(f"Nouveau projet créé: {project_name} avec {unit_count} unitÃ©s vierges")
+            flash(f"Projet '{project_name}' créé avec succès avec {unit_count} unités vierges!", 'success')
+            logger.info(f"Nouveau projet créé: {project_name} avec {unit_count} unités vierges")
         else:
             flash(f"Erreur lors de la création: {result['error']}", 'error')
             
     except ValueError as e:
-        flash(f"DonnÃ©es invalides: {str(e)}", 'error')
+        flash(f"Données invalides: {str(e)}", 'error')
     except Exception as e:
         logger.error(f"Erreur lors de la création du projet: {e}")
         flash('Erreur lors de la création du projet', 'error')
@@ -1764,7 +1836,7 @@ def create_project():
 @app.route('/condominium/<project_id>/')
 @require_login
 def condominium(project_id):
-    """Affichage des condos d'un projet spÃ©cifique."""
+    """Affichage des condos d'un projet spécifique."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1773,14 +1845,14 @@ def condominium(project_id):
         if result['success']:
             project = result['project']
             
-            # récupÃ©rer les condos du projet
+            # Récupérer les condos du projet
             condos = project.units if project.units else []
             
             # Si aucun condo, les créer automatiquement
             if not condos:
-                logger.info(f"Création automatique des unitÃ©s pour le projet {project.name}")
+                logger.info(f"Création automatique des unités pour le projet {project.name}")
                 condos = project.create_units()
-                # Sauvegarder le projet avec les nouvelles unitÃ©s
+                # Sauvegarder le projet avec les nouvelles unités
                 project_service.update_project(project)
             
             return render_template('condos.html', 
@@ -1788,7 +1860,7 @@ def condominium(project_id):
                                  project=project,
                                  project_context=True)
         else:
-            flash(f"Projet non trouvÃ©: {result['error']}", 'error')
+            flash(f"Projet non trouvé: {result['error']}", 'error')
             return redirect(url_for('projets'))
             
     except Exception as e:
@@ -1800,7 +1872,7 @@ def condominium(project_id):
 @app.route('/projets/edit/<project_id>')
 @require_admin
 def edit_project(project_id):
-    """Ã‰dition d'un projet existant."""
+    """Édition d'un projet existant."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1810,12 +1882,12 @@ def edit_project(project_id):
             project = result['project']
             return render_template('edit_project.html', project=project)
         else:
-            flash(f"Projet non trouvÃ©: {result['error']}", 'error')
+            flash(f"Projet non trouvé: {result['error']}", 'error')
             return redirect(url_for('projets'))
             
     except Exception as e:
-        logger.error(f"Erreur lors du chargement de l'Ã©dition pour {project_id}: {e}")
-        flash('Erreur lors du chargement de l\'Ã©dition', 'error')
+        logger.error(f"Erreur lors du chargement de l'édition pour {project_id}: {e}")
+        flash('Erreur lors du chargement de l\'édition', 'error')
         return redirect(url_for('projets'))
 
 
@@ -1845,14 +1917,14 @@ def project_api_statistics(project_id):
         logger.error(f"Erreur API statistiques pour {project_id}: {e}")
         return jsonify({
             'success': False,
-            'error': f'Erreur systÃ¨me: {str(e)}'
+            'error': f'Erreur système: {str(e)}'
         }), 500
 
 
 @app.route('/projects/<project_name>/statistics')
 @require_admin
 def project_statistics(project_name):
-    """Affichage des statistiques dÃ©taillÃ©es d'un projet."""
+    """Affichage des statistiques détaillées d'un projet."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1875,7 +1947,7 @@ def project_statistics(project_name):
 @app.route('/api/projects/<project_name>/update-units', methods=['POST'])
 @require_admin
 def update_project_units(project_name):
-    """API pour mettre à jour le nombre d'unitÃ©s d'un projet."""
+    """API pour mettre à jour le nombre d'unités d'un projet."""
     try:
         data = request.get_json()
         new_unit_count = int(data.get('unit_count', 0))
@@ -1889,20 +1961,20 @@ def update_project_units(project_name):
     except ValueError:
         return jsonify({
             'success': False,
-            'error': 'Le nombre d\'unitÃ©s doit Ãªtre un nombre valide'
+            'error': 'Le nombre d\'unités doit être un nombre valide'
         }), 400
     except Exception as e:
-        logger.error(f"Erreur API mise à jour unitÃ©s pour {project_name}: {e}")
+        logger.error(f"Erreur API mise à jour unités pour {project_name}: {e}")
         return jsonify({
             'success': False, 
-            'error': f'Erreur systÃ¨me: {str(e)}'
+            'error': f'Erreur système: {str(e)}'
         }), 500
 
 
 @app.route('/api/projects/<project_name>/delete', methods=['DELETE'])
 @require_admin
 def delete_project_api(project_name):
-    """API pour supprimer un projet et ses unitÃ©s."""
+    """API pour supprimer un projet et ses unités."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1918,7 +1990,7 @@ def delete_project_api(project_name):
         logger.error(f"Erreur API suppression projet {project_name}: {e}")
         return jsonify({
             'success': False,
-            'error': f'Erreur systÃ¨me: {str(e)}'
+            'error': f'Erreur système: {str(e)}'
         }), 500
 
 
