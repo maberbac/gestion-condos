@@ -1912,6 +1912,29 @@ def update_project_units(project_name):
         }), 500
 
 
+@app.route('/api/projects/<project_name>/delete', methods=['DELETE'])
+@require_admin
+def delete_project_api(project_name):
+    """API pour supprimer un projet et ses unités."""
+    try:
+        from src.application.services.project_service import ProjectService
+        project_service = ProjectService()
+        result = project_service.delete_project(project_name)
+        
+        if result['success']:
+            logger.info(f"Projet supprimé via API: {project_name}")
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        logger.error(f"Erreur API suppression projet {project_name}: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur système: {str(e)}'
+        }), 500
+
+
 # Application Flask pour export
 flask_app = app
 

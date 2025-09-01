@@ -229,6 +229,77 @@ class TestProjectService(unittest.TestCase):
                 self.assertIn('error', result)
                 self.assertIn(invalid_case['error_contains'], result['error'].lower())
 
+    def test_delete_project_success(self):
+        """Test de suppression réussie d'un projet"""
+        # Arrange
+        project_name = "Test Project"
+        project_id = "test-project-123"
+        
+        # Mock d'un projet existant
+        mock_project = Mock()
+        mock_project.name = project_name
+        mock_project.project_id = project_id
+        mock_project.units = [Mock(), Mock()]  # 2 unités
+        
+        # Configuration des mocks pour éviter l'erreur de chargement
+        self.mock_project_repository.get_all_projects.return_value = [mock_project]
+        self.mock_project_repository.delete_project.return_value = True
+        
+        # Recharger manuellement pour que les projets soient dans la liste
+        self.project_service._load_projects()
+        
+        # Act
+        result = self.project_service.delete_project(project_name)
+        
+        # Assert
+        self.assertTrue(result['success'])
+        self.assertEqual(result['project_name'], project_name)
+        self.assertEqual(result['total_units_deleted'], 2)
+        self.assertIn('supprimé avec succès', result['message'])
+        
+        # Vérifier que le repository a été appelé avec le bon ID
+        self.mock_project_repository.delete_project.assert_called_once_with(project_id)
+
+    def test_delete_project_not_found(self):
+        """Test de suppression d'un projet inexistant"""
+        # Arrange
+        project_name = "Projet Inexistant"
+        self.mock_project_repository.get_all_projects.return_value = []  # Aucun projet
+        self.project_service._load_projects()  # Recharger avec liste vide
+        
+        # Act
+        result = self.project_service.delete_project(project_name)
+        
+        # Assert
+        self.assertFalse(result['success'])
+        self.assertIn('non trouvé', result['error'])
+        self.assertIn(project_name, result['error'])
+        
+        # Vérifier que le repository n'a pas été appelé
+        self.mock_project_repository.delete_project.assert_not_called()
+
+    def test_delete_project_repository_error(self):
+        """Test de suppression avec erreur dans le repository"""
+        # Arrange
+        project_name = "Test Project"
+        project_id = "test-project-123"
+        
+        mock_project = Mock()
+        mock_project.name = project_name
+        mock_project.project_id = project_id
+        mock_project.units = []
+        
+        self.mock_project_repository.get_all_projects.return_value = [mock_project]
+        self.mock_project_repository.delete_project.return_value = False  # Échec
+        self.project_service._load_projects()  # Charger le projet
+        
+        # Act
+        result = self.project_service.delete_project(project_name)
+        
+        # Assert
+        self.assertFalse(result['success'])
+        self.assertIn('base de données', result['error'])
+
 
 if __name__ == '__main__':
     unittest.main()

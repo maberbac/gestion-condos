@@ -787,3 +787,58 @@ class ProjectService:
                 'success': False,
                 'error': f'Erreur lors du calcul: {str(e)}'
             }
+
+    def delete_project(self, project_name: str) -> Dict[str, Any]:
+        """
+        Supprime un projet et toutes ses unités associées.
+        
+        Args:
+            project_name: Nom du projet à supprimer
+            
+        Returns:
+            Dict: Résultat de l'opération de suppression
+        """
+        try:
+            # Recharger les projets depuis la base pour avoir les dernières données
+            self._load_projects()
+            
+            # Trouver le projet par nom
+            project = next((p for p in self._projects if p.name == project_name), None)
+            
+            if not project:
+                return {
+                    'success': False,
+                    'error': f'Projet "{project_name}" non trouvé'
+                }
+            
+            # Sauvegarder les informations avant suppression pour les logs
+            project_id = project.project_id
+            total_units = len(project.units) if project.units else 0
+            
+            # Supprimer le projet de la base de données
+            success = self.project_repository.delete_project(project_id)
+            
+            if success:
+                # Retirer le projet de la liste en mémoire
+                self._projects = [p for p in self._projects if p.project_id != project_id]
+                
+                logger.info(f"Projet supprimé avec succès: {project_name} (ID: {project_id}, {total_units} unités)")
+                
+                return {
+                    'success': True,
+                    'message': f'Projet "{project_name}" supprimé avec succès',
+                    'project_name': project_name,
+                    'total_units_deleted': total_units
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Erreur lors de la suppression du projet en base de données'
+                }
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression du projet {project_name}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur inattendue lors de la suppression: {str(e)}'
+            }

@@ -934,38 +934,44 @@ function confirmDeleteProject(projectName, totalUnits) {
                    `Cette action est IRRÉVERSIBLE !`;
     
     if (confirm(message)) {
-        // TODO: Implémenter la logique de suppression
-        alert(`Fonctionnalité de suppression non encore implémentée.\n\nProjet à supprimer : ${projectName}`);
-        
-        // Lorsque l'implémentation sera faite, décommenter ces lignes :
-        // deleteProject(projectName);
+        // Appeler la fonction de suppression réelle
+        deleteProject(projectName);
     }
 }
 
 // Fonction pour supprimer un projet (à implémenter plus tard)
 function deleteProject(projectName) {
-    // TODO: Appel API pour supprimer le projet
-    /*
+    // Appel API pour supprimer le projet
     fetch(`/api/projects/${encodeURIComponent(projectName)}/delete`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // Si la réponse n'est pas OK, lire le message d'erreur
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'Erreur inconnue du serveur');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            alert(data.message || 'Projet supprimé avec succès');
-            location.reload(); // Recharger la page
+            // Afficher le message de succès
+            alert(`Succès: ${data.message}\n\n${data.total_units_deleted} unité(s) supprimée(s)`);
+            
+            // Recharger la page pour refléter les changements
+            location.reload();
         } else {
-            alert('Erreur: ' + data.error);
+            alert('Erreur: ' + (data.error || 'Erreur inconnue'));
         }
     })
     .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur de communication avec le serveur');
+        console.error('Erreur lors de la suppression:', error);
+        alert(`Erreur de communication: ${error.message}`);
     });
-    */
 }
 </script>
 {% endblock %}
