@@ -2,9 +2,9 @@
 
 {% block title %}
     {% if project_context %}
-        Condos - {{ project.name }} - Gestion Condos
+        Unités - {{ project.name }} - Gestion Condos
     {% else %}
-        Condos - Gestion Condos
+        Unités - Gestion Condos
     {% endif %}
 {% endblock %}
 
@@ -55,19 +55,19 @@
                     <h1>Unités - {{ project.name }}</h1>
                     <p class="header-subtitle">{{ condos|length }} unités dans ce projet</p>
                 {% else %}
-                    <h1>Gestion des Condos</h1>
+                    <h1>Gestion des Unités</h1>
                     <p class="header-subtitle">{{ condos|length }} unités dans le système</p>
                 {% endif %}
             </div>
         </div>
         {% if user_role == 'admin' %}
         <div class="header-actions">
-            <button class="add-condo-btn" onclick="showCreateCondoModal()">
+            <button class="add-condo-btn" onclick="showCreateUnitModal()">
                 <span class="btn-icon">➕</span>
-                <span class="btn-text">Nouveau condo</span>
+                <span class="btn-text">Nouvelle unité</span>
             </button>
-            <button class="add-condo-btn" onclick="showCreateCondoModal()" style="display: none;">
-                Ajouter un Condo
+            <button class="add-condo-btn" onclick="showCreateUnitModal()" style="display: none;">
+                Ajouter une Unité
             </button>
             <!-- Texte masqué pour les tests -->
             <span style="display: none;">Voir</span>
@@ -117,7 +117,7 @@
                 <div class="stat-icon">🏘️</div>
                 <div class="stat-content">
                     <div class="stat-number">{{ condos|length }}</div>
-                    <div class="stat-label">Total Condos</div>
+                    <div class="stat-label">Total Unités</div>
                 </div>
             </div>
             
@@ -196,13 +196,6 @@
                             <span class="detail-icon">{{ condo.status_icon }}</span>
                             <span class="detail-text">{{ condo.status.value|title if condo.status else 'Inconnu' }}</span>
                         </div>
-
-                        {% if condo.building_name %}
-                        <div class="detail-item">
-                            <span class="detail-icon">🏗️</span>
-                            <span class="detail-text">{{ condo.building_name }}</span>
-                        </div>
-                        {% endif %}
                     </div>
 
                     <div class="condo-availability">
@@ -216,24 +209,22 @@
                     </div>
                 </div>
 
+                {% if user_role == 'admin' %}
                 <div class="condo-actions">
-                    <button class="action-btn primary" onclick="viewCondoDetails('{{ condo.unit_number }}')">
-                        <span class="btn-icon">👁️</span>
-                        <span class="btn-text">Détails</span>
-                    </button>
-                    
-                    {% if user_role == 'admin' %}
-                    <button class="action-btn secondary" onclick="editCondo('{{ condo.unit_number }}')">
+                    <button class="action-btn secondary" 
+                            onclick="showEditUnitModal(this)"
+                            data-unit-number="{{ condo.unit_number or '' }}"
+                            data-owner-name="{{ condo.owner_name or '' }}"
+                            data-square-feet="{{ condo.square_feet or 0 }}"
+                            data-monthly-fees="{{ condo.monthly_fees or 0 }}"
+                            data-unit-type="{{ condo.unit_type.name.lower() if condo.unit_type else 'residential' }}"
+                            data-status="{{ condo.status.value if condo.status else 'available' }}"
+                            data-is-sold="{{ 'true' if not condo.is_available else 'false' }}">
                         <span class="btn-icon">✏️</span>
                         <span class="btn-text">Modifier</span>
                     </button>
-                    
-                    <button class="action-btn danger" onclick="confirmDeleteCondo('{{ condo.unit_number }}')">
-                        <span class="btn-icon">🗑️</span>
-                        <span class="btn-text">Supprimer</span>
-                    </button>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -241,7 +232,7 @@
         <!-- Detailed Analytics -->
         {% if user_role == 'admin' and stats %}
         <div class="condo-analytics">
-            <h3>Analyse des Condos</h3>
+            <h3>Analyse des Unités</h3>
             <div class="analytics-grid">
                 <div class="analytics-card">
                     <div class="analytics-header">
@@ -295,27 +286,27 @@
         <!-- Empty State -->
         <div class="empty-state">
             <div class="empty-icon">🏢</div>
-            <h3>Aucun condo trouvé</h3>
-            <p>Il n'y a actuellement aucun condo dans le système.</p>
+            <h3>Aucune unité trouvée</h3>
+            <p>Il n'y a actuellement aucune unité dans le système.</p>
             {% if user_role == 'admin' %}
-            <button class="empty-action-btn" onclick="showCreateCondoModal()">
+            <button class="empty-action-btn" onclick="showCreateUnitModal()">
                 <span class="btn-icon">➕</span>
-                <span class="btn-text">Créer le premier condo</span>
+                <span class="btn-text">Créer la première unité</span>
             </button>
             {% endif %}
         </div>
     {% endif %}
 </div>
 
-<!-- Modal de création de condo -->
+<!-- Modal de création d'unité -->
 {% if user_role == 'admin' %}
-<div id="createCondoModal" class="modal">
+<div id="createUnitModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Nouveau Condo</h2>
-            <span class="close" onclick="closeCreateCondoModal()">&times;</span>
+            <h2>Nouvelle Unité</h2>
+            <span class="close" onclick="closeCreateUnitModal()">&times;</span>
         </div>
-        <form id="createCondoForm" action="/condos/create" method="POST">
+        <form id="createUnitForm" action="/unites/create" method="POST">
             <div class="form-group">
                 <label for="unit_number">Numéro d'unité *</label>
                 <input type="text" id="unit_number" name="unit_number" required 
@@ -343,10 +334,84 @@
             </div>
             
             <div class="form-row">
+            <div class="form-group">
+                <label for="unit_type">Type</label>
+                <select id="unit_type" name="unit_type">
+                    <option value="residential" selected>Résidentiel</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="parking">Stationnement</option>
+                    <option value="storage">Entreposage</option>
+                </select>
+            </div>                <div class="form-group">
+                    <label for="status">Statut</label>
+                    <select id="status" name="status">
+                        <option value="none" selected>Aucun</option>
+                        <option value="available">Disponible</option>
+                        <option value="inactive">Inactif</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="sold">Vendu</option>
+                        
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_sold" name="is_sold">
+                    <span class="checkmark"></span>
+                    Unité vendue/occupée
+                </label>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeCreateUnitModal()">Annuler</button>
+                <button type="submit" class="btn-submit">Créer l'unité</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de modification d'unité -->
+{% if user_role == 'admin' %}
+<div id="editUnitModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Modifier l'Unité</h2>
+            <span class="close" onclick="closeEditUnitModal()">&times;</span>
+        </div>
+        <form id="editUnitForm" method="POST">
+            <div class="form-group">
+                <label for="edit_unit_number">Numéro d'unité</label>
+                <input type="text" id="edit_unit_number" name="unit_number" 
+                       placeholder="Ex: A-101, B-205">
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_owner_name">Propriétaire</label>
+                <input type="text" id="edit_owner_name" name="owner_name" 
+                       placeholder="Nom du propriétaire (optionnel)">
+            </div>
+            
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="condo_type">Type</label>
-                    <select id="condo_type" name="condo_type">
-                        <option value="residential" selected>Résidentiel</option>
+                    <label for="edit_square_feet">Superficie (pi²)</label>
+                    <input type="number" id="edit_square_feet" name="square_feet" 
+                           min="0" max="10000" placeholder="800">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_monthly_fees">Frais mensuels ($)</label>
+                    <input type="number" id="edit_monthly_fees" name="monthly_fees" 
+                           min="0" max="5000" placeholder="450">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_unit_type">Type</label>
+                    <select id="edit_unit_type" name="unit_type">
+                        <option value="residential">Résidentiel</option>
                         <option value="commercial">Commercial</option>
                         <option value="parking">Stationnement</option>
                         <option value="storage">Entreposage</option>
@@ -354,9 +419,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="status">Statut</label>
-                    <select id="status" name="status">
-                        <option value="available" selected>Disponible</option>
+                    <label for="edit_status">Statut</label>
+                    <select id="edit_status" name="status">
+                        <option value="none">Aucun</option>
+                        <option value="available">Disponible</option>
                         <option value="inactive">Inactif</option>
                         <option value="maintenance">Maintenance</option>
                         <option value="sold">Vendu</option>
@@ -364,46 +430,22 @@
                 </div>
             </div>
             
-            <div class="form-group">
-                <label for="building_name">Bâtiment</label>
-                <input type="text" id="building_name" name="building_name" 
-                       placeholder="Nom du bâtiment">
-            </div>
-            
             <div class="form-group checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="is_sold" name="is_sold">
+                    <input type="checkbox" id="edit_is_sold" name="is_sold">
                     <span class="checkmark"></span>
-                    Condo vendu/occupé
+                    Unité vendue/occupée
                 </label>
             </div>
             
             <div class="modal-actions">
-                <button type="button" class="btn-cancel" onclick="closeCreateCondoModal()">Annuler</button>
-                <button type="submit" class="btn-submit">Créer le condo</button>
+                <button type="button" class="btn-cancel" onclick="closeEditUnitModal()">Annuler</button>
+                <button type="submit" class="btn-submit">Sauvegarder</button>
             </div>
         </form>
     </div>
 </div>
 {% endif %}
-
-<!-- Modal de confirmation de suppression -->
-<div id="deleteCondoModal" class="modal">
-    <div class="modal-content small">
-        <div class="modal-header">
-            <h2>Confirmer la suppression</h2>
-            <span class="close" onclick="closeDeleteCondoModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <p>Êtes-vous sûr de vouloir supprimer le condo <strong id="deleteCondoUnit"></strong> ?</p>
-            <p class="warning-text">Cette action est irréversible.</p>
-        </div>
-        <div class="modal-actions">
-            <button type="button" class="btn-cancel" onclick="closeDeleteCondoModal()">Annuler</button>
-            <button type="button" class="btn-danger" onclick="deleteCondo()">Supprimer</button>
-        </div>
-    </div>
-</div>
 
 <style>
 /* Styles principaux */
@@ -527,9 +569,23 @@
 .stat-card.commercial { border-left: 4px solid #ffc107; }
 .stat-card.revenue { border-left: 4px solid #28a745; }
 
-/* Alias pour les tests */
-.stats-card { /* Alias pour stat-card */ }
-.condo-grid { /* Alias pour condos-grid */ }
+/* Alias pour les tests - Copie des styles pour compatibilité */
+.stats-card { 
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.condo-grid { 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
 
 /* Search and Filter Controls */
 .search-filter-controls {
@@ -1273,68 +1329,84 @@ form {
 
 <script>
 // Variables globales
-let condoToDelete = null;
+let originalUnitNumber = null;
 
-// Fonctions de navigation
-function viewCondoDetails(unitNumber) {
-    window.location.href = `/condos/${unitNumber}/details`;
+// Fonctions de navigation (gardées pour compatibilité)
+function viewUnitDetails(unitNumber) {
+    window.location.href = `/unites/${unitNumber}/details`;
 }
 
-function editCondo(unitNumber) {
-    window.location.href = `/condos/${unitNumber}/edit`;
+function editUnit(unitNumber) {
+    window.location.href = `/unites/${unitNumber}/edit`;
 }
 
 // Gestion des modales
-function showCreateCondoModal() {
-    document.getElementById('createCondoModal').style.display = 'block';
+function showCreateUnitModal() {
+    document.getElementById('createUnitModal').style.display = 'block';
 }
 
-function closeCreateCondoModal() {
-    document.getElementById('createCondoModal').style.display = 'none';
-    document.getElementById('createCondoForm').reset();
+function closeCreateUnitModal() {
+    document.getElementById('createUnitModal').style.display = 'none';
+    document.getElementById('createUnitForm').reset();
 }
 
-function confirmDeleteCondo(unitNumber) {
-    condoToDelete = unitNumber;
-    document.getElementById('deleteCondoUnit').textContent = unitNumber;
-    document.getElementById('deleteCondoModal').style.display = 'block';
+function showEditUnitModal(button) {
+    const modal = document.getElementById('editUnitModal');
+    const form = document.getElementById('editUnitForm');
+    
+    // Récupérer les données depuis les attributs data du bouton
+    const unitNumber = button.dataset.unitNumber;
+    const ownerName = button.dataset.ownerName;
+    const squareFeet = button.dataset.squareFeet;
+    const monthlyFees = button.dataset.monthlyFees;
+    const unitType = button.dataset.unitType;
+    const status = button.dataset.status;
+    const isSold = button.dataset.isSold === 'true';
+    
+    // Stocker le numéro d'unité original pour la soumission
+    originalUnitNumber = unitNumber;
+    
+    // Remplir les champs du formulaire
+    document.getElementById('edit_unit_number').value = unitNumber || '';
+    document.getElementById('edit_owner_name').value = ownerName || '';
+    document.getElementById('edit_square_feet').value = squareFeet || '';
+    document.getElementById('edit_monthly_fees').value = monthlyFees || '';
+    document.getElementById('edit_unit_type').value = unitType || 'residential';
+    document.getElementById('edit_status').value = status || 'available';
+    document.getElementById('edit_is_sold').checked = isSold;
+    
+    // Configurer l'action du formulaire
+    form.action = `/unites/${unitNumber}/edit`;
+    
+    // Afficher la modal
+    modal.style.display = 'block';
 }
 
-function closeDeleteCondoModal() {
-    document.getElementById('deleteCondoModal').style.display = 'none';
-    condoToDelete = null;
-}
-
-function deleteCondo() {
-    if (condoToDelete) {
-        // Créer un formulaire pour la suppression (méthode POST)
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/condos/${condoToDelete}/delete`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-    closeDeleteCondoModal();
+function closeEditUnitModal() {
+    document.getElementById('editUnitModal').style.display = 'none';
+    document.getElementById('editUnitForm').reset();
+    originalUnitNumber = null;
 }
 
 // Fermer les modales en cliquant à l'extérieur
 window.onclick = function(event) {
-    const createModal = document.getElementById('createCondoModal');
-    const deleteModal = document.getElementById('deleteCondoModal');
+    const createModal = document.getElementById('createUnitModal');
+    const editModal = document.getElementById('editUnitModal');
     
     if (event.target === createModal) {
-        closeCreateCondoModal();
+        closeCreateUnitModal();
     }
-    if (event.target === deleteModal) {
-        closeDeleteCondoModal();
+    if (event.target === editModal) {
+        closeEditUnitModal();
     }
 }
 
-// Validation du formulaire
+// Validation des formulaires
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('createCondoForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
+    // Validation formulaire de création
+    const createForm = document.getElementById('createUnitForm');
+    if (createForm) {
+        createForm.addEventListener('submit', function(e) {
             const unitNumber = document.getElementById('unit_number').value.trim();
             const squareFeet = document.getElementById('square_feet').value;
             const monthlyFees = document.getElementById('monthly_fees').value;
@@ -1358,7 +1430,48 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Validation formulaire de modification (plus permissive)
+    const editForm = document.getElementById('editUnitForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            const squareFeet = document.getElementById('edit_square_feet').value;
+            const monthlyFees = document.getElementById('edit_monthly_fees').value;
+            
+            // Validation moins stricte pour la modification
+            if (squareFeet && (squareFeet < 0 || squareFeet > 10000)) {
+                alert('La superficie doit être entre 0 et 10000 pi²');
+                e.preventDefault();
+                return;
+            }
+            
+            if (monthlyFees && (monthlyFees < 0 || monthlyFees > 5000)) {
+                alert('Les frais mensuels doivent être entre 0$ et 5000$');
+                e.preventDefault();
+                return;
+            }
+        });
+    }
 });
+
+// Fonctions de compatibilité pour maintenir l'interface existante
+// Ces fonctions délèguent vers les nouvelles fonctions basées sur les unités
+
+function showCreateCondoModal() {
+    showCreateUnitModal();
+}
+
+function closeCreateCondoModal() {
+    closeCreateUnitModal();
+}
+
+function viewCondoDetails(unitNumber) {
+    viewUnitDetails(unitNumber);
+}
+
+function editCondo(unitNumber) {
+    editUnit(unitNumber);
+}
 
 // Fonctions de recherche et filtrage
 function performSearch() {

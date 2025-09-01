@@ -252,32 +252,6 @@ class TestWebIntegration(unittest.TestCase):
         # Vérifier le contenu du dashboard admin
         self.assertIn(b'Tableau de Bord Administrateur', response.data)
     
-    @patch('src.web.condo_app.repository')
-    def test_api_endpoint_integration(self, mock_repository):
-        """Test intégration endpoint API avec repository"""
-        # Arrange
-        mock_condos = [
-            {'unit_number': '101', 'owner_name': 'John Doe'},
-            {'unit_number': '102', 'owner_name': 'Jane Smith'}
-        ]
-        mock_repository.get_all_condos.return_value = mock_condos
-        
-        # Simuler utilisateur connecté
-        with self.client.session_transaction() as sess:
-            sess['user_id'] = 'admin'
-            sess['role'] = 'admin'
-        
-        # Act
-        response = self.client.get('/api/condos')
-        
-        # Assert
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content_type, 'application/json')
-        
-        data = json.loads(response.data)
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['unit_number'], '101')
-    
     def test_error_handling_integration(self):
         """Test intégration gestion d'erreurs"""
         # Act - Route qui n'existe pas

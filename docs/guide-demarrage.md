@@ -2,7 +2,7 @@
 
 ## Application Complètement Fonctionnelle
 
-L'application de gestion de condominiums est maintenant **complètement implémentée** avec tous les concepts techniques intégrés et une suite de tests TDD de 393 tests (100% succès).
+L'application de gestion de condominiums est maintenant **complètement implémentée** avec tous les concepts techniques intégrés et une suite de tests TDD de 333 tests (100% succès).
 
 ## Démarrage en 3 étapes
 

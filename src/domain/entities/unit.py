@@ -27,6 +27,7 @@ class UnitStatus(Enum):
     SOLD = "sold"
     RESERVED = "reserved"
     MAINTENANCE = "maintenance"
+    NONE = "none"
 
 
 class UnitType(Enum):
@@ -175,29 +176,10 @@ class Unit:
             UnitStatus.AVAILABLE: "✅",
             UnitStatus.SOLD: "🔒",
             UnitStatus.RESERVED: "⏳",
-            UnitStatus.MAINTENANCE: "🔧"
+            UnitStatus.MAINTENANCE: "🔧",
+            UnitStatus.NONE: "🏠"
         }
         return icons.get(self.status, "❓")
-    
-    @property
-    def building_name(self) -> Optional[str]:
-        """
-        Nom du bâtiment (pour compatibilité template).
-        
-        Returns:
-            Optional[str]: Nom du bâtiment s'il est défini
-        """
-        return getattr(self, '_building_name', None)
-    
-    @building_name.setter
-    def building_name(self, value: Optional[str]) -> None:
-        """
-        Setter pour le nom du bâtiment.
-        
-        Args:
-            value: Nom du bâtiment à assigner
-        """
-        self._building_name = value
     
     def is_available(self) -> bool:
         """Vérifie si l'unité est disponible."""

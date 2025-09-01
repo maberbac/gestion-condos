@@ -798,7 +798,6 @@ class TestProjectAcceptance(unittest.TestCase):
                     project_id=mock_project.project_id
                 )
                 # Ajout des propriétés métier pour la cohérence
-                unit.building_name = project_data['name']
                 unit.address = project_data['address']
                 unit.construction_year = project_data['construction_year']
                 mock_units.append(unit)
@@ -853,7 +852,6 @@ class TestProjectAcceptance(unittest.TestCase):
                     
                     # Règle métier 3: Données cohérentes
                     for unit in units:
-                        self.assertEqual(unit.building_name, project.name)
                         self.assertEqual(unit.address, project.address)
                         self.assertEqual(unit.construction_year, project.construction_year)
                     

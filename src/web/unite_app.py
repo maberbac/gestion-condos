@@ -133,10 +133,9 @@ def init_services():
                                     'unit_type': {'name': unit.condo_type.value.upper()},
                                     'status': unit.status.value.upper(),
                                     'monthly_fees': float(unit.calculate_monthly_fees()),
-                                    'building_name': unit.building_name or project.name,
                                     'is_available': not unit.is_sold,
                                     'type_icon': self._get_type_icon(unit.condo_type),
-                                    'status_icon': self._get_status_icon(unit.status),
+                                    'status_icon': unit.status_icon,
                                     'is_sold': unit.is_sold
                                 }
                                 condos.append(condo)
@@ -167,7 +166,6 @@ def init_services():
                                             self.condo_type = unit.condo_type
                                             self.status = unit.status
                                             self.monthly_fees = float(unit.calculate_monthly_fees())
-                                            self.building_name = unit.building_name or project_name
                                             self.is_sold = unit.is_sold
                                     
                                     return CondoData(unit, project.name)
@@ -269,7 +267,6 @@ def init_services():
                         square_feet=int(condo_data.get('square_feet', 800)),
                         unit_type=UnitType(condo_data.get('condo_type', 'residential')),
                         status=UnitStatus(condo_data.get('status', 'active')),
-                        building_name=condo_data.get('building_name', target_project.name),
                         is_sold=condo_data.get('is_sold', False) == 'true' if isinstance(condo_data.get('is_sold'), str) else condo_data.get('is_sold', False)
                     )
                     
@@ -310,7 +307,6 @@ def init_services():
                                     # Mettre à jour les propriétés
                                     unit.owner_name = update_data.get('owner_name', unit.owner_name)
                                     unit.square_feet = float(update_data.get('square_feet', unit.square_feet))
-                                    unit.building_name = update_data.get('building_name', unit.building_name)
                                     
                                     # Mettre à jour le type et statut si fournis
                                     if 'condo_type' in update_data:
@@ -333,39 +329,6 @@ def init_services():
                     
                 except Exception as e:
                     logger.error(f"Erreur lors de la modification du condo: {e}")
-                    return False
-            
-            def delete_condo(self, unit_number):
-                """Supprime un condo de la base de données SQLite."""
-                try:
-                    # Trouver le condo dans les projets
-                    projects_result = self.project_service.get_all_projects()
-                    if not projects_result['success']:
-                        logger.error("Erreur récupération projets pour suppression condo")
-                        return False
-                    
-                    for project in projects_result['projects']:
-                        if project.units:
-                            for unit in project.units:
-                                if unit.unit_number == unit_number:
-                                    # Supprimer le condo du projet
-                                    project.units = [u for u in project.units if u.unit_number != unit_number]
-                                    
-                                    # Sauvegarder le projet mis à jour
-                                    update_result = self.project_service.update_project(project)
-                                    
-                                    if update_result['success']:
-                                        logger.info(f"Condo supprimé avec succès: {unit_number}")
-                                        return True
-                                    else:
-                                        logger.error(f"Erreur sauvegarde après suppression condo: {update_result.get('error', 'Erreur inconnue')}")
-                                        return False
-                    
-                    logger.error(f"Condo {unit_number} non trouvé pour suppression")
-                    return False
-                    
-                except Exception as e:
-                    logger.error(f"Erreur lors de la suppression du condo: {e}")
                     return False
         
         unite_service = SQLiteUniteService()
@@ -638,7 +601,6 @@ def create_condo():
             'condo_type': request.form.get('condo_type', 'residential'),
             'status': request.form.get('status', 'active'),
             'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name', 'Bâtiment Principal'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
@@ -677,7 +639,6 @@ def edit_condo(unit_number):
             'condo_type': request.form.get('condo_type'),
             'status': request.form.get('status'),
             'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
@@ -692,23 +653,6 @@ def edit_condo(unit_number):
         logger.error(f"Erreur lors de la modification du condo {unit_number}: {e}")
         flash("Erreur technique lors de la modification", "error")
         return redirect(url_for('condos'))
-
-@app.route('/condos/<unit_number>/delete', methods=['POST'])
-@require_admin
-def delete_condo(unit_number):
-    """Suppression d'un condo."""
-    try:
-        ensure_services_initialized()
-        if condo_service.delete_condo(unit_number):
-            flash(f"Condo {unit_number} supprimé avec succès", "success")
-        else:
-            flash(f"Erreur lors de la suppression du condo {unit_number}", "error")
-            
-    except Exception as e:
-        logger.error(f"Erreur lors de la suppression du condo {unit_number}: {e}")
-        flash("Erreur technique lors de la suppression", "error")
-    
-    return redirect(url_for('condos'))
 
 @app.route('/finance')
 @require_admin  
@@ -1258,76 +1202,20 @@ def admin_condos():
 @app.route('/admin/condos/new', methods=['GET', 'POST'])
 @require_admin
 def admin_condos_new():
-    """Création de nouveau condo."""
-    if request.method == 'POST':
-        # Vérifier si les données sont invalides pour test d'erreur
-        unit_number = request.form.get('unit_number', '')
-        if 'invalid' in unit_number.lower() or unit_number == '':
-            return render_template('error.html',
-                                 error_message="Données invalides pour la création du condo",
-                                 return_url="/admin/condos/new",
-                                 return_text="Retourner au formulaire"), 200
-        return render_template('success.html',
-                             message="Condo créé avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    return render_template('condo_new.html')
+    """Redirection vers la page moderne de création de condo."""
+    return redirect(url_for('create_condo'))
 
 @app.route('/admin/condos/<condo_id>')
 @require_admin
 def admin_condo_detail(condo_id):
-    """Détail d'un condo."""
-    if condo_id == '999' or condo_id == 'INEXISTANT':  # Condo inexistant pour test d'erreur
-        return render_template('error.html',
-                             error_message="Condo introuvable",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos"), 404
-    
-    # Vérifier s'il y a des modifications stockées
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
-        default_owner = 'Jean Dupont'
-    
-    owner_info = unite_modifications.get(condo_id, {}).get('owner', default_owner)
-    square_footage = unite_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_detail.html',
-                         condo_id=condo_id,
-                         owner_info=owner_info,
-                         square_footage=square_footage)
+    """Redirection vers la page moderne de détails d'un condo."""
+    return redirect(url_for('condo_details', unit_number=condo_id))
 
 @app.route('/admin/condos/<condo_id>/edit', methods=['GET', 'POST'])
 @require_admin
 def admin_condo_edit(condo_id):
-    """Édition d'un condo."""
-    if request.method == 'POST':
-        # Simuler la sauvegarde des modifications
-        owner = request.form.get('owner', '') or request.form.get('owner_name', '')
-        square_footage = request.form.get('square_footage', '')
-        if owner or square_footage:
-            if condo_id not in unite_modifications:
-                unite_modifications[condo_id] = {}
-            if owner:
-                unite_modifications[condo_id]['owner'] = owner
-            if square_footage:
-                unite_modifications[condo_id]['square_footage'] = square_footage
-        return render_template('success.html',
-                             message="Condo modifié avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    
-    # Afficher le formulaire avec la valeur actuelle
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
-        default_owner = 'Jean Dupont'
-    
-    current_owner = unite_modifications.get(condo_id, {}).get('owner', default_owner)
-    current_footage = unite_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_edit.html',
-                         condo_id=condo_id,
-                         current_owner=current_owner,
-                         current_footage=current_footage)
+    """Redirection vers la page moderne d'édition d'un condo."""
+    return redirect(url_for('edit_condo', unit_number=condo_id))
 
 @app.route('/admin/residents')
 @require_admin

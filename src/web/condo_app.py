@@ -1,16 +1,16 @@
 ﻿"""
-Application web Flask pour la gestion des unitÃ©s avec authentification.
+Application web Flask pour la gestion des unités avec authentification.
 
 CONCEPTS TECHNIQUES INTÃ‰GRÃ‰S :
-1. Lecture de fichiers : Configuration JSON et donnÃ©es utilisateur  
-2. Programmation fonctionnelle : DÃ©corateurs et fonctions lambda pour l'authentification
-3. Gestion d'erreurs : Try/catch avec exceptions personnalisÃ©es
-4. Programmation asynchrone : IntÃ©gration avec le service d'authentification async
+1. Lecture de fichiers : Configuration JSON et données utilisateur  
+2. Programmation fonctionnelle : Décorateurs et fonctions lambda pour l'authentification
+3. Gestion d'erreurs : Try/catch avec exceptions personnalisées
+4. Programmation asynchrone : Intégration avec le service d'authentification async
 
 Architecture :
 - Interface web Flask avec sessions utilisateur
-- Authentification basÃ©e sur les rÃ´les (ADMIN/RESIDENT/GUEST)  
-- IntÃ©gration avec les services de domaine existants
+- Authentification basée sur les rÃ´les (ADMIN/RESIDENT/GUEST)  
+- Intégration avec les services de domaine existants
 - Templates HTML pour l'interface utilisateur
 """
 
@@ -57,10 +57,7 @@ project_service = None
 user_service = None
 logger = get_logger(__name__)
 
-# Stockage temporaire pour simuler la persistance des modifications
-condo_modifications = {}
-
-# Service pour gÃ©rer les unitÃ©s comme des condos dans l'interface
+# Service pour gérer les unités comme des condos dans l'interface
 class SQLiteCondoService:
     def __init__(self, project_service=None):
         if project_service:
@@ -72,10 +69,10 @@ class SQLiteCondoService:
     def get_all_condos(self, user_role='guest'):
         """récupÃ¨re tous les condos depuis SQLite."""
         try:
-            # récupÃ©rer tous les projets
+            # récupérer tous les projets
             projects_result = self.project_service.get_all_projects()
             if not projects_result['success']:
-                logger.error(f"Erreur récupÃ©ration projets: {projects_result['error']}")
+                logger.error(f"Erreur récupération projets: {projects_result['error']}")
                 return []
             
             condos = []
@@ -90,39 +87,18 @@ class SQLiteCondoService:
                             'unit_type': {'name': unit.unit_type.value.upper()},
                             'status': unit.status.value.upper(),
                             'monthly_fees': float(unit.calculate_monthly_fees()),
-                            'building_name': getattr(unit, 'building_name', project.name),
                             'is_available': unit.status == UnitStatus.AVAILABLE,
-                            'type_icon': self._get_type_icon(unit.unit_type),
-                            'status_icon': self._get_status_icon(unit.status),
+                            'type_icon': unit.type_icon,
+                            'status_icon': unit.status_icon,
                             'is_sold': unit.status == UnitStatus.SOLD
                         }
                         condos.append(condo)
             
-            logger.info(f"récupÃ©ration de {len(condos)} condos depuis SQLite pour rÃ´le {user_role}")
+            logger.info(f"récupération de {len(condos)} condos depuis SQLite pour rÃ´le {user_role}")
             return condos
         except Exception as e:
-            logger.error(f"Erreur lors de la récupÃ©ration des condos SQLite: {e}")
+            logger.error(f"Erreur lors de la récupération des condos SQLite: {e}")
             return []
-    
-    def _get_type_icon(self, unit_type):
-        """Retourne l'icÃ´ne du type d'unitÃ©."""
-        icons = {
-            'RESIDENTIAL': 'ðŸ ',
-            'COMMERCIAL': 'ðŸ¢', 
-            'PARKING': 'ðŸš—',
-            'STORAGE': 'ðŸ“¦'
-        }
-        return icons.get(unit_type.value.upper(), 'ðŸ ')
-    
-    def _get_status_icon(self, status):
-        """Retourne l'icÃ´ne du statut."""
-        icons = {
-            'AVAILABLE': 'âœ…',
-            'RESERVED': 'â³', 
-            'SOLD': 'ðŸŽ¯',
-            'MAINTENANCE': 'ðŸ”§'
-        }
-        return icons.get(status.value.upper(), 'âœ…')
     
     def create_condo(self, condo_data):
         """Crée un nouveau condo (unité)."""
@@ -141,7 +117,7 @@ class SQLiteCondoService:
             else:
                 # Créer un nouveau projet d'abord
                 project = Project(
-                    name=condo_data.get('building_name', 'Résidence par défaut'),
+                    name="Résidence par défaut",
                     address="Adresse par défaut",
                     building_area=1000.0,
                     construction_year=2023,
@@ -254,39 +230,6 @@ class SQLiteCondoService:
             logger.error(f"Erreur mise à jour condo {unit_number}: {e}")
             return False
     
-    def delete_condo(self, unit_number):
-        """Supprime un condo."""
-        try:
-            # Trouver le projet qui contient cette unité
-            projects_result = self.project_service.get_all_projects()
-            if not projects_result.get('success', False):
-                logger.error(f"Erreur récupération projets: {projects_result.get('error', 'Erreur inconnue')}")
-                return False
-            
-            projects = projects_result.get('projects', [])
-            for project in projects:
-                # Trouver l'unité dans ce projet
-                unit_to_remove = None
-                for unit in project.units:
-                    if unit.unit_number == unit_number:
-                        unit_to_remove = unit
-                        break
-                
-                if unit_to_remove:
-                    # Supprimer l'unité du projet
-                    project.units.remove(unit_to_remove)
-                    # Sauvegarder le projet mis à jour
-                    self.project_service.update_project(project)
-                    logger.info(f"Condo {unit_number} supprimé")
-                    return True
-            
-            # Si on arrive ici, l'unité n'a pas été trouvée
-            logger.warning(f"Condo {unit_number} non trouvé pour suppression")
-            return False
-        except Exception as e:
-            logger.error(f"Erreur suppression condo {unit_number}: {e}")
-            return False
-    
     def get_statistics(self):
         """Génère les statistiques des condos."""
         try:
@@ -325,7 +268,7 @@ def calculate_relative_time(dt):
     
     if isinstance(dt, str):
         try:
-            # Essayer de parser diffÃ©rents formats de date
+            # Essayer de parser différents formats de date
             for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
                 try:
                     dt = datetime.strptime(dt, fmt)
@@ -333,7 +276,7 @@ def calculate_relative_time(dt):
                 except ValueError:
                     continue
             else:
-                return dt  # Retourner la chaÃ®ne originale si parsing Ã©choue
+                return dt  # Retourner la chaÃ®ne originale si parsing échoue
         except:
             return dt
     
@@ -441,10 +384,10 @@ def require_admin(f):
     return decorated_function
 
 def require_login(f):
-    """DÃ©corateur pour vÃ©rifier que l'utilisateur est connectÃ©."""
+    """Décorateur pour vérifier que l'utilisateur est connecté."""
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-        # Support pour les diffÃ©rents formats de session (tests vs app)
+        # Support pour les différents formats de session (tests vs app)
         user_name = session.get('user_name') or session.get('user_id') or session.get('username')
         logged_in = session.get('logged_in', False)
         
@@ -454,7 +397,7 @@ def require_login(f):
                 return f(*args, **kwargs)
         
         if not user_name and not logged_in:
-            # Redirection sans flash pour Ã©viter les redirections 302 en cascade
+            # Redirection sans flash pour éviter les redirections 302 en cascade
             return redirect(url_for('login', next=request.url), code=302)
         return f(*args, **kwargs)
     return decorated_function
@@ -463,14 +406,14 @@ def require_login(f):
 
 @app.route('/')
 def index():
-    """Page d'accueil avec informations gÃ©nÃ©rales."""
+    """Page d'accueil avec informations générales."""
     user_connected = 'user_name' in session
     user_role = session.get('user_role', '')
     return render_template('index.html', user_connected=user_connected, user_role=user_role)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Route de connexion avec authentification basÃ©e sur la base de donnÃ©es."""
+    """Route de connexion avec authentification basée sur la base de données."""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -479,15 +422,15 @@ def login():
             return render_template('login_error.html', error_message='Veuillez saisir vos identifiants')
         
         try:
-            # Initialiser les services si nÃ©cessaire
+            # Initialiser les services si nécessaire
             if auth_service is None:
                 init_services()
             
-            # Authentification via le service avec base de donnÃ©es
+            # Authentification via le service avec base de données
             async def authenticate_user():
                 return await auth_service.authenticate(username, password)
             
-            # ExÃ©cuter l'authentification asynchrone
+            # Exécuter l'authentification asynchrone
             authenticated_user = asyncio.run(authenticate_user())
             
             if authenticated_user:
@@ -511,7 +454,7 @@ def login():
                 logger.info(f"Connexion réussie pour {username} ({authenticated_user.role.value})")
                 return redirect(url_for('dashboard'))
             else:
-                # Authentification Ã©chouÃ©e
+                # Authentification échouée
                 logger.warning(f"Ã‰chec d'authentification pour {username}")
                 return render_template('login_error.html', error_message='Identifiants invalides')
                 
@@ -524,15 +467,15 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """DÃ©connexion utilisateur."""
+    """Déconnexion utilisateur."""
     session.clear()
-    flash('DÃ©connexion réussie.', 'info')
+    flash('Déconnexion réussie.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/dashboard')
 def dashboard():
-    """Tableau de bord personnalisÃ© selon le rÃ´le utilisateur."""
-    # récupÃ©rer le rÃ´le utilisateur depuis la session avec gestion de None
+    """Tableau de bord personnalisé selon le rÃ´le utilisateur."""
+    # récupérer le rÃ´le utilisateur depuis la session avec gestion de None
     user_role_value = session.get('user_role') or session.get('role')
     user_name = session.get('user_name') or session.get('user_id')
     
@@ -556,7 +499,7 @@ def dashboard():
     dashboard_data = {
         'user_name': session.get('full_name') or user_name,  # Prioriser le nom complet si disponible
         'user_role': user_role.value,
-        'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unitÃ© de condo
+        'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unité de condo
         'can_access_finance': can_access_finance(user_role),
         'can_manage_users': can_manage_users(user_role),
         'can_view_condos': can_view_condos(user_role),
@@ -633,61 +576,27 @@ def condos():
         flash("Erreur lors du chargement des unités", "error")
         return render_template('condos.html', condos=[], user_role='guest', stats={}, project_filter=None)
 
-@app.route('/condos/<unit_number>')
-@require_login
-def condo_by_unit(unit_number):
-    """Redirection vers les dÃ©tails d'un condo."""
-    return redirect(url_for('condo_details', unit_number=unit_number))
-
-@app.route('/condos/<unit_number>')
-@require_login  
-def condo_details_short(unit_number):
-    """Page de dÃ©tails d'un condo (route courte)."""
-    return condo_details(unit_number)
-
 @app.route('/condos/<unit_number>/details')
 @require_login
 def condo_details(unit_number):
-    """Page de dÃ©tails d'un condo."""
+    """Page de détails d'un condo."""
     try:
         ensure_services_initialized()
         user_role = session.get('user_role', 'guest')
         
-        # récupÃ©rer le condo
+        # récupérer le condo
         condo = condo_service.get_condo_by_unit_number(unit_number)
         
         if not condo:
-            flash(f"Condo {unit_number} non trouvÃ©", "error")
+            flash(f"Condo {unit_number} non trouvé", "error")
             return redirect(url_for('condos'))
         
         return render_template('condo_details.html', condo=condo, user_role=user_role)
         
     except Exception as e:
-        logger.error(f"Erreur lors de l'affichage des dÃ©tails du condo {unit_number}: {e}")
-        flash("Erreur lors du chargement des dÃ©tails", "error")
+        logger.error(f"Erreur lors de l'affichage des détails du condo {unit_number}: {e}")
+        flash("Erreur lors du chargement des détails", "error")
         return redirect(url_for('condos'))
-
-@app.route('/api/condo/<unit_number>')
-@require_login
-def api_condo_details(unit_number):
-    """API REST pour récupÃ©rer les dÃ©tails d'un condo."""
-    try:
-        user_role = session.get('user_role', 'guest')
-        
-        # ContrÃ´le d'Accès
-        if user_role not in ['admin', 'resident']:
-            return jsonify({'error': 'Accès non autorisé'}), 403
-        
-        condo = condo_service.get_condo_by_unit_number(unit_number)
-        
-        if not condo:
-            return jsonify({'error': 'Condo non trouvÃ©'}), 404
-        
-        return jsonify(condo)
-        
-    except Exception as e:
-        logger.error(f"Erreur API condo {unit_number}: {e}")
-        return jsonify({'error': 'Erreur serveur'}), 500
 
 @app.route('/condos/create', methods=['GET', 'POST'])
 @require_admin
@@ -698,7 +607,7 @@ def create_condo():
     
     try:
         ensure_services_initialized()
-        # récupÃ©rer les donnÃ©es du formulaire
+        # récupérer les données du formulaire
         condo_data = {
             'unit_number': request.form.get('unit_number'),
             'owner_name': request.form.get('owner_name', 'Disponible'),
@@ -706,7 +615,6 @@ def create_condo():
             'condo_type': request.form.get('condo_type', 'residential'),
             'status': request.form.get('status', 'available'),
             'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name', 'BÃ¢timent Principal'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
@@ -732,7 +640,7 @@ def edit_condo(unit_number):
         condo = condo_service.get_condo_by_unit_number(unit_number)
         
         if not condo:
-            flash(f"Condo {unit_number} non trouvÃ©", "error")
+            flash(f"Condo {unit_number} non trouvé", "error")
             return redirect(url_for('condos'))
         
         if request.method == 'GET':
@@ -745,7 +653,6 @@ def edit_condo(unit_number):
             'condo_type': request.form.get('condo_type'),
             'status': request.form.get('status'),
             'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
@@ -761,28 +668,11 @@ def edit_condo(unit_number):
         flash("Erreur technique lors de la modification", "error")
         return redirect(url_for('condos'))
 
-@app.route('/condos/<unit_number>/delete', methods=['POST'])
-@require_admin
-def delete_condo(unit_number):
-    """Suppression d'un condo."""
-    try:
-        ensure_services_initialized()
-        if condo_service.delete_condo(unit_number):
-            flash(f"Condo {unit_number} supprimé avec succès", "success")
-        else:
-            flash(f"Erreur lors de la suppression du condo {unit_number}", "error")
-            
-    except Exception as e:
-        logger.error(f"Erreur lors de la suppression du condo {unit_number}: {e}")
-        flash("Erreur technique lors de la suppression", "error")
-    
-    return redirect(url_for('condos'))
-
 @app.route('/finance')
 @require_admin  
 def finance():
-    """Page financiÃ¨re réservÃ©e aux admins."""
-    # DonnÃ©es financiÃ¨res fictives
+    """Page financiÃ¨re réservée aux admins."""
+    # Données financiÃ¨res fictives
     financial_data = {
         'total_condos': 15,
         'monthly_revenue': 15750.00,
@@ -796,27 +686,27 @@ def finance():
 @app.route('/users')
 @require_admin
 def users():
-    """Gestion des utilisateurs depuis la base de donnÃ©es."""
+    """Gestion des utilisateurs depuis la base de données."""
     global user_service
     ensure_services_initialized()
     
     try:
-        # Utiliser le service utilisateur global pour récupÃ©rer les vraies donnÃ©es
+        # Utiliser le service utilisateur global pour récupérer les vraies données
         users_data = user_service.get_users_for_web_display()
         
-        logger.info(f"Affichage de {len(users_data)} utilisateurs depuis la base de donnÃ©es")
+        logger.info(f"Affichage de {len(users_data)} utilisateurs depuis la base de données")
         
         return render_template('users.html', users=users_data)
         
     except Exception as e:
-        logger.error(f"Erreur lors de la récupÃ©ration des utilisateurs: {e}")
+        logger.error(f"Erreur lors de la récupération des utilisateurs: {e}")
         # En cas d'erreur, afficher une liste vide plutÃ´t que planter
         return render_template('users.html', users=[])
 
 @app.route('/users/<username>/details')
 @require_login
 def user_details(username):
-    """Page de dÃ©tails d'un utilisateur."""
+    """Page de détails d'un utilisateur."""
     from src.application.services.user_service import UserService
     
     try:
@@ -824,35 +714,35 @@ def user_details(username):
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role == 'admin' or current_user_role == 'ADMIN':
             # Les admins peuvent voir tous les utilisateurs
             pass
         elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
-            # Les résidents ne peuvent voir que leurs propres dÃ©tails
+            # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
-                flash('Vous ne pouvez consulter que vos propres dÃ©tails.', 'error')
+                flash('Vous ne pouvez consulter que vos propres détails.', 'error')
                 return redirect(url_for('users'))
         else:
-            # Les invitÃ©s ne peuvent pas voir de dÃ©tails d'utilisateur
-            flash('Accès non autorisé aux dÃ©tails d\'utilisateur.', 'error')
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            flash('Accès non autorisé aux détails d\'utilisateur.', 'error')
             return redirect(url_for('dashboard'))
         
-        # récupÃ©rer les dÃ©tails de l'utilisateur
+        # récupérer les détails de l'utilisateur
         global user_service
         ensure_services_initialized()
         user_details = user_service.get_user_details_by_username(username)
         
         if not user_details:
-            flash(f'Utilisateur "{username}" non trouvÃ©.', 'error')
+            flash(f'Utilisateur "{username}" non trouvé.', 'error')
             return redirect(url_for('users'))
         
-        logger.info(f"Affichage des dÃ©tails de l'utilisateur '{username}' par {current_username}")
+        logger.info(f"Affichage des détails de l'utilisateur '{username}' par {current_username}")
         return render_template('user_details.html', user=user_details, current_user=current_username)
         
     except Exception as e:
-        logger.error(f"Erreur lors de l'affichage des dÃ©tails de '{username}': {e}")
-        flash('Erreur lors du chargement des dÃ©tails utilisateur.', 'error')
+        logger.error(f"Erreur lors de l'affichage des détails de '{username}': {e}")
+        flash('Erreur lors du chargement des détails utilisateur.', 'error')
         return redirect(url_for('users'))
 
 @app.route('/users/new', methods=['GET', 'POST'])
@@ -861,7 +751,7 @@ def users_new():
     """Création d'un nouvel utilisateur."""
     if request.method == 'POST':
         try:
-            # récupÃ©ration des donnÃ©es du formulaire
+            # récupération des données du formulaire
             username = request.form.get('username', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
@@ -871,7 +761,7 @@ def users_new():
             
             # Validation de base
             if not all([username, email, password, full_name, role_str]):
-                logger.warning("Tentative de création d'utilisateur avec donnÃ©es manquantes")
+                logger.warning("Tentative de création d'utilisateur avec données manquantes")
                 return render_template('users_new.html', 
                                      error="Tous les champs obligatoires doivent Ãªtre remplis"), 400
             
@@ -900,14 +790,13 @@ def users_new():
     
     return render_template('users_new.html')
 
-
 async def create_user_async(username, email, password, full_name, role, condo_unit):
     """Fonction asynchrone pour créer un utilisateur."""
     try:
         # Utiliser le repository global
         global user_repository
         
-        # Initialiser les services si nÃ©cessaire
+        # Initialiser les services si nécessaire
         if user_repository is None:
             init_services()
         
@@ -931,7 +820,7 @@ async def create_user_async(username, email, password, full_name, role, condo_un
 @app.route('/api/user/<username>')
 @require_login
 def api_user(username):
-    """API pour récupÃ©rer les informations d'un utilisateur."""
+    """API pour récupérer les informations d'un utilisateur."""
     from src.application.services.user_service import UserService
     
     try:
@@ -939,33 +828,33 @@ def api_user(username):
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role == 'admin' or current_user_role == 'ADMIN':
             # Les admins peuvent voir tous les utilisateurs
             pass
         elif current_user_role == 'resident' or current_user_role == 'RESIDENT':
-            # Les résidents ne peuvent voir que leurs propres dÃ©tails
+            # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
                 logger.warning(f"Tentative d'Accès non autorisé: {current_username} -> {username}")
                 return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         else:
-            # Les invitÃ©s ne peuvent pas voir de dÃ©tails d'utilisateur
-            logger.warning(f"Tentative d'Accès invitÃ© non autorisé: {current_username} -> {username}")
+            # Les invités ne peuvent pas voir de détails d'utilisateur
+            logger.warning(f"Tentative d'Accès invité non autorisé: {current_username} -> {username}")
             return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         
         # Initialiser le service utilisateur
         global user_service
         ensure_services_initialized()
         
-        # récupÃ©rer les dÃ©tails de l'utilisateur
+        # récupérer les détails de l'utilisateur
         user_data = user_service.get_user_details_for_api(username)
         
         if not user_data.get('found', False):
-            logger.debug(f"Utilisateur '{username}' non trouvÃ© via API")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvÃ©'}), 404
+            logger.debug(f"Utilisateur '{username}' non trouvé via API")
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
         
-        logger.info(f"DÃ©tails utilisateur '{username}' récupÃ©rés via API par {current_username}")
-        # Retourner une structure cohÃ©rente avec success: true et les donnÃ©es utilisateur
+        logger.info(f"Détails utilisateur '{username}' récupérés via API par {current_username}")
+        # Retourner une structure cohérente avec success: true et les données utilisateur
         return jsonify({
             'success': True,
             'user': {
@@ -1000,9 +889,9 @@ def api_delete_user(username):
         global user_service
         ensure_services_initialized()
         
-        # VÃ©rifier l'auto-suppression
+        # Vérifier l'auto-suppression
         if not user_service.can_delete_user(username, current_username):
-            logger.warning(f"Tentative d'auto-suppression refusÃ©e: {current_username}")
+            logger.warning(f"Tentative d'auto-suppression refusée: {current_username}")
             return jsonify({'success': False, 'error': 'Impossible de supprimer votre propre compte'}), 400
         
         # Supprimer l'utilisateur
@@ -1015,8 +904,8 @@ def api_delete_user(username):
                 'message': f"Utilisateur '{username}' supprimé avec succès"
             })
         else:
-            logger.warning(f"Utilisateur '{username}' non trouvÃ© pour suppression")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvÃ©'}), 404
+            logger.warning(f"Utilisateur '{username}' non trouvé pour suppression")
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
         
     except Exception as e:
         logger.error(f"Erreur suppression utilisateur {username}: {e}")
@@ -1033,14 +922,14 @@ def api_update_user(username):
         current_user_role = session.get('user_role')
         current_username = session.get('user_id')
         
-        # VÃ©rifier les permissions
+        # Vérifier les permissions
         if current_user_role not in ['admin', 'ADMIN']:
             # Les non-admins ne peuvent modifier que leur propre profil
             if current_username != username:
                 logger.warning(f"Tentative de modification non autorisée: {current_username} -> {username}")
                 return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
         
-        # récupÃ©rer les donnÃ©es du formulaire
+        # récupérer les données du formulaire
         new_username = request.form.get('username')
         email = request.form.get('email')
         full_name = request.form.get('full_name')
@@ -1056,7 +945,7 @@ def api_update_user(username):
         global user_service
         ensure_services_initialized()
         
-        # Préparer les donnÃ©es de mise à jour
+        # Préparer les données de mise à jour
         update_data = {
             'username': new_username,
             'email': email,
@@ -1092,55 +981,55 @@ def api_update_user(username):
 @require_login
 def profile():
     """Page de profil utilisateur."""
-    # récupÃ©rer les informations de session
+    # récupérer les informations de session
     username = session.get('user_id')  # Le vrai username pour la recherche en base
     user_display_name = session.get('user_name')  # Le nom d'affichage (full_name)
     user_role_value = session.get('user_role') or session.get('role')
     
-    # Initialiser les services si nÃ©cessaire
+    # Initialiser les services si nécessaire
     global user_repository
     if user_repository is None:
         init_services()
     
-    # récupÃ©rer les vraies donnÃ©es utilisateur depuis la base de donnÃ©es
+    # récupérer les vraies données utilisateur depuis la base de données
     try:
         async def get_user_data():
             return await user_repository.get_user_by_username(username)
         
         user_data = asyncio.run(get_user_data())
         
-        logger.info(f"DonnÃ©es utilisateur récupÃ©rées pour {username}: {user_data is not None}")
+        logger.info(f"Données utilisateur récupérées pour {username}: {user_data is not None}")
         if user_data:
-            logger.info(f"User data trouvÃ©: username={user_data.username}, last_login={user_data.last_login}")
-            # Utiliser les vraies donnÃ©es
+            logger.info(f"User data trouvé: username={user_data.username}, last_login={user_data.last_login}")
+            # Utiliser les vraies données
             full_name = user_data.full_name
             email = user_data.email
             member_since = user_data.created_at.strftime('%Y-%m-%d') if user_data.created_at else datetime.now().strftime('%Y-%m-%d')
             # Utiliser la vraie derniÃ¨re connexion ou l'heure actuelle si c'est la premiÃ¨re connexion
             if user_data.last_login:
                 last_login = user_data.last_login.strftime('%Y-%m-%d %H:%M:%S')
-                logger.debug(f"Vraie derniÃ¨re connexion trouvÃ©e: {last_login}")
+                logger.debug(f"Vraie derniÃ¨re connexion trouvée: {last_login}")
             else:
                 # Si pas de derniÃ¨re connexion enregistrée, utiliser l'heure actuelle (premiÃ¨re connexion)
                 last_login = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 logger.debug(f"Pas de derniÃ¨re connexion, utilisation heure actuelle: {last_login}")
-            condo_unit = user_data.condo_unit or 'Non assignÃ©'
+            condo_unit = user_data.condo_unit or 'Non assigné'
         else:
-            # Fallback si l'utilisateur n'est pas trouvÃ©
-            logger.info(f"Utilisateur {username} non trouvÃ© en base, utilisation fallback")
+            # Fallback si l'utilisateur n'est pas trouvé
+            logger.info(f"Utilisateur {username} non trouvé en base, utilisation fallback")
             full_name = user_display_name or f'Utilisateur {username}'
             email = f'{username}@condos.com'
-            member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codÃ©e
+            member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
             last_login = 'Jamais'
             condo_unit = session.get('condo_unit', 'A-101')
             
     except Exception as e:
-        logger.error(f"Erreur récupÃ©ration donnÃ©es utilisateur {username}: {e}")
+        logger.error(f"Erreur récupération données utilisateur {username}: {e}")
         logger.info(f"Utilisation fallback d'erreur pour {username}")
         # Fallback en cas d'erreur
         full_name = user_display_name or f'Utilisateur {username}'
         email = f'{username}@condos.com'
-        member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codÃ©e
+        member_since = datetime.now().strftime('%Y-%m-%d')  # Date actuelle au lieu de hard-codée
         last_login = 'Jamais'
         condo_unit = session.get('condo_unit', 'A-101')
     
@@ -1152,11 +1041,11 @@ def profile():
         role_display = 'résident'
         role_description = 'Accès aux informations de condos et finances personnelles'
     else:
-        role_display = 'InvitÃ©'
-        role_description = 'Accès limitÃ© aux informations publiques'
+        role_display = 'Invité'
+        role_description = 'Accès limité aux informations publiques'
     
-    # DonnÃ©es du profil avec vraies donnÃ©es
-    logger.debug(f"DonnÃ©es profil pour {username}: last_login='{last_login}', member_since='{member_since}'")
+    # Données du profil avec vraies données
+    logger.debug(f"Données profil pour {username}: last_login='{last_login}', member_since='{member_since}'")
     profile_data = {
         'username': username,
         'full_name': full_name,
@@ -1189,7 +1078,7 @@ def change_password():
         new_password = request.form.get('new_password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
         
-        # Validation cÃ´tÃ© serveur
+        # Validation cÃ´té serveur
         if not current_password:
             return render_template('change_password.html', 
                                  error="Le mot de passe actuel est requis")
@@ -1206,7 +1095,7 @@ def change_password():
             return render_template('change_password.html', 
                                  error="Le nouveau mot de passe doit contenir au moins 6 caractÃ¨res")
         
-        # récupÃ©rer le nom d'utilisateur de la session (user_id contient le username, pas user_name qui contient le full_name)
+        # récupérer le nom d'utilisateur de la session (user_id contient le username, pas user_name qui contient le full_name)
         username = session.get('user_id') or session.get('username')
         if not username:
             flash('Session expirée. Veuillez vous reconnecter.', 'error')
@@ -1215,12 +1104,12 @@ def change_password():
         # Importer et utiliser le service de changement de mot de passe
         from src.domain.services.password_change_service import PasswordChangeService, PasswordChangeError
         
-        # Utiliser le service global d'authentification - initialiser si nÃ©cessaire
+        # Utiliser le service global d'authentification - initialiser si nécessaire
         if not auth_service or not user_repository:
-            logger.warning("Services non initialisÃ©s pour changement mot de passe, réinitialisation...")
+            logger.warning("Services non initialisés pour changement mot de passe, réinitialisation...")
             init_services()
             
-        # VÃ©rifier Ã  nouveau aprÃ¨s l'initialisation
+        # Vérifier Ã  nouveau aprÃ¨s l'initialisation
         if not auth_service or not user_repository:
             logger.error("Impossible d'initialiser les services pour changement mot de passe")
             return render_template('change_password.html', 
@@ -1231,7 +1120,7 @@ def change_password():
             authentication_service=auth_service
         )
         
-        # ExÃ©cuter le changement de mot de passe de maniÃ¨re asynchrone
+        # Exécuter le changement de mot de passe de maniÃ¨re asynchrone
         async def change_password_async():
             return await password_service.change_password(
                 username, current_password, new_password
@@ -1275,7 +1164,7 @@ def admin_condos():
     search = request.args.get('search', '')
     building = request.args.get('building', '')
     
-    # Simulation de donnÃ©es de condos avec résidents
+    # Simulation de données de condos avec résidents
     condos_data = ['A-101 (Pierre Gagnon)', 'A-102', 'B-201', 'B-202', 'C-301']
     
     if search:
@@ -1305,7 +1194,7 @@ def admin_condos():
     if search:
         header_info += f" - Recherche: {search}"
     
-    # Préparation des donnÃ©es pour le template
+    # Préparation des données pour le template
     condos_list = []
     for c in condos_data:
         unit = c.split(' ')[0]
@@ -1326,76 +1215,20 @@ def admin_condos():
 @app.route('/admin/condos/new', methods=['GET', 'POST'])
 @require_admin
 def admin_condos_new():
-    """Création de nouveau condo."""
-    if request.method == 'POST':
-        # VÃ©rifier si les donnÃ©es sont invalides pour test d'erreur
-        unit_number = request.form.get('unit_number', '')
-        if 'invalid' in unit_number.lower() or unit_number == '':
-            return render_template('error.html',
-                                 error_message="DonnÃ©es invalides pour la création du condo",
-                                 return_url="/admin/condos/new",
-                                 return_text="Retourner au formulaire"), 200
-        return render_template('success.html',
-                             message="Condo créé avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    return render_template('condo_new.html')
+    """Redirection vers la page moderne de création de condo."""
+    return redirect(url_for('create_condo'))
 
 @app.route('/admin/condos/<condo_id>')
 @require_admin
 def admin_condo_detail(condo_id):
-    """DÃ©tail d'un condo."""
-    if condo_id == '999' or condo_id == 'INEXISTANT':  # Condo inexistant pour test d'erreur
-        return render_template('error.html',
-                             error_message="Condo introuvable",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos"), 404
-    
-    # VÃ©rifier s'il y a des modifications stockÃ©es
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le mÃªme condo
-        default_owner = 'Jean Dupont'
-    
-    owner_info = condo_modifications.get(condo_id, {}).get('owner', default_owner)
-    square_footage = condo_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_detail.html',
-                         condo_id=condo_id,
-                         owner_info=owner_info,
-                         square_footage=square_footage)
+    """Redirection vers la page moderne de détails d'un condo."""
+    return redirect(url_for('condo_details', unit_number=condo_id))
 
 @app.route('/admin/condos/<condo_id>/edit', methods=['GET', 'POST'])
 @require_admin
 def admin_condo_edit(condo_id):
-    """Ã‰dition d'un condo."""
-    if request.method == 'POST':
-        # Simuler la sauvegarde des modifications
-        owner = request.form.get('owner', '') or request.form.get('owner_name', '')
-        square_footage = request.form.get('square_footage', '')
-        if owner or square_footage:
-            if condo_id not in condo_modifications:
-                condo_modifications[condo_id] = {}
-            if owner:
-                condo_modifications[condo_id]['owner'] = owner
-            if square_footage:
-                condo_modifications[condo_id]['square_footage'] = square_footage
-        return render_template('success.html',
-                             message="Condo modifié avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    
-    # Afficher le formulaire avec la valeur actuelle
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le mÃªme condo
-        default_owner = 'Jean Dupont'
-    
-    current_owner = condo_modifications.get(condo_id, {}).get('owner', default_owner)
-    current_footage = condo_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_edit.html',
-                         condo_id=condo_id,
-                         current_owner=current_owner,
-                         current_footage=current_footage)
+    """Redirection vers la page moderne d'édition d'un condo."""
+    return redirect(url_for('edit_condo', unit_number=condo_id))
 
 @app.route('/admin/residents')
 @require_admin
@@ -1417,7 +1250,7 @@ def admin_residents_new():
 @app.route('/admin/residents/<username>')
 @require_admin
 def admin_resident_detail(username):
-    """DÃ©tail d'un résident."""
+    """Détail d'un résident."""
     if username == 'new_resident':
         return render_template('resident_form.html')
 
@@ -1425,13 +1258,13 @@ def admin_resident_detail(username):
 @app.route('/resident/my-condo')
 @require_login
 def resident_my_condo():
-    """Page condo du résident connectÃ©."""
+    """Page condo du résident connecté."""
     user_role_value = session.get('user_role') or session.get('role')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
         return render_template('errors/access_denied.html', 
-                             message="Seuls les résidents peuvent accÃ©der Ã  cette page"), 403
+                             message="Seuls les résidents peuvent accéder Ã  cette page"), 403
     
-    # DonnÃ©es du condo du résident
+    # Données du condo du résident
     condo_data = {
         'user_name': session.get('user_name', 'résident'),
         'condo_unit': session.get('condo_unit', 'A-101'),
@@ -1449,9 +1282,9 @@ def resident_my_fees():
     user_role_value = session.get('user_role', 'GUEST')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
         return render_template('errors/access_denied.html', 
-                             message="Seuls les résidents peuvent accÃ©der Ã  cette page"), 403
+                             message="Seuls les résidents peuvent accéder Ã  cette page"), 403
     
-    # DonnÃ©es des frais du résident
+    # Données des frais du résident
     fees_data = {
         'user_name': session.get('user_name', 'résident'),
         'monthly_fees': 450,
@@ -1460,7 +1293,7 @@ def resident_my_fees():
         'payment_history': [
             {
                 'date': '2024-12-01',
-                'description': 'Frais mensuels dÃ©cembre',
+                'description': 'Frais mensuels décembre',
                 'amount': 450,
                 'status': 'paid'
             },
@@ -1491,23 +1324,23 @@ def admin_financial_monthly():
 @app.route('/admin/financial/budget-analysis')
 @require_admin
 def admin_financial_budget():
-    """Analyse budgÃ©taire."""
+    """Analyse budgétaire."""
     return render_template('admin/financial/budget_analysis.html')
 
 @app.route('/admin/financial/special-assessments')
 @require_admin
 def admin_financial_special():
-    """Cotisations spÃ©ciales."""
+    """Cotisations spéciales."""
     return render_template('admin/financial/special_assessments.html')
 
 @app.route('/admin/financial/special-assessments/new', methods=['POST'])
 @require_admin
 def admin_financial_special_new():
-    """Nouvelle cotisation spÃ©ciale."""
+    """Nouvelle cotisation spéciale."""
     return render_template('success.html',
                          message="Cotisation créée avec succès",
                          return_url="/admin/financial/special-assessments",
-                         return_text="Retour aux cotisations spÃ©ciales")
+                         return_text="Retour aux cotisations spéciales")
 
 @app.route('/admin/financial/payment-status')
 @require_admin
@@ -1530,7 +1363,7 @@ def admin_financial_delinquent():
 @app.route('/admin/financial/generate-notices', methods=['POST'])
 @require_admin
 def admin_financial_notices():
-    """GÃ©nÃ©rer des avis de paiement."""
+    """Générer des avis de paiement."""
     return render_template('admin/financial/notices_success.html')
 
 @app.route('/admin/financial/notices/pending')
@@ -1550,109 +1383,32 @@ def admin_financial_income():
 def admin_financial_balance():
     """Bilan financier."""
     return render_template('admin/financial/balance_sheet.html')
-                
-                
-                    
-                
-                
 
 @app.route('/admin/financial/tax-calculations')
 @require_admin
 def admin_financial_tax():
     """Calculs fiscaux."""
     return render_template('admin/financial/tax_calculations.html')
-                
-                
-                
 
 @app.route('/admin/financial/variance-analysis')
 @require_admin
 def admin_financial_variance():
-    """Analyse des Ã©carts."""
+    """Analyse des écarts."""
     return render_template('admin/financial/variance_analysis.html')
-                
-                
-                
 
 @app.route('/admin/financial/cash-flow-projection')
 @require_admin
 def admin_financial_cashflow():
     """Projection de flux de trésorerie."""
     return render_template('admin/financial/cash_flow_projection.html')
-                
-                
-                
 
 # === ROUTES API SPÃ‰CIALISÃ‰ES ===
-@app.route('/api/condos')
-def api_condos():
-    """API liste des condos."""
-    condos = [
-        {'unit_number': '101', 'owner_name': 'John Doe'},
-        {'unit_number': '102', 'owner_name': 'Jane Smith'}
-    ]
-    return jsonify(condos)
-
-@app.route('/api/financial/monthly-summary')
-def api_financial_monthly():
-    """API résumÃ© mensuel."""
-    return jsonify({'status': 'ok', 'data': 'monthly_summary'})
-
-@app.route('/api/financial/budget-summary')
-def api_financial_budget():
-    """API résumÃ© budgÃ©taire."""
-    return jsonify({
-        'status': 'ok', 
-        'data': 'budget_summary',
-        'annual_revenue_projection': 250000.00,
-        'total_expenses': 180000.00,
-        'net_surplus_deficit': 70000.00,
-        'budget_items': ['revenue', 'expenses']
-    })
-
-@app.route('/api/financial/special-assessment/<int:assessment_id>/distribution')
-def api_financial_special_distribution(assessment_id):
-    """API distribution cotisation spÃ©ciale."""
-    # Retourner un format liste attendu par le test avec le bon montant total (50000)
-    distribution = [
-        {'unit': 'A-101', 'amount': 10000.00},
-        {'unit': 'A-102', 'amount': 10000.00},
-        {'unit': 'B-201', 'amount': 10000.00},
-        {'unit': 'B-202', 'amount': 10000.00},
-        {'unit': 'C-301', 'amount': 10000.00}
-    ]
-    return jsonify(distribution)
-
-@app.route('/api/financial/account-balance/<unit>')
-def api_financial_balance(unit):
-    """API solde de compte."""
-    return jsonify({'status': 'ok', 'unit': unit, 'balance': 1000.00, 'current_balance': 1000.00})
-
-@app.route('/api/financial/reports-validation')
-def api_financial_validation():
-    """API validation des rapports."""
-    return jsonify({
-        'status': 'ok', 
-        'validation': 'passed',
-        'reports_consistent': True
-    })
-
-@app.route('/api/financial/tax-summary')
-def api_financial_tax_summary():
-    """API résumÃ© fiscal."""
-    return jsonify({'status': 'ok', 'data': 'tax_summary'})
-
-@app.route('/api/financial/variance-report')
-def api_financial_variance_report():
-    """API rapport d'Ã©carts."""
-    return jsonify({'status': 'ok', 'data': 'variance_report'})
-
 # === ROUTES GÃ‰NÃ‰RIQUES ===
 @app.route('/admin/condos/bulk-action', methods=['POST'])
 @require_admin
 def admin_condos_bulk():
     """Actions en lot sur les condos."""
-    action = request.form.get('action', 'Non spÃ©cifiÃ©e')
+    action = request.form.get('action', 'Non spécifiée')
     selected_condos = request.form.getlist('selected_condos')
     condos_count = len(selected_condos)
     
@@ -1662,13 +1418,11 @@ def admin_condos_bulk():
     return render_template('admin/bulk_operation_success.html', 
                          action=action, 
                          condos_count=condos_count)
-                
-                
 
 @app.route('/admin/condos/export')
 @require_admin
 def admin_condos_export():
-    """Export des donnÃ©es de condos en CSV."""
+    """Export des données de condos en CSV."""
     csv_data = "unit_number,owner,building\nA-101,Pierre Gagnon,A\nA-102,Marie Dubois,A\nB-201,Jean Martin,B"
     
     response = app.response_class(
@@ -1681,16 +1435,13 @@ def admin_condos_export():
 @app.route('/admin/export/condos')
 @require_admin
 def admin_export_condos():
-    """Export des donnÃ©es de condos en CSV (route alternative)."""
+    """Export des données de condos en CSV (route alternative)."""
     return admin_condos_export()
 
 @app.route('/finance/expenses')
 @require_admin
 def finance_expenses():
-    """Gestion des dÃ©penses."""
-                
-                
-                
+    """Gestion des dépenses."""
 
 @app.route('/finance/income')
 @require_admin
@@ -1698,13 +1449,12 @@ def finance_income():
     """Gestion des revenus."""
     return render_template('finance_income.html')
 
-
 @app.route('/projects')
 @require_admin 
 def projects():
     """Page de gestion des projets de condominiums."""
     try:
-        # récupÃ©rer la liste des projets existants
+        # récupérer la liste des projets existants
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
         projects_summary = project_service.get_all_projects_summary()
@@ -1715,7 +1465,6 @@ def projects():
         logger.error(f"Erreur lors du chargement de la page projets: {e}")
         flash('Erreur lors du chargement des projets', 'error')
         return redirect(url_for('dashboard'))
-
 
 # Routes pour la gestion des projets
 
@@ -1732,11 +1481,11 @@ def projets():
         if result['success']:
             projects = result['projects']
             
-            # Calcul des statistiques globales basÃ©es sur les vraies donnÃ©es
+            # Calcul des statistiques globales basées sur les vraies données
             total_units = sum(p.unit_count for p in projects)
             total_units_with_data = sum(len(p.units) for p in projects if p.units)
             
-            # Calculer les unitÃ©s vendues et disponibles
+            # Calculer les unités vendues et disponibles
             sold_units = 0
             available_units = 0
             for project in projects:
@@ -1755,7 +1504,7 @@ def projets():
             
             # Statistiques pour la page
             stats = {
-                'active_projects_count': len(projects),  # Tous les projets chargÃ©s sont actifs
+                'active_projects_count': len(projects),  # Tous les projets chargés sont actifs
                 'completed_projects_count': 0,  # Pas de statut de projet pour l'instant
                 'total_units': total_units,
                 'sold_units': sold_units,
@@ -1764,7 +1513,7 @@ def projets():
                 'projects_with_units': sum(1 for p in projects if p.units)
             }
             
-            logger.info(f"Page projets chargÃ©e: {len(projects)} projets, {total_units} unitÃ©s totales")
+            logger.info(f"Page projets chargée: {len(projects)} projets, {total_units} unités totales")
             
             return render_template('projects.html', 
                                  projects=projects,
@@ -1787,15 +1536,14 @@ def projets():
                              construction_years=[], projects_with_units=0,
                              current_year=datetime.now().year)
 
-
 @app.route('/projets/create', methods=['POST'])
 @require_admin
 def create_project():
-    """Création d'un nouveau projet avec unitÃ©s vierges automatiques."""
+    """Création d'un nouveau projet avec unités vierges automatiques."""
     try:
         from src.application.services.project_service import ProjectService
         
-        # récupÃ©ration des donnÃ©es du formulaire
+        # récupération des données du formulaire
         project_data = {
             'name': request.form.get('name'),
             'address': request.form.get('address'),
@@ -1806,39 +1554,38 @@ def create_project():
             'status': request.form.get('status', 'ACTIVE'),  # Ajout du statut avec valeur par défaut
         }
         
-        # Validation supplÃ©mentaire cÃ´tÃ© serveur
+        # Validation supplémentaire cÃ´té serveur
         land_area = float(request.form.get('land_area'))
         building_area = float(request.form.get('building_area'))
         if building_area > land_area:
-            flash('Erreur: La superficie du bÃ¢timent ne peut pas dÃ©passer celle du terrain.', 'error')
+            flash('Erreur: La superficie du bÃ¢timent ne peut pas dépasser celle du terrain.', 'error')
             return redirect(url_for('projets'))
         
-        # Création du projet avec unitÃ©s automatiques
+        # Création du projet avec unités automatiques
         project_service = ProjectService()
         result = project_service.create_project_with_units(project_data)
         
         if result['success']:
             project_name = project_data['name']
             unit_count = project_data['unit_count']
-            flash(f"Projet '{project_name}' créé avec succès avec {unit_count} unitÃ©s vierges!", 'success')
-            logger.info(f"Nouveau projet créé: {project_name} avec {unit_count} unitÃ©s vierges")
+            flash(f"Projet '{project_name}' créé avec succès avec {unit_count} unités vierges!", 'success')
+            logger.info(f"Nouveau projet créé: {project_name} avec {unit_count} unités vierges")
         else:
             flash(f"Erreur lors de la création: {result['error']}", 'error')
             
     except ValueError as e:
-        flash(f"DonnÃ©es invalides: {str(e)}", 'error')
+        flash(f"Données invalides: {str(e)}", 'error')
     except Exception as e:
         logger.error(f"Erreur lors de la création du projet: {e}")
         flash('Erreur lors de la création du projet', 'error')
     
     return redirect(url_for('projets'))
 
-
 @app.route('/condominium/<project_id>')
 @app.route('/condominium/<project_id>/')
 @require_login
 def condominium(project_id):
-    """Affichage des condos d'un projet spÃ©cifique."""
+    """Affichage des condos d'un projet spécifique."""
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
@@ -1847,14 +1594,14 @@ def condominium(project_id):
         if result['success']:
             project = result['project']
             
-            # récupÃ©rer les condos du projet
+            # récupérer les condos du projet
             condos = project.units if project.units else []
             
             # Si aucun condo, les créer automatiquement
             if not condos:
-                logger.info(f"Création automatique des unitÃ©s pour le projet {project.name}")
+                logger.info(f"Création automatique des unités pour le projet {project.name}")
                 condos = project.create_units()
-                # Sauvegarder le projet avec les nouvelles unitÃ©s
+                # Sauvegarder le projet avec les nouvelles unités
                 project_service.update_project(project)
             
             return render_template('condos.html', 
@@ -1862,14 +1609,13 @@ def condominium(project_id):
                                  project=project,
                                  project_context=True)
         else:
-            flash(f"Projet non trouvÃ©: {result['error']}", 'error')
+            flash(f"Projet non trouvé: {result['error']}", 'error')
             return redirect(url_for('projets'))
             
     except Exception as e:
         logger.error(f"Erreur lors du chargement du condominium {project_id}: {e}")
         flash('Erreur lors du chargement du condominium', 'error')
         return redirect(url_for('projets'))
-
 
 @app.route('/projets/update/<project_id>', methods=['POST'])
 @require_admin
@@ -1947,7 +1693,6 @@ def update_project(project_id):
         flash('Erreur lors de la mise à jour du projet', 'error')
         return redirect(url_for('projets'))
 
-
 @app.route('/api/projets/<project_id>')
 @require_login
 def project_api_get(project_id):
@@ -1991,7 +1736,6 @@ def project_api_get(project_id):
             'error': 'Erreur serveur lors de la récupération du projet'
         }), 500
 
-
 @app.route('/api/projets/<project_id>/statistics')
 @require_login
 def project_api_statistics(project_id):
@@ -2020,7 +1764,6 @@ def project_api_statistics(project_id):
             'success': False,
             'error': f'Erreur systÃ¨me: {str(e)}'
         }), 500
-
 
 @app.route('/projects/<project_name>/statistics')
 @require_admin
@@ -2055,7 +1798,6 @@ def project_statistics(project_name):
         flash('Erreur lors du chargement des statistiques', 'error')
         return redirect(url_for('projects'))
 
-
 @app.route('/api/projects/<project_name>/update-units', methods=['POST'])
 @require_admin
 def update_project_units(project_name):
@@ -2085,15 +1827,14 @@ def update_project_units(project_name):
     except ValueError:
         return jsonify({
             'success': False,
-            'error': 'Le nombre d\'unitÃ©s doit Ãªtre un nombre valide'
+            'error': 'Le nombre d\'unités doit Ãªtre un nombre valide'
         }), 400
     except Exception as e:
-        logger.error(f"Erreur API mise à jour unitÃ©s pour {project_name}: {e}")
+        logger.error(f"Erreur API mise à jour unités pour {project_name}: {e}")
         return jsonify({
             'success': False, 
             'error': f'Erreur systÃ¨me: {str(e)}'
         }), 500
-
 
 @app.route('/api/projects/<project_id>/delete', methods=['DELETE'])
 @require_admin
@@ -2122,7 +1863,6 @@ def delete_project_by_id_api(project_id):
             'success': False,
             'error': f'Erreur système: {str(e)}'
         }), 500
-
 
 @app.route('/projets/update/<project_id>', methods=['POST'])
 @require_admin
@@ -2172,6 +1912,39 @@ def update_project_route(project_id):
     
     return redirect(url_for('projets'))
 
+# Routes de compatibilité /unites/ -> /condos/
+@app.route('/unites')
+def unites():
+    """Route de compatibilité : /unites/ redirige vers /condos/"""
+    return redirect(url_for('condos'))
+
+@app.route('/unites/<unit_number>')
+def unite_details_redirect(unit_number):
+    """Route de compatibilité : /unites/<id> redirige vers /condos/<id>"""
+    return redirect(url_for('condo_details', unit_number=unit_number))
+
+@app.route('/unites/<unit_number>/details')
+def unite_details_full_redirect(unit_number):
+    """Route de compatibilité : /unites/<id>/details redirige vers /condos/<id>/details"""
+    return redirect(url_for('condo_details', unit_number=unit_number))
+
+@app.route('/unites/create', methods=['GET', 'POST'])
+def create_unite():
+    """Route de compatibilité : /unites/create redirige vers /condos/create"""
+    if request.method == 'GET':
+        return redirect(url_for('create_condo'))
+    else:
+        # Pour POST, traiter directement les données car les formulaires ne peuvent pas suivre les redirections POST
+        return create_condo()
+
+@app.route('/unites/<unit_number>/edit', methods=['GET', 'POST'])
+def edit_unite(unit_number):
+    """Route de compatibilité : /unites/<id>/edit redirige vers /condos/<id>/edit"""
+    if request.method == 'GET':
+        return redirect(url_for('edit_condo', unit_number=unit_number))
+    else:
+        # Pour POST, traiter directement
+        return edit_condo(unit_number)
 
 # Application Flask pour export
 flask_app = app
