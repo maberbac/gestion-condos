@@ -1699,13 +1699,13 @@ def projets():
             
             logger.info(f"Page projets chargée: {len(projects)} projets, {total_units} unités totales")
             
-            return render_template('projets.html', 
+            return render_template('projects.html', 
                                  projects=projects,
                                  current_year=datetime.now().year,
                                  **stats)
         else:
             flash(f"Impossible de charger les projets: {result['error']}", 'error')
-            return render_template('projets.html', projects=[], 
+            return render_template('projects.html', projects=[], 
                                  active_projects_count=0, completed_projects_count=0,
                                  total_units=0, sold_units=0, available_units=0,
                                  construction_years=[], projects_with_units=0,
@@ -1714,7 +1714,7 @@ def projets():
     except Exception as e:
         logger.error(f"Erreur lors du chargement des projets: {e}")
         flash('Erreur lors du chargement des projets', 'error')
-        return render_template('projets.html', projects=[],
+        return render_template('projects.html', projects=[],
                              active_projects_count=0, completed_projects_count=0,
                              total_units=0, sold_units=0, available_units=0,
                              construction_years=[], projects_with_units=0,
