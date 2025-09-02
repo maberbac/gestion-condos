@@ -48,6 +48,7 @@ class Unit:
     de gestion spécifiques.
     
     Attributs:
+        id: ID de base de données SQLite (auto-incrémenté)
         unit_number: Numéro unique de l'unité (ex: 'A-101', 'P-001')
         project_id: ID du projet auquel appartient cette unité
         area: Superficie en pieds carrés
@@ -70,6 +71,7 @@ class Unit:
     status: UnitStatus
     
     # Attributs optionnels
+    id: Optional[int] = None  # ID de base de données SQLite
     estimated_price: Optional[float] = None
     owner_name: Optional[str] = None
     purchase_date: Optional[datetime] = None
@@ -327,6 +329,7 @@ class Unit:
             purchase_date = datetime.fromisoformat(purchase_date.replace('Z', '+00:00'))
         
         return cls(
+            id=data.get('id'),
             unit_number=data['unit_number'],
             project_id=data['project_id'],
             area=float(data['area']),
@@ -349,6 +352,7 @@ class Unit:
             dict: Représentation en dictionnaire
         """
         return {
+            'id': self.id,
             'unit_number': self.unit_number,
             'project_id': self.project_id,
             'area': self.area,

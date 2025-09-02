@@ -46,6 +46,54 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - **RESTRICTION** : Cette exception s'applique UNIQUEMENT aux fichiers `.html` dans `src/web/templates/`
 - **MAINTIEN INTERDICTION** : Tous autres contextes restent strictement interdits (Python, tests, documentation, etc.)
 
+### INTERDICTION STRICTE DES MENTIONS TEMPORELLES
+- **JAMAIS** ajouter de mentions "NOUVEAU", "RÉCENT", "MIS À JOUR" dans la documentation
+- **JAMAIS** utiliser des marqueurs temporels comme "⭐ NOUVEAU", "📝 RÉCENT", "🔄 MIS À JOUR"
+- **JAMAIS** inclure des dates ou des indications de nouveauté dans les titres ou descriptions
+- **JAMAIS** créer de sections "Nouveautés" ou "Dernières modifications"
+- **TOUJOURS** maintenir une documentation intemporelle et professionnelle
+- **OBLIGATION** : La documentation doit être neutre et ne pas référencer quand les éléments ont été ajoutés
+- **PRINCIPE** : Les mentions de nouveauté deviennent rapidement obsolètes et polluent la documentation
+- **STANDARD** : Documentation factuelle sans références temporelles
+
+## PURETÉ DE LA DOCUMENTATION TECHNIQUE OBLIGATOIRE
+
+### INTERDICTION STRICTE DES MENTIONS D'OPTIMISATIONS DANS LA DOCUMENTATION TECHNIQUE
+- **JAMAIS** inclure de sections sur les "améliorations", "optimisations", ou "résolutions de problèmes" dans `docs/documentation-technique.md`
+- **JAMAIS** documenter les changements récents, les corrections ou les évolutions dans la documentation technique
+- **JAMAIS** mentionner "problème résolu", "solutions implémentées", "impact", "avant/après" dans la documentation technique
+- **JAMAIS** inclure l'historique des modifications ou des évolutions du système
+- **TOUJOURS** maintenir la documentation technique pure et factuelle sur l'état actuel du système
+- **OBLIGATION** : La documentation technique doit décrire UNIQUEMENT comment le système fonctionne actuellement
+- **PRINCIPE** : La documentation technique est intemporelle et décrit l'architecture, les composants, les APIs, les technologies
+- **STANDARD** : Documentation technique neutre sans références aux évolutions passées
+
+### Contenu Autorisé dans la Documentation Technique
+- **Architecture du système** : Diagrammes, patterns, structure des composants
+- **Technologies utilisées** : Stack technique, frameworks, librairies
+- **APIs et interfaces** : Endpoints, paramètres, réponses, exemples d'utilisation
+- **Base de données** : Schémas, tables, relations, requêtes
+- **Configuration** : Paramètres, variables d'environnement, fichiers de config
+- **Installation** : Procédures, prérequis, étapes de déploiement
+- **Sécurité** : Mécanismes, authentification, autorisation
+- **Performance** : Métriques actuelles, optimisations en place
+- **Tests** : Stratégie, types de tests, couverture
+- **Dépannage** : Procédures de diagnostic, solutions aux problèmes courants
+
+### Contenu Strictement Interdit dans la Documentation Technique
+- **Sections d'améliorations** : "Améliorations Critiques Récentes", "Résolution du Problème"
+- **Historique des changements** : "Solutions implémentées", "Impact", "Avant/Après"
+- **Mentions temporelles** : Dates de modifications, références aux versions
+- **Descriptions d'évolutions** : "Nouvelle méthode", "Modification de", "Performance améliorée"
+- **Comparaisons temporelles** : États antérieurs vs actuels
+- **Statuts de résolution** : "Problème résolu", "Correction appliquée"
+
+### Redirection Obligatoire du Contenu Non-Technique
+- **Journal officiel** : Toutes les évolutions, améliorations et résolutions dans `docs/journal-developpement.md`
+- **Documentation des fonctionnalités** : Descriptions des capacités actuelles dans des fichiers dédiés
+- **Guides utilisateur** : Instructions d'utilisation dans des fichiers spécialisés
+- **Notes de version** : INTERDITES - Aucun changelog ou versioning autorisé
+
 ### 5. INTERDICTION STRICTE DES PRINT() - SYSTÈME DE LOGGING OBLIGATOIRE
 - **JAMAIS** utiliser `print()` dans le code pour afficher des messages
 - **JAMAIS** créer de nouvelles fonctions utilisant `print()` pour l'affichage
@@ -58,9 +106,7 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 from src.infrastructure.logger_manager import get_logger
 logger = get_logger(__name__)
 ```
-jectif|démontre|concept|technique|description (**/src/web/templates/*.html), no results
 
-Excellent ! Vérifions aussi s'il n'y a pas de titres de page ou de navigation qui contiennent des informations de projet :
 #### Niveaux de Logging Appropriés
 - **`logger.debug()`** : Messages de débogage détaillés (variables, étapes d'exécution)
 - **`logger.info()`** : Messages informatifs normaux (opérations terminées, état du système)
@@ -221,27 +267,6 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **REDIRECTION** vers la documentation existante uniquement
 - **FOCUS** exclusif sur le développement fonctionnel réel
 
-## INTERDICTION DE DÉMARRAGE D'APPLICATION POUR TESTS
-
-### Règle Stricte de Non-Démarrage
-- **JAMAIS** démarrer l'application Flask/web pour valider des corrections ou modifications
-- **JAMAIS** lancer `python -m src.web.condo_app` ou équivalent pour tester des changements
-- **JAMAIS** utiliser `run_in_terminal` pour démarrer l'application sauf débogage critique
-- **TOUJOURS** se fier aux tests automatisés (unitaires, intégration, acceptance) pour la validation
-- **PRIVILÉGIER** l'exécution des runners de tests (`run_all_tests.py`, `run_all_acceptance_tests.py`, etc.)
-
-### Exception Unique : Débogage Critique
-- **AUTORISATION EXCEPTIONNELLE** : Démarrer l'application UNIQUEMENT pour récupérer des logs de débogage
-- **CONTEXTE AUTORISÉ** : Quand les tests passent mais qu'il faut analyser des logs d'erreur spécifiques
-- **CONDITION** : Problème complexe nécessitant l'observation du comportement en temps réel
-- **OBLIGATION** : Arrêter l'application immédiatement après récupération des informations nécessaires
-
-### Méthodes de Validation Privilégiées
-- **Tests automatisés** : Exécuter les suites de tests appropriées (unitaires, intégration, acceptance)
-- **Analyse statique** : Vérifier le code, les templates, les configurations sans exécution
-- **Inspection de fichiers** : Lire et analyser les fichiers modifiés pour validation
-- **Simulation** : Utiliser les tests d'acceptance qui simulent les scénarios utilisateur complets
-
 ## INTERDICTION ABSOLUE DES FICHIERS DE RÉSUMÉ MARKDOWN
 
 ### Règle Anti-Résumé Stricte
@@ -249,6 +274,14 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **JAMAIS** générer de fichiers markdown de type "rapport d'activité" ou "résumé de session"
 - **JAMAIS** créer de fichiers `.md` temporaires pour documenter les actions accomplies
 - **INTERDICTION TOTALE** de créer des fichiers markdown de synthèse d'intervention
+
+### INTERDICTION STRICTE DE JOURNALISATION EN DEHORS DU JOURNAL OFFICIEL
+- **JAMAIS** tenir de journalisation des travaux dans d'autres fichiers que `docs/journal-developpement.md`
+- **JAMAIS** créer de fichiers de type "journal-*.md", "log-*.md", "historique-*.md"
+- **JAMAIS** documenter l'historique des modifications dans la documentation technique
+- **JAMAIS** ajouter des sections "Historique", "Changelog", "Modifications récentes" dans d'autres fichiers
+- **UNIQUE SOURCE DE VÉRITÉ** : Seul `docs/journal-developpement.md` peut contenir l'historique des travaux
+- **OBLIGATION** : Toute journalisation doit être ajoutée exclusivement dans le journal officiel du projet
 
 ### Distinction Importante
 - **AUTORISÉ** : Mettre à jour la documentation existante du projet (README.md, docs/*.md)
@@ -391,6 +424,37 @@ config/
 - **MÉCANISME DE PROTECTION** : Utiliser `_execute_migration_with_tracking()` pour éviter les duplications
 - **IDEMPOTENCE OBLIGATOIRE** : Les migrations ne doivent jamais s'exécuter deux fois
 - **CONSÉQUENCE** : Cette centralisation empêche la corruption des données lors des redémarrages multiples
+
+## Standards d'API et Routes Obligatoires
+
+### UTILISATION OBLIGATOIRE DES ID DANS LES ROUTES
+- **TOUJOURS** utiliser des identifiants uniques (ID) dans les paramètres de routes plutôt que des champs textuels
+- **JAMAIS** utiliser `unit_number`, `username`, `project_name` ou autres champs textuels comme paramètres de route
+- **JAMAIS** créer des routes comme `/unites/<unit_number>/edit` qui peuvent générer des URLs malformées
+- **TOUJOURS** préférer des routes comme `/unites/<unit_id>/edit` avec des UUID ou identifiants numériques
+- **RÈGLE CARDINALE** : Les identifiants de route doivent être immuables et uniques
+
+### Architecture de Routes Recommandée
+- **Entités principales** : Utiliser des UUID comme `/projects/<project_id>`, `/units/<unit_id>`, `/users/<user_id>`
+- **Actions CRUD** : Structure REST standard avec ID comme paramètre principal
+  - `GET /api/units/<unit_id>` - Récupération d'une unité
+  - `PUT /api/units/<unit_id>` - Modification d'une unité  
+  - `DELETE /api/units/<unit_id>` - Suppression d'une unité
+- **Paramètres de requête** : Utiliser query parameters pour les filtres (`?unit_number=A-101`)
+- **Validation d'ID** : Vérifier la validité de l'ID avant traitement (format UUID, existence en base)
+
+### Problèmes à Éviter
+- **URLs malformées** : `/unites//edit` causées par des champs vides
+- **Caractères spéciaux** : Problèmes d'encodage avec noms contenant espaces, accents, symboles
+- **Ambiguïté** : Conflits quand plusieurs entités ont le même nom/numéro
+- **Changements** : Rupture des liens quand un nom ou numéro change
+- **Sécurité** : Exposition d'informations sensibles dans les URLs
+
+### Migration Progressive
+- **Maintenir compatibilité** : Garder les anciennes routes en redirection temporaire
+- **Ajouter nouvelles routes** : Implémenter d'abord les routes avec ID
+- **Mettre à jour frontend** : Modifier progressivement les liens et formulaires
+- **Déprécier anciennes routes** : Documenter et planifier la suppression des routes obsolètes
 
 ## Standards de Séparation HTML/Python Obligatoires
 
@@ -673,6 +737,12 @@ Avant toute implémentation de code, vérifier :
 - [ ] **VÉRIFIER: Le fichier sera-t-il utile à long terme ?**
 - [ ] **VÉRIFIER: Le fichier contient-il de la documentation technique réutilisable ?**
 - [ ] **SI NON à une question → INTERDICTION ABSOLUE de créer le fichier .md**
+- [ ] **VALIDATION JOURNALISATION: Aucune journalisation en dehors de docs/journal-developpement.md**
+- [ ] **INTERDICTION: Pas de sections "Historique" ou "Changelog" dans d'autres fichiers**
+- [ ] **UNIQUE JOURNAL: Seul docs/journal-developpement.md peut contenir l'historique des travaux**
+- [ ] **VALIDATION PURETÉ DOCUMENTATION TECHNIQUE: docs/documentation-technique.md ne contient QUE de la documentation technique**
+- [ ] **INTERDICTION OPTIMISATIONS: Aucune section améliorations/optimisations/résolutions dans documentation-technique.md**
+- [ ] **CONTENU TECHNIQUE PUR: Architecture, APIs, technologies, configuration, installation uniquement**
 - [ ] **SI fichiers pour IA interne nécessaires, les placer OBLIGATOIREMENT dans tmp/**
 
 Après toute implémentation de code, s'assurer que :
@@ -714,6 +784,12 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **VALIDATION FINALE ANTI-RÉSUMÉ: Vérifier qu'aucun .md de synthèse d'intervention n'a été créé**
 - [ ] **AUTO-VÉRIFICATION: Relire TOUS les nouveaux .md pour détecter du contenu de résumé**
 - [ ] **SUPPRIMER IMMÉDIATEMENT tout fichier .md qui résume des actions accomplies**
+- [ ] **VALIDATION FINALE JOURNALISATION: Aucune journalisation en dehors de docs/journal-developpement.md**
+- [ ] **AUTO-VÉRIFICATION JOURNAL: Vérifier qu'aucune section historique n'a été ajoutée dans d'autres fichiers**
+- [ ] **MAINTENIR UNICITÉ JOURNAL: Confirmer que seul journal-developpement.md contient l'historique**
+- [ ] **VALIDATION PURETÉ DOCUMENTATION TECHNIQUE: Vérifier que docs/documentation-technique.md reste technique pur**
+- [ ] **INTERDICTION OPTIMISATIONS DOC TECH: Aucune mention d'améliorations/optimisations ajoutée à documentation-technique.md**
+- [ ] **CONTENU TECHNIQUE EXCLUSIF: Seules architecture, APIs, technologies, configuration autorisées dans documentation-technique.md**
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
 - [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
 - [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**

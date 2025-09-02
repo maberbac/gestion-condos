@@ -1071,18 +1071,6 @@ function editProject(projectId) {
         });
 }
 
-// Fermer les modals si on clique à l'extérieur
-window.addEventListener('click', function(event) {
-    const createModal = document.getElementById('createProjectModal');
-    const editModal = document.getElementById('editProjectModal');
-    
-    if (event.target === createModal) {
-        closeCreateModal();
-    } else if (event.target === editModal) {
-        closeEditModal();
-    }
-});
-
 // Échapper pour fermer les modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {

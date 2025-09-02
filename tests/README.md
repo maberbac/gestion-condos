@@ -174,7 +174,7 @@ def test_complete_user_scenario(self):
     # Validation des critères métier
 ```
 
-#### Nouveaux Tests d'Acceptance - Interface Moderne
+#### Tests d'Acceptance - Interface Moderne
 ```python
 def test_modern_ui_responsive_design(self):
     # Validation du responsive design

@@ -10,6 +10,7 @@ Ce répertoire contient toute la documentation technique et utilisateur du proje
 docs/
 ├── README.md                                  # Ce fichier - Index de la documentation
 ├── architecture.md                           # Architecture technique hexagonale
+├── ameliorations-critiques-unites.md         # Fonctionnalités critiques gestion des unités
 ├── conception-extensibilite.md               # Conception pour extensions futures
 ├── documentation-technique.md                # Documentation technique complète
 ├── fonctionnalites-details-utilisateur.md    # Guide détaillé consultation utilisateur
@@ -21,6 +22,9 @@ docs/
 ```
 
 ## Documentation par Catégorie
+
+### Fonctionnalités Critiques
+- **[Fonctionnalités Critiques Unités](ameliorations-critiques-unites.md)** - Fonctionnalités stabilité IDs et optimisations
 
 ### Architecture et Conception
 - **[Architecture](architecture.md)** - Architecture hexagonale avec API standardisée project_id

@@ -213,6 +213,7 @@
                 <div class="condo-actions">
                     <button class="action-btn secondary" 
                             onclick="showEditUnitModal(this)"
+                            data-unit-id="{{ condo.id }}"
                             data-unit-number="{{ condo.unit_number or '' }}"
                             data-owner-name="{{ condo.owner_name or '' }}"
                             data-square-feet="{{ condo.square_feet or 0 }}"
@@ -1330,6 +1331,8 @@ form {
 <script>
 // Variables globales
 let originalUnitNumber = null;
+// Variable pour preserver le contexte du projet lors des éditions
+window.currentProjectId = {% if current_project_id %}'{{ current_project_id }}'{% else %}null{% endif %};
 
 // Fonctions de navigation (gardées pour compatibilité)
 function viewUnitDetails(unitNumber) {
@@ -1355,6 +1358,7 @@ function showEditUnitModal(button) {
     const form = document.getElementById('editUnitForm');
     
     // Récupérer les données depuis les attributs data du bouton
+    const unitId = button.dataset.unitId;        // Nouvel identifiant unique
     const unitNumber = button.dataset.unitNumber;
     const ownerName = button.dataset.ownerName;
     const squareFeet = button.dataset.squareFeet;
@@ -1362,8 +1366,8 @@ function showEditUnitModal(button) {
     const unitType = button.dataset.unitType;
     const status = button.dataset.status;
     const isSold = button.dataset.isSold === 'true';
-    
-    // Stocker le numéro d'unité original pour la soumission
+
+    // Stocker le numéro d'unité original pour la soumission (pour compatibilité)
     originalUnitNumber = unitNumber;
     
     // Remplir les champs du formulaire
@@ -1375,8 +1379,19 @@ function showEditUnitModal(button) {
     document.getElementById('edit_status').value = status || 'available';
     document.getElementById('edit_is_sold').checked = isSold;
     
-    // Configurer l'action du formulaire
-    form.action = `/unites/${unitNumber}/edit`;
+    // Utiliser UNIQUEMENT l'ID de base de données - pas de fallback
+    if (!unitId || unitId.trim() === '') {
+        alert('Erreur: ID d\'unité manquant. Impossible de modifier cette unité.');
+        return;
+    }
+    
+    // Construire l'URL d'action avec preservation du project_id si present
+    let actionUrl = `/unites/${encodeURIComponent(unitId.trim())}/edit`;
+    if (window.currentProjectId) {
+        actionUrl += `?project_id=${window.currentProjectId}`;
+    }
+    
+    form.action = actionUrl;
     
     // Afficher la modal
     modal.style.display = 'block';
@@ -1386,19 +1401,6 @@ function closeEditUnitModal() {
     document.getElementById('editUnitModal').style.display = 'none';
     document.getElementById('editUnitForm').reset();
     originalUnitNumber = null;
-}
-
-// Fermer les modales en cliquant à l'extérieur
-window.onclick = function(event) {
-    const createModal = document.getElementById('createUnitModal');
-    const editModal = document.getElementById('editUnitModal');
-    
-    if (event.target === createModal) {
-        closeCreateUnitModal();
-    }
-    if (event.target === editModal) {
-        closeEditUnitModal();
-    }
 }
 
 // Validation des formulaires

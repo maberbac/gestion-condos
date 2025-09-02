@@ -90,17 +90,17 @@
                     <div class="form-group">
                         <label for="condo_type">Type d'unité</label>
                         <select id="condo_type" name="condo_type">
-                            <option value="residential" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'residential' else '' }}>
-                                🏠 Résidentiel
+                            <option value="residential" {{ 'selected' if action == 'edit' and condo.condo_type == 'residential' else '' }}>
+                                Résidentiel
                             </option>
-                            <option value="commercial" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'commercial' else '' }}>
-                                🏢 Commercial
+                            <option value="commercial" {{ 'selected' if action == 'edit' and condo.condo_type == 'commercial' else '' }}>
+                                Commercial
                             </option>
-                            <option value="parking" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'parking' else '' }}>
-                                🚗 Stationnement
+                            <option value="parking" {{ 'selected' if action == 'edit' and condo.condo_type == 'parking' else '' }}>
+                                Stationnement
                             </option>
-                            <option value="storage" {{ 'selected' if action == 'edit' and condo.condo_type.value == 'storage' else '' }}>
-                                📦 Entreposage
+                            <option value="storage" {{ 'selected' if action == 'edit' and condo.condo_type == 'storage' else '' }}>
+                                Entreposage
                             </option>
                         </select>
                         <small class="form-help">Catégorie de l'unité</small>
@@ -109,17 +109,17 @@
                     <div class="form-group">
                         <label for="status">Statut</label>
                         <select id="status" name="status">
-                            <option value="available" {{ 'selected' if action == 'edit' and condo.status.value == 'available' else '' }}>
-                                ✅ Actif
+                            <option value="available" {{ 'selected' if action == 'edit' and condo.status == 'available' else '' }}>
+                                Actif
                             </option>
-                            <option value="inactive" {{ 'selected' if action == 'edit' and condo.status.value == 'inactive' else '' }}>
-                                ❌ Inactif
+                            <option value="inactive" {{ 'selected' if action == 'edit' and condo.status == 'inactive' else '' }}>
+                                Inactif
                             </option>
-                            <option value="maintenance" {{ 'selected' if action == 'edit' and condo.status.value == 'maintenance' else '' }}>
-                                🔧 Maintenance
+                            <option value="maintenance" {{ 'selected' if action == 'edit' and condo.status == 'maintenance' else '' }}>
+                                Maintenance
                             </option>
-                            <option value="sold" {{ 'selected' if action == 'edit' and condo.status.value == 'sold' else '' }}>
-                                💰 Vendu
+                            <option value="sold" {{ 'selected' if action == 'edit' and condo.status == 'sold' else '' }}>
+                                Vendu
                             </option>
                         </select>
                         <small class="form-help">État actuel de l'unité</small>

@@ -1193,18 +1193,6 @@
         });
     }
 
-    // Fermer le modal en cliquant à l'extérieur
-    window.onclick = function(event) {
-        const createModal = document.getElementById('createUserModal');
-        const editModal = document.getElementById('editUserModal');
-        
-        if (event.target === createModal) {
-            hideCreateUserModal();
-        } else if (event.target === editModal) {
-            hideEditUserModal();
-        }
-    }
-
     // Animation des statistiques au chargement
     document.addEventListener('DOMContentLoaded', function() {
         const statNumbers = document.querySelectorAll('.stat-number');

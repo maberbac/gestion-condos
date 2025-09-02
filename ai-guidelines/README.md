@@ -22,7 +22,7 @@ ai-guidelines/
 
 ## Mise à Jour Récente
 
-### Standardisation API Complète ✅
+### Standardisation API Complète
 - **API project_id standardisée** : Tous les services utilisent project_id comme paramètre principal
 - **Architecture de delegation** : Méthodes de compatibilité qui délèguent vers les méthodes ID-based
 - **Élimination des recherches manuelles** : Routes web refactorisées pour utiliser les services centralisés

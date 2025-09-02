@@ -877,3 +877,86 @@ class ProjectService:
                 'success': False,
                 'error': f'Erreur inattendue lors de la suppression: {str(e)}'
             }
+    
+    def get_unit_by_db_id(self, unit_db_id: int) -> Dict[str, Any]:
+        """
+        Récupère une unité par son ID de base de données.
+        
+        Args:
+            unit_db_id: ID de l'unité dans la base de données
+            
+        Returns:
+            Dict contenant l'unité et le projet, ou une erreur
+        """
+        try:
+            # Convertir en entier si c'est une chaîne
+            if isinstance(unit_db_id, str):
+                unit_db_id = int(unit_db_id)
+            
+            # Récupérer l'unité depuis le repository
+            result = self.project_repository.get_unit_by_db_id(unit_db_id)
+            
+            if result:
+                unit, project = result
+                logger.debug(f"Unité trouvée: {unit.unit_number} dans le projet {project.name}")
+                return {
+                    'success': True,
+                    'unit': unit,
+                    'project': project
+                }
+            else:
+                logger.warning(f"Aucune unité trouvée avec l'ID de base de données: {unit_db_id}")
+                return {
+                    'success': False,
+                    'error': f'Aucune unité trouvée avec l\'ID {unit_db_id}'
+                }
+                
+        except ValueError as e:
+            logger.error(f"ID invalide pour recherche d'unité: {unit_db_id}")
+            return {
+                'success': False,
+                'error': f'ID invalide: {unit_db_id}'
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération de l'unité ID {unit_db_id}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur système: {str(e)}'
+            }
+
+    def update_unit_by_id(self, unit_id: int, unit_data: dict) -> Dict[str, Any]:
+        """
+        Met à jour une unité spécifique par son ID de base de données.
+        
+        Args:
+            unit_id: ID de base de données de l'unité
+            unit_data: Dictionnaire avec les données à mettre à jour
+            
+        Returns:
+            Dict contenant le résultat de l'opération
+        """
+        try:
+            # Mettre à jour directement dans la base de données
+            success = self.project_repository.update_unit(unit_id, unit_data)
+            
+            if success:
+                # Recharger les projets pour synchroniser la mémoire
+                self._load_projects()
+                
+                logger.info(f"Unité {unit_id} mise à jour avec succès")
+                return {
+                    'success': True,
+                    'message': f'Unité {unit_id} mise à jour avec succès'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Échec de la mise à jour de l\'unité {unit_id}'
+                }
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de l'unité {unit_id}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur système: {str(e)}'
+            }

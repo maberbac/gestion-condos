@@ -28,6 +28,48 @@ from src.domain.entities.user import User, UserRole, UserAuthenticationError, Us
 from src.domain.entities.unit import Unit, UnitType, UnitStatus
 from src.domain.entities.project import Project, ProjectStatus
 from src.domain.services.authentication_service import AuthenticationService
+
+# Classe pour la compatibilité entre le backend et les templates
+class UnitData:
+    """Classe de données unifiée pour les templates."""
+    def __init__(self, unit=None, project_name='', from_dict=None):
+        if from_dict:
+            # Création depuis un dictionnaire (compatibilité ancienne API)
+            self.id = from_dict.get('id', '')  # Ajouter l'ID
+            self.unit_number = from_dict.get('unit_number', '')
+            self.owner_name = from_dict.get('owner_name', '')
+            self.square_feet = from_dict.get('square_feet', 0)
+            self.condo_type = from_dict.get('condo_type', 'residential')
+            self.status = from_dict.get('status', 'available')
+            self.monthly_fees = from_dict.get('monthly_fees', 0)
+            self.building_name = from_dict.get('building_name', project_name)
+            self.is_sold = from_dict.get('is_sold', False)
+            self.project_id = from_dict.get('project_id', '')  # Ajouter project_id
+        elif unit:
+            # Création depuis un objet Unit (nouvelle API)
+            self.id = unit.id  # Ajouter l'ID depuis Unit
+            self.unit_number = unit.unit_number
+            self.owner_name = unit.owner_name
+            self.square_feet = unit.area
+            # Convertir les enums en strings pour compatibilité template
+            self.condo_type = unit.unit_type.value if hasattr(unit.unit_type, 'value') else str(unit.unit_type)
+            self.status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
+            self.monthly_fees = float(unit.calculate_monthly_fees())
+            self.building_name = project_name
+            self.is_sold = unit.status == UnitStatus.SOLD
+            self.project_id = unit.project_id  # Ajouter project_id depuis Unit
+        else:
+            # Initialisation vide
+            self.id = ''  # Ajouter l'ID vide
+            self.unit_number = ''
+            self.owner_name = ''
+            self.square_feet = 0
+            self.condo_type = 'residential'
+            self.status = 'available'
+            self.monthly_fees = 0
+            self.building_name = project_name
+            self.is_sold = False
+            self.project_id = ''  # Ajouter project_id vide
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
 from src.adapters.sqlite_adapter import SQLiteAdapter
 from src.infrastructure.config_manager import ConfigurationManager
@@ -78,9 +120,13 @@ class SQLiteCondoService:
             condos = []
             for project in projects_result['projects']:
                 if project.units:
-                    for unit in project.units:
+                    for idx, unit in enumerate(project.units):
+                        # Utiliser l'ID de la base de données si disponible
+                        unit_id = unit.id if unit.id is not None else f"temp_{idx}"
+                        
                         # Formater pour l'affichage
                         condo = {
+                            'id': unit_id,  # Utiliser le vrai ID de la base de données
                             'unit_number': unit.unit_number,
                             'owner_name': unit.owner_name,
                             'square_feet': unit.area,
@@ -174,60 +220,103 @@ class SQLiteCondoService:
             condos = self.get_all_condos()
             for condo in condos:
                 if condo['unit_number'] == unit_number:
-                    return condo
+                    return UnitData(from_dict=condo)
             return None
         except Exception as e:
             logger.error(f"Erreur récupération condo {unit_number}: {e}")
             return None
     
-    def update_condo(self, unit_number, condo_data):
-        """Met à jour un condo."""
+    def get_condo_by_id(self, unit_id):
+        """Récupère un condo par son ID unique (conforme aux nouvelles instructions API)."""
         try:
-            # Récupérer tous les projets
-            projects_result = self.project_service.get_all_projects()
-            if not projects_result['success']:
-                logger.error(f"Erreur récupération projets: {projects_result['error']}")
-                return False
-            
-            # Trouver le projet et l'unité correspondante
-            unit_found = False
-            for project in projects_result['projects']:
-                for unit in project.units:
-                    if unit.unit_number == unit_number:
-                        # Mettre à jour les attributs de l'unité
-                        unit.owner_name = condo_data.get('owner_name', unit.owner_name)
-                        unit.area = float(condo_data.get('square_feet', unit.area))
-                        unit.monthly_fees_base = float(condo_data.get('monthly_fees', unit.monthly_fees_base))
-                        unit.estimated_price = float(condo_data.get('estimated_price', unit.estimated_price or 0)) if condo_data.get('estimated_price') else unit.estimated_price
-                        
-                        # Mettre à jour le type d'unité si fourni
-                        if 'condo_type' in condo_data:
-                            unit.unit_type = UnitType(condo_data['condo_type'])
-                        
-                        # Mettre à jour le statut si fourni
-                        if 'status' in condo_data:
-                            unit.status = UnitStatus(condo_data['status'])
-                        
-                        # Sauvegarder le projet mis à jour
-                        save_result = self.project_service.update_project(project)
-                        if not save_result['success']:
-                            logger.error(f"Erreur sauvegarde projet: {save_result['error']}")
-                            return False
-                        
-                        unit_found = True
-                        break
-                
-                if unit_found:
-                    break
-            
-            if not unit_found:
-                logger.error(f"Unité {unit_number} introuvable")
-                return False
-            
-            logger.info(f"Condo {unit_number} mis à jour")
-            return True
+            condos = self.get_all_condos()
+            for condo in condos:
+                if condo['id'] == unit_id:
+                    return UnitData(from_dict=condo)
+            return None
         except Exception as e:
-            logger.error(f"Erreur mise à jour condo {unit_number}: {e}")
+            logger.error(f"Erreur récupération condo par ID {unit_id}: {e}")
+            return None
+    
+    def get_condo_by_identifier(self, identifier):
+        """
+        Récupère un condo par identifiant (ID ou unit_number).
+        Méthode transitoire pour gérer la migration vers les ID.
+        """
+        try:
+            # Vérifier si l'identifiant est un ID de base de données (entier)
+            try:
+                unit_db_id = int(identifier)
+                # C'est un ID de base de données, utiliser la recherche directe
+                result = self.project_service.get_unit_by_db_id(unit_db_id)
+                if result['success']:
+                    unit = result['unit']
+                    project = result['project']
+                    
+                    # Créer un objet compatible avec le template
+                    return UnitData(unit, project.name)
+                    
+            except ValueError:
+                # Ce n'est pas un entier, continuer avec les méthodes normales
+                pass
+            
+            # D'abord essayer par ID (nouvelle méthode recommandée)
+            condo = self.get_condo_by_id(identifier)
+            if condo:
+                return condo
+            
+            # Fallback sur unit_number pour compatibilité
+            return self.get_condo_by_unit_number(identifier)
+        except Exception as e:
+            logger.error(f"Erreur récupération condo par identifiant {identifier}: {e}")
+            return None
+    
+    def update_condo(self, identifier, condo_data):
+        """Met à jour un condo par son ID ou unit_number."""
+        try:
+            # D'abord, essayer de trouver l'unité par ID (méthode préférée)
+            if identifier.isdigit():
+                unit_id = int(identifier)
+                # Utiliser la nouvelle méthode pour mettre à jour directement par ID
+                result = self.project_service.update_unit_by_id(unit_id, condo_data)
+                if result['success']:
+                    logger.info(f"Unité ID {unit_id} mise à jour avec succès")
+                    return True
+                else:
+                    logger.error(f"Échec mise à jour unité ID {unit_id}: {result['error']}")
+                    return False
+            
+            # Fallback: recherche par unit_number (moins efficace)
+            else:
+                # Récupérer tous les projets
+                projects_result = self.project_service.get_all_projects()
+                if not projects_result['success']:
+                    logger.error(f"Erreur récupération projets: {projects_result['error']}")
+                    return False
+                
+                # Trouver le projet et l'unité correspondante
+                unit_found = False
+                for project in projects_result['projects']:
+                    for unit in project.units:
+                        if unit.unit_number == identifier:
+                            # Utiliser la nouvelle méthode avec l'ID de l'unité trouvée
+                            result = self.project_service.update_unit_by_id(unit.id, condo_data)
+                            if result['success']:
+                                logger.info(f"Unité {identifier} (ID {unit.id}) mise à jour avec succès")
+                                return True
+                            else:
+                                logger.error(f"Échec mise à jour unité {identifier}: {result['error']}")
+                                return False
+                
+                if not unit_found:
+                    logger.error(f"Unité {identifier} introuvable")
+                    return False
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la modification du condo {identifier}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Erreur lors de la modification du condo {identifier}: {e}")
             return False
     
     def get_statistics(self):
@@ -528,11 +617,13 @@ def condos():
         
         # Vérifier si on filtre par projet
         project_id = request.args.get('project_id')
+        logger.info(f"Route /condos appelée avec project_id={project_id}")
         
         units_list = []
         project_name = None
         
         if project_id:
+            logger.info(f"Tentative de filtrage par projet ID: {project_id}")
             # Récupérer le projet spécifique et ses unités
             project_result = project_service.get_project_by_id(project_id)
             if project_result['success']:
@@ -546,6 +637,7 @@ def condos():
                 units_list = []
                 project_name = None
         else:
+            logger.info("Aucun filtrage - affichage de toutes les unités")
             # Récupérer toutes les unités de tous les projets
             all_projects_result = project_service.get_all_projects()
             if all_projects_result['success']:
@@ -569,7 +661,8 @@ def condos():
                              condos=units_list,  # Garde le nom 'condos' pour compatibilité template
                              user_role=user_role,
                              stats=stats,
-                             project_filter=project_name)
+                             project_filter=project_name,
+                             current_project_id=project_id)
         
     except Exception as e:
         logger.error(f"Erreur dans la route /condos: {e}")
@@ -631,17 +724,23 @@ def create_condo():
         flash("Erreur technique lors de la création", "error")
         return render_template('condo_form.html', action='create')
 
-@app.route('/condos/<unit_number>/edit', methods=['GET', 'POST'])
+@app.route('/condos/<identifier>/edit', methods=['GET', 'POST'])
 @require_admin
-def edit_condo(unit_number):
-    """Modification d'un condo existant."""
+def edit_condo(identifier):
+    """Modification d'un condo existant - Supporte ID et unit_number pour transition."""
     try:
         ensure_services_initialized()
-        condo = condo_service.get_condo_by_unit_number(unit_number)
+        # Utiliser la nouvelle méthode qui supporte ID et unit_number
+        condo = condo_service.get_condo_by_identifier(identifier)
         
         if not condo:
-            flash(f"Condo {unit_number} non trouvé", "error")
-            return redirect(url_for('condos'))
+            flash(f"Condo {identifier} non trouvé", "error")
+            # Essayer de préserver le project_id même si le condo n'est pas trouvé
+            project_id = request.args.get('project_id')
+            if project_id:
+                return redirect(url_for('condos', project_id=project_id))
+            else:
+                return redirect(url_for('condos'))
         
         if request.method == 'GET':
             return render_template('condo_form.html', action='edit', condo=condo)
@@ -650,23 +749,32 @@ def edit_condo(unit_number):
         condo_data = {
             'owner_name': request.form.get('owner_name'),
             'square_feet': request.form.get('square_feet'),
-            'condo_type': request.form.get('condo_type'),
-            'status': request.form.get('status'),
+            'condo_type': request.form.get('condo_type', 'residential'),  # Valeur par défaut
+            'status': request.form.get('status', 'available'),           # Valeur par défaut
             'monthly_fees': request.form.get('monthly_fees'),
             'is_sold': request.form.get('is_sold') == 'on'
         }
         
-        if condo_service.update_condo(unit_number, condo_data):
-            flash(f"Condo {unit_number} modifié avec succès", "success")
-            return redirect(url_for('condos'))
+        if condo_service.update_condo(condo.unit_number, condo_data):
+            flash(f"Condo {condo.unit_number or identifier} modifié avec succès", "success")
+            # Préserver le project_id dans la redirection si disponible
+            if hasattr(condo, 'project_id') and condo.project_id:
+                return redirect(url_for('condos', project_id=condo.project_id))
+            else:
+                return redirect(url_for('condos'))
         else:
             flash("Erreur lors de la modification", "error")
             return render_template('condo_form.html', action='edit', condo=condo)
             
     except Exception as e:
-        logger.error(f"Erreur lors de la modification du condo {unit_number}: {e}")
+        logger.error(f"Erreur lors de la modification du condo {identifier}: {e}")
         flash("Erreur technique lors de la modification", "error")
-        return redirect(url_for('condos'))
+        # Essayer de préserver le project_id même en cas d'erreur
+        project_id = request.args.get('project_id') or request.form.get('project_id')
+        if project_id:
+            return redirect(url_for('condos', project_id=project_id))
+        else:
+            return redirect(url_for('condos'))
 
 @app.route('/finance')
 @require_admin  
@@ -1937,14 +2045,14 @@ def create_unite():
         # Pour POST, traiter directement les données car les formulaires ne peuvent pas suivre les redirections POST
         return create_condo()
 
-@app.route('/unites/<unit_number>/edit', methods=['GET', 'POST'])
-def edit_unite(unit_number):
-    """Route de compatibilité : /unites/<id>/edit redirige vers /condos/<id>/edit"""
+@app.route('/unites/<identifier>/edit', methods=['GET', 'POST'])
+def edit_unite(identifier):
+    """Route de compatibilité : /unites/<identifier>/edit -> /condos/<identifier>/edit"""
     if request.method == 'GET':
-        return redirect(url_for('edit_condo', unit_number=unit_number))
+        return redirect(url_for('edit_condo', identifier=identifier))
     else:
         # Pour POST, traiter directement
-        return edit_condo(unit_number)
+        return edit_condo(identifier)
 
 # Application Flask pour export
 flask_app = app

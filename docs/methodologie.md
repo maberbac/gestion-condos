@@ -45,7 +45,7 @@
                     CYCLE TDD POUR CHAQUE CONCEPT
                               
     ┌─────────────────────────────────────────────┐
-    │             NOUVEAU CONCEPT                 │
+    │             CONCEPT TECHNIQUE               │
     │        (Ex: Lecture fichiers)               │
     └─────────────────┬───────────────────────────┘
                       │
@@ -197,7 +197,7 @@ class TestUserDeletionAcceptance:
 
 ### Exemples d'Anti-Patterns à Éviter
 
-#### ❌ INTERDIT : Test avec base réelle
+#### INTERDIT : Test avec base réelle
 ```python
 def test_delete_user_bad():
     # MAUVAIS : Utilise la vraie base de données
@@ -206,7 +206,7 @@ def test_delete_user_bad():
     assert result is True  # Test dépendant des données existantes
 ```
 
-#### ✅ CORRECT : Test avec mock
+####  CORRECT : Test avec mock
 ```python
 def test_delete_user_good(self):
     # BON : Repository complètement mocké

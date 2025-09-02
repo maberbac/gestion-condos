@@ -11,6 +11,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from application.services.project_service import ProjectService
 from domain.entities.project import Project, ProjectStatus
+from src.infrastructure.logger_manager import get_logger
+
+logger = get_logger(__name__)
 
 
 class TestProjectUpdatePersistenceIntegration(unittest.TestCase):
@@ -57,7 +60,7 @@ class TestProjectUpdatePersistenceIntegration(unittest.TestCase):
         # ET: Le repository.save_project est appelé pour la persistance
         self.mock_repository.save_project.assert_called_once_with(existing_project)
         
-        print("✅ Test réussi: update_project appelle bien save_project pour la persistance")
+        logger.info("Test réussi: update_project appelle bien save_project pour la persistance")
         
     def test_update_project_validates_and_persists_all_fields(self):
         """Vérifier que tous les champs modifiables sont persistés"""
@@ -100,7 +103,7 @@ class TestProjectUpdatePersistenceIntegration(unittest.TestCase):
         self.assertEqual(saved_project.status, ProjectStatus.COMPLETED)
         self.assertEqual(saved_project.unit_count, 8)  # Inchangé
         
-        print("✅ Test réussi: Tous les champs modifiables sont correctement persistés")
+        logger.info("Test réussi: Tous les champs modifiables sont correctement persistés")
 
 
 if __name__ == '__main__':

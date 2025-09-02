@@ -162,7 +162,7 @@ def test_conditional_behavior(self):
 
 ## Anti-Patterns à Éviter
 
-### ❌ INTERDIT : Test avec base réelle
+### INTERDIT : Test avec base réelle
 ```python
 # MAUVAIS : Utilise la vraie base de données
 def test_bad_example():
@@ -171,7 +171,7 @@ def test_bad_example():
     assert result is True  # Dépend des données existantes
 ```
 
-### ❌ INTERDIT : Tests dépendants
+### INTERDIT : Tests dépendants
 ```python
 # MAUVAIS : Tests dans un ordre spécifique
 def test_create_user():
@@ -183,7 +183,7 @@ def test_delete_user():
     pass
 ```
 
-### ❌ INTERDIT : Mock partiel
+### INTERDIT : Mock partiel
 ```python
 # MAUVAIS : Mock incomplet
 def test_partial_mock():

@@ -14,6 +14,9 @@ import sys
 sys.path.insert(0, os.path.abspath('.'))
 
 from src.domain.entities.user import User, UserRole
+from src.infrastructure.logger_manager import get_logger
+
+logger = get_logger(__name__)
 
 
 class TestUserCreationAcceptanceMocked:
@@ -268,7 +271,7 @@ class TestUserCreationAcceptanceMocked:
         assert 'GUEST' in template_content
         assert 'Créer Utilisateur' in template_content
         
-        print("✅ Test template formulaire: Structure HTML valide")
+        logger.info("Test template formulaire: Structure HTML valide")
     
     def test_scenario_protection_acces_non_autorise(self):
         """
@@ -303,7 +306,7 @@ class TestUserCreationAcceptanceMocked:
             assert current_user.role == UserRole.RESIDENT
             assert current_user.username == "resident1"
             
-            print("✅ Test protection accès: Résident ne peut pas créer d'utilisateurs")
+            logger.info("Test protection accès: Résident ne peut pas créer d'utilisateurs")
 
 
 if __name__ == '__main__':
