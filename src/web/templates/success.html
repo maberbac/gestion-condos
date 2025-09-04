@@ -22,24 +22,6 @@
             <p class="success-description">{{ message|default(success_message|default("Votre opération a été terminée avec succès.")) }}</p>
         </div>
 
-        <div class="success-details">
-            <div class="detail-card">
-                <div class="detail-icon">⏰</div>
-                <div class="detail-content">
-                    <div class="detail-label">Heure de completion</div>
-                    <div class="detail-value" id="completion-time"></div>
-                </div>
-            </div>
-            
-            <div class="detail-card">
-                <div class="detail-icon">✓</div>
-                <div class="detail-content">
-                    <div class="detail-label">Statut</div>
-                    <div class="detail-value">Terminé avec succès</div>
-                </div>
-            </div>
-        </div>
-
         <div class="success-actions">
             <a href="{{ return_url|default(url_for('dashboard')) }}" class="btn-primary">
                 <span class="btn-icon">←</span>

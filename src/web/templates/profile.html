@@ -148,12 +148,12 @@
                         <span class="action-text">Tableau de bord</span>
                     </a>
                     {% if permissions.view_condos %}
-                    <a href="/condos" class="quick-action-btn">
-                        <span class="action-icon">🏢</span>
-                        <span class="action-text">Mes condos</span>
+                    <a href="/projets" class="quick-action-btn">
+                        <span class="action-icon">🏗️</span>
+                        <span class="action-text">Projets</span>
                     </a>
                     {% endif %}
-                    {% if permissions.manage_finance %}
+                    {% if permissions.manage_finance and is_feature_enabled('finance_module') %}
                     <a href="/finance" class="quick-action-btn">
                         <span class="action-icon">💰</span>
                         <span class="action-text">Finances</span>

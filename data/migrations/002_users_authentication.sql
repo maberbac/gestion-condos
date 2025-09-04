@@ -1,6 +1,5 @@
 -- Migration 002: Table Users pour Authentification
 -- Création de la table des utilisateurs avec mots de passe chiffrés
--- Date: 2025-08-29
 -- Description: Système d'authentification basé sur SQLite avec rôles
 
 -- Table des utilisateurs

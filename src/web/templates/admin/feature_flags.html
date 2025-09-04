@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Feature Flags - Gestion Condos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .feature-flags-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .feature-flags-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .feature-flags-title {
+            font-size: 2rem;
+            margin: 0 0 10px 0;
+            font-weight: 600;
+        }
+        
+        .feature-flags-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .flags-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .flag-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .flag-card.enabled {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        
+        .flag-card.disabled {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+        
+        .flag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .flag-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        
+        .flag-status {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+        
+        .flag-status.enabled {
+            background: #28a745;
+            color: white;
+        }
+        
+        .flag-status.disabled {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .flag-description {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .flag-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .flag-btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        
+        .flag-btn.enable {
+            background: #28a745;
+            color: white;
+        }
+        
+        .flag-btn.enable:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .flag-btn.disable {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .flag-btn.disable:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .flag-btn.toggle {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .flag-btn.toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .flag-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .finance-status {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .finance-status-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .finance-icon {
+            font-size: 1.8rem;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .status-item {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .status-item.enabled {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+        }
+        
+        .status-item.disabled {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .back-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="feature-flags-container">
+        <div class="feature-flags-header">
+            <h1 class="feature-flags-title">🚩 Gestion des Feature Flags</h1>
+            <p class="feature-flags-subtitle">Contrôlez l'activation des modules optionnels</p>
+            <div style="margin-top: 15px; font-size: 0.95rem; opacity: 0.8;">
+                <strong>Note:</strong> Les modules de base (Dashboard, Projets, Unités, Utilisateurs) sont toujours actifs
+            </div>
+        </div>
+        
+        <!-- Statut du module finance -->
+        {% if finance_status %}
+        <div class="finance-status">
+            <h2 class="finance-status-title">
+                <span class="finance-icon">💰</span>
+                Statut du Module Finance
+            </h2>
+            <div class="status-grid">
+                {% for flag_name, status in finance_status.items() %}
+                <div class="status-item {{ 'enabled' if status.enabled else 'disabled' }}">
+                    <div class="status-label">{{ flag_name.replace('_', ' ').title() }}</div>
+                    <div class="status-value">
+                        {{ 'ACTIVÉ' if status.enabled else 'DÉSACTIVÉ' }}<br>
+                        <small>{{ status.description or 'Aucune description' }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Liste des feature flags -->
+        <div class="flags-grid">
+            {% for flag in flags %}
+            <div class="flag-card {{ 'enabled' if flag.is_enabled else 'disabled' }}" data-flag="{{ flag.flag_name }}">
+                <div class="flag-header">
+                    <h3 class="flag-name">{{ flag.flag_name.replace('_', ' ').title() }}</h3>
+                    <span class="flag-status {{ 'enabled' if flag.is_enabled else 'disabled' }}">
+                        {{ 'ACTIVÉ' if flag.is_enabled else 'DÉSACTIVÉ' }}
+                    </span>
+                </div>
+                
+                <p class="flag-description">
+                    {{ flag.description or 'Aucune description disponible' }}
+                </p>
+                
+                <div class="flag-actions">
+                    <button class="flag-btn enable" 
+                            onclick="changeFlag('{{ flag.flag_name }}', 'enable')"
+                            {{ 'disabled' if flag.is_enabled else '' }}>
+                        ✅ Activer
+                    </button>
+                    
+                    <button class="flag-btn disable" 
+                            onclick="changeFlag('{{ flag.flag_name }}', 'disable')"
+                            {{ 'disabled' if not flag.is_enabled else '' }}>
+                        ❌ Désactiver
+                    </button>
+                    
+                    <button class="flag-btn toggle" 
+                            onclick="changeFlag('{{ flag.flag_name }}', 'toggle')">
+                        🔄 Inverser
+                    </button>
+                </div>
+                
+                <div class="flag-messages" id="messages-{{ flag.flag_name }}"></div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('dashboard') }}" class="back-button">
+                ← Retour au Tableau de Bord
+            </a>
+        </div>
+    </div>
+
+    <script>
+        async function changeFlag(flagName, action) {
+            const card = document.querySelector(`[data-flag="${flagName}"]`);
+            const messagesDiv = document.getElementById(`messages-${flagName}`);
+            
+            // Afficher le loading
+            card.classList.add('loading');
+            messagesDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`/admin/feature-flags/${flagName}/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Afficher le message de succès
+                    messagesDiv.innerHTML = `<div class="success-message">${result.message}</div>`;
+                    
+                    // Recharger la page après 1 seconde pour refléter les changements
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    messagesDiv.innerHTML = `<div class="error-message">Erreur: ${result.error}</div>`;
+                }
+            } catch (error) {
+                messagesDiv.innerHTML = `<div class="error-message">Erreur de communication: ${error.message}</div>`;
+            } finally {
+                // Retirer le loading
+                card.classList.remove('loading');
+            }
+        }
+        
+        // Auto-refresh du statut toutes les 30 secondes
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/feature-flags/status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Statut des feature flags mis à jour');
+                }
+            } catch (error) {
+                console.log('Erreur lors de la mise à jour du statut:', error);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

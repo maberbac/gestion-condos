@@ -589,6 +589,59 @@ class UserService:
 - **Formatage de données** : Transformation entités domaine → DTO pour API
 - **Contrôle d'accès** : Validation des permissions et authentification
 
+#### FeatureFlagService (Service de Feature Flags)  CONTRÔLE MODULAIRE
+**Responsabilité** : Contrôle des modules optionnels via base de données
+
+**Fichier** : `src/application/services/feature_flag_service.py`
+
+**Fonctionnalités implémentées et validées** :
+- `is_finance_module_enabled()` : Vérification activation module finance
+- `is_feature_enabled(flag_name)` : Vérification générique de feature flags
+- Lecture en temps réel depuis base de données SQLite
+- Gestion d'erreurs avec fallback sécurisé (activation par défaut)
+- Architecture lecture seule (aucune interface d'administration web)
+
+**Architecture Service Validée** :
+```python
+class FeatureFlagService:
+    def __init__(self, feature_flag_repository):
+        self.feature_flag_repository = feature_flag_repository
+    
+    def is_finance_module_enabled(self) -> bool:
+        """Vérifie si le module finance est activé"""
+        
+    def is_feature_enabled(self, flag_name: str) -> bool:
+        """Vérification générique de feature flag"""
+```
+
+**Modules contrôlés par feature flags** :
+- `finance_module` : Module finance complet
+- `finance_calculations` : Calculs financiers avancés
+- `finance_reports` : Rapports financiers détaillés
+- `analytics_module` : Module analytics et statistiques
+
+**Contrôle d'accès web** :
+- Décorateur `@require_feature_flag(flag_name)` pour protection des routes
+- Réponse HTML simple en cas de module désactivé
+- Vérification en temps réel à chaque requête (aucun cache)
+
+**Sécurité et contrôle** :
+- **Contrôle uniquement via base de données** : Aucune interface web d'administration
+- **Accès direct SQLite requis** : Protection contre modifications accidentelles
+- **Fallback sécurisé** : Modules activés par défaut en cas d'erreur base de données
+
+**Base de données feature flags** :
+```sql
+CREATE TABLE feature_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flag_name TEXT NOT NULL UNIQUE,
+    is_enabled BOOLEAN NOT NULL DEFAULT 1,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 #### FinancialService (Service Financier)  PROGRAMMATION FONCTIONNELLE
 **Responsabilité** : Calculs financiers purs avec programmation fonctionnelle
 
@@ -795,8 +848,44 @@ class UserRepositorySQLite(UserRepositoryPort):
 - **Traçabilité** : Historique complet des migrations via schema_migrations
 - **Performance** : Évite les opérations redondantes au démarrage
 
+#### Migrations Récentes
+- **009_feature_flags.sql** : Création du système de feature flags pour contrôle modulaire
+  - Table `feature_flags` avec données initiales
+  - Modules contrôlés : finance, analytics, rapports
+  - Activés par défaut avec possibilité de désactivation via base de données
+
 ### Modèle de données
 Bien qu'utilisant des fichiers, l'application maintient un modèle de données structuré :
+
+#### Feature Flags (Contrôle Modulaire)
+```sql
+CREATE TABLE feature_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flag_name TEXT NOT NULL UNIQUE,
+    is_enabled BOOLEAN NOT NULL DEFAULT 1,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Modules contrôlés** :
+- `finance_module` : Module finance complet
+- `finance_calculations` : Calculs financiers avancés  
+- `finance_reports` : Rapports financiers détaillés
+- `analytics_module` : Module analytics et statistiques
+
+**Utilisation** :
+```sql
+-- Désactiver le module finance
+UPDATE feature_flags SET is_enabled = 0 WHERE flag_name = 'finance_module';
+
+-- Réactiver le module finance  
+UPDATE feature_flags SET is_enabled = 1 WHERE flag_name = 'finance_module';
+
+-- Vérifier l'état
+SELECT flag_name, is_enabled FROM feature_flags;
+```
 
 #### Résident
 ```json

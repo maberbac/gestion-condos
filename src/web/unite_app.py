@@ -513,10 +513,27 @@ def dashboard():
     can_manage_users = lambda role: role == UserRole.ADMIN
     can_view_condos = lambda role: role in [UserRole.ADMIN, UserRole.RESIDENT]
     
+    # Récupérer le nombre d'utilisateurs depuis la base de données
+    total_users = 0
+    try:
+        # Approche directe avec SQLite pour éviter les problèmes de configuration
+        import sqlite3
+        db_path = 'data/condos.db'
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0]
+        conn.close()
+        logger.info(f"Nombre d'utilisateurs récupéré depuis la base: {total_users}")
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération du nombre d'utilisateurs: {e}")
+        total_users = 0
+    
     dashboard_data = {
         'user_name': session.get('full_name') or user_name,  # Prioriser le nom complet si disponible
         'user_role': user_role.value,
         'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unité de condo
+        'total_users': total_users,  # Nombre dynamique d'utilisateurs
         'can_access_finance': can_access_finance(user_role),
         'can_manage_users': can_manage_users(user_role),
         'can_view_condos': can_view_condos(user_role),

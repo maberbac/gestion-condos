@@ -106,7 +106,27 @@ user_repository = None
 condo_service = None
 project_service = None
 user_service = None
+feature_flag_service = None
 logger = get_logger(__name__)
+
+# Fonction helper pour les templates
+def is_feature_enabled(flag_name: str) -> bool:
+    """Vérifie si un feature flag est activé pour utilisation dans les templates."""
+    global feature_flag_service
+    try:
+        if feature_flag_service is None:
+            ensure_services_initialized()
+        
+        if feature_flag_service is None:
+            return True  # Par défaut, autoriser si service non disponible
+            
+        return feature_flag_service.is_feature_enabled(flag_name)
+    except Exception as e:
+        logger.error(f"Erreur vérification feature flag '{flag_name}' dans template: {e}")
+        return True  # Par défaut, autoriser en cas d'erreur
+
+# Rendre la fonction disponible dans tous les templates
+app.jinja_env.globals['is_feature_enabled'] = is_feature_enabled
 
 # Service pour gérer les unités comme des condos dans l'interface
 class SQLiteCondoService:
@@ -398,7 +418,7 @@ def calculate_relative_time(dt):
 
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
-    global auth_service, repository, user_repository, condo_service, project_service, user_service
+    global auth_service, repository, user_repository, condo_service, project_service, user_service, feature_flag_service
     try:
         repository = SQLiteAdapter('data/condos.db')
         user_repository = UserRepositorySQLite()
@@ -415,14 +435,20 @@ def init_services():
         from src.application.services.user_service import UserService
         user_service = UserService()
         
-        logger.info("Services initialisés avec succès (avec SQLite et authentification BD)")
+        # Initialiser le service feature flags
+        from src.adapters.feature_flag_repository_sqlite import FeatureFlagRepositorySQLite
+        from src.application.services.feature_flag_service import FeatureFlagService
+        feature_flag_repository = FeatureFlagRepositorySQLite()
+        feature_flag_service = FeatureFlagService(feature_flag_repository)
+        
+        logger.info("Services initialisés avec succès (avec SQLite, authentification BD et feature flags)")
     except Exception as e:
         logger.error(f"Erreur initialisation services: {e}")
         raise
 
 def ensure_services_initialized():
     """S'assure que les services sont initialisés, notamment pour les tests."""
-    global condo_service, user_service, project_service
+    global condo_service, user_service, project_service, feature_flag_service
     if condo_service is None:
         try:
             init_services()
@@ -439,6 +465,99 @@ def ensure_services_initialized():
             # Initialiser user_service même en cas d'échec
             from src.application.services.user_service import UserService
             user_service = UserService()
+            
+            # Initialiser feature_flag_service même en cas d'échec
+            if feature_flag_service is None:
+                try:
+                    from src.adapters.feature_flag_repository_sqlite import FeatureFlagRepositorySQLite
+                    from src.application.services.feature_flag_service import FeatureFlagService
+                    feature_flag_repository = FeatureFlagRepositorySQLite()
+                    feature_flag_service = FeatureFlagService(feature_flag_repository)
+                except Exception as fe:
+                    logger.error(f"Impossible d'initialiser le service feature flags: {fe}")
+                    feature_flag_service = None
+
+def require_feature_flag(flag_name: str):
+    """Décorateur pour vérifier qu'un feature flag est activé."""
+    def decorator(f):
+        @functools.wraps(f)
+        def decorated_function(*args, **kwargs):
+            global feature_flag_service
+            ensure_services_initialized()
+            
+            try:
+                # Si le service n'est pas disponible, permettre l'accès par défaut
+                if feature_flag_service is None:
+                    logger.warning(f"Service feature flags non disponible, accès autorisé par défaut pour {f.__name__}")
+                    return f(*args, **kwargs)
+                
+                # Vérifier si le feature flag est activé
+                if not feature_flag_service.is_feature_enabled(flag_name):
+                    logger.info(f"Accès refusé à {f.__name__}: feature flag '{flag_name}' désactivé")
+                    
+                    # Retourner erreur appropriée selon le type de requête
+                    if request.path.startswith('/api/'):
+                        return jsonify({
+                            'success': False,
+                            'error': f'Fonctionnalité désactivée: {flag_name}',
+                            'feature_disabled': True
+                        }), 503  # Service Unavailable
+                    
+                    # Pour les pages web, afficher la page feature_disabled.html
+                    try:
+                        return render_template('errors/feature_disabled.html', 
+                                             feature_name=flag_name,
+                                             feature_display_name=flag_name.replace('_', ' ').title()), 503
+                    except Exception as template_error:
+                        logger.error(f"Erreur rendu template feature_disabled: {template_error}")
+                        # Fallback vers HTML simple si problème de template
+                        return f"""
+                        <!DOCTYPE html>
+                        <html><head><title>Fonctionnalité désactivée</title></head>
+                        <body style="text-align:center;padding:50px;">
+                        <h1>Fonctionnalité désactivée</h1>
+                        <p>Le module {flag_name} est actuellement désactivé.</p>
+                        <a href="/">Retour à l'accueil</a>
+                        </body></html>
+                        """, 503
+                
+                logger.debug(f"Accès autorisé à {f.__name__}: feature flag '{flag_name}' activé")
+                return f(*args, **kwargs)
+                
+            except Exception as e:
+                logger.error(f"Erreur lors de la vérification du feature flag '{flag_name}': {e}")
+                # En cas d'erreur, bloquer l'accès par sécurité
+                if request.path.startswith('/api/'):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Erreur de vérification des fonctionnalités',
+                        'feature_disabled': True
+                    }), 503
+                
+                error_html = """
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Erreur système</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                        .error { background: #f8d7da; color: #721c24; padding: 20px; border-radius: 5px; max-width: 500px; margin: 0 auto; }
+                    </style>
+                </head>
+                <body>
+                    <div class="error">
+                        <h1>Erreur système</h1>
+                        <p>Impossible de vérifier l'état de la fonctionnalité.</p>
+                        <a href="/">Retour à l'accueil</a>
+                    </div>
+                </body>
+                </html>
+                """
+                return error_html, 503
+                
+        return decorated_function
+    return decorator
 
 def require_admin(f):
     """Décorateur pour vérifier que l'utilisateur est un administrateur."""
@@ -592,10 +711,44 @@ def dashboard():
     can_manage_users = lambda role: role == UserRole.ADMIN
     can_view_condos = lambda role: role in [UserRole.ADMIN, UserRole.RESIDENT]
     
+    # Récupérer le nombre d'utilisateurs depuis la base de données
+    total_users = 0
+    total_units = 0
+    total_projects = 0
+    try:
+        # Approche directe avec SQLite pour éviter les problèmes de configuration
+        import sqlite3
+        db_path = 'data/condos.db'
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Compter les utilisateurs
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0]
+        
+        # Compter les unités (condos)
+        cursor.execute("SELECT COUNT(*) FROM units")
+        total_units = cursor.fetchone()[0]
+        
+        # Compter les projets
+        cursor.execute("SELECT COUNT(*) FROM projects")
+        total_projects = cursor.fetchone()[0]
+        
+        conn.close()
+        logger.info(f"Statistiques récupérées - Utilisateurs: {total_users}, Unités: {total_units}, Projets: {total_projects}")
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des statistiques: {e}")
+        total_users = 0
+        total_units = 0
+        total_projects = 0
+    
     dashboard_data = {
         'user_name': session.get('full_name') or user_name,  # Prioriser le nom complet si disponible
         'user_role': user_role.value,
         'condo_unit': session.get('condo_unit', 'A-101'),  # Ajouter l'unité de condo
+        'total_users': total_users,  # Nombre dynamique d'utilisateurs
+        'total_units': total_units,  # Nombre dynamique d'unités
+        'total_projects': total_projects,  # Nombre dynamique de projets
         'can_access_finance': can_access_finance(user_role),
         'can_manage_users': can_manage_users(user_role),
         'can_view_condos': can_view_condos(user_role),
@@ -784,9 +937,10 @@ def edit_condo(identifier):
 
 @app.route('/finance')
 @require_admin  
+@require_feature_flag('finance_module')
 def finance():
-    """Page financiÃ¨re réservée aux admins."""
-    # Données financiÃ¨res fictives
+    """Page financière réservée aux admins."""
+    # Données financières fictives
     financial_data = {
         'total_condos': 15,
         'monthly_revenue': 15750.00,

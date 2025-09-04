@@ -44,7 +44,8 @@
                 <h3>Gestion des Condos</h3>
                 <p>Consulter et gérer les unités de condominiums</p>
                 <div class="card-stats">
-                    <span class="stat">5 unités actives</span>
+                    <span class="stat">{{ total_units }} unité{{ 's' if total_units != 1 else '' }} au total</span>
+                    <span class="stat">{{ total_projects }} projet{{ 's' if total_projects != 1 else '' }} au total</span>
                 </div>
             </div>
             <div class="card-actions">
@@ -56,7 +57,7 @@
         </div>
         {% endif %}
         
-        {% if permissions.finance %}
+        {% if permissions.finance and is_feature_enabled('finance_module') %}
         <div class="action-card finance-card">
             <div class="card-icon">💰</div>
             <div class="card-content">
@@ -82,7 +83,7 @@
                 <h3>Utilisateurs</h3>
                 <p>Gestion des résidents et administrateurs</p>
                 <div class="card-stats">
-                    <span class="stat">10 utilisateurs actifs</span>
+                    <span class="stat">{{ total_users }} utilisateur{{ 's' if total_users != 1 else '' }} actif{{ 's' if total_users != 1 else '' }}</span>
                 </div>
             </div>
             <div class="card-actions">
@@ -109,44 +110,6 @@
                     <span class="btn-icon">✏️</span>
                     Mon profil
                 </a>
-            </div>
-        </div>
-
-        <!-- Carte d'activité récente -->
-        <div class="action-card activity-card">
-            <div class="card-icon">📈</div>
-            <div class="card-content">
-                <h3>Activité Récente</h3>
-                <p>Vos dernières actions sur la plateforme</p>
-                <div class="activity-timeline">
-                    <div class="timeline-item">
-                        <span class="timeline-time">09:30</span>
-                        <span class="timeline-action">Connexion au système</span>
-                    </div>
-                    <div class="timeline-item">
-                        <span class="timeline-time">09:15</span>
-                        <span class="timeline-action">Consultation tableau de bord</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Carte de notifications -->
-        <div class="action-card notifications-card">
-            <div class="card-icon">🔔</div>
-            <div class="card-content">
-                <h3>Notifications</h3>
-                <p>Messages et alertes importantes</p>
-                <div class="notifications-list">
-                    <div class="notification-item">
-                        <span class="notification-type info">Info</span>
-                        <span class="notification-text">Système mis à jour</span>
-                    </div>
-                    <div class="notification-item">
-                        <span class="notification-type success">Succès</span>
-                        <span class="notification-text">Connexion sécurisée</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -293,6 +256,9 @@
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         border: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
     }
 
     .action-card:hover {
@@ -334,6 +300,9 @@
 
     .card-content {
         padding: 25px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 
     .card-content h3 {
@@ -359,7 +328,12 @@
         background: #f8f9fa;
         padding: 6px 12px;
         border-radius: 15px;
-        display: inline-block;
+        display: block;
+        margin-bottom: 8px;
+    }
+    
+    .stat:last-child {
+        margin-bottom: 0;
     }
 
     .card-actions {

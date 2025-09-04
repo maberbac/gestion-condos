@@ -1,6 +1,5 @@
 -- Migration 001: Schéma Initial
 -- Création des tables principales pour le système de gestion de condos
--- Date: 2025-08-28
 -- Description: Tables de base pour condos, résidents et enregistrements financiers
 
 -- Table des condos (unités)
