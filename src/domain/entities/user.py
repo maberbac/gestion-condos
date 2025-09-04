@@ -84,9 +84,7 @@ class User:
         if not self.full_name or len(self.full_name.strip()) < 2:
             raise UserValidationError("Nom complet requis")
         
-        # Validation spécifique par rôle
-        if self.role == UserRole.RESIDENT and not self.condo_unit:
-            raise UserValidationError("Numéro d'unité requis pour les résidents")
+        # Note: L'unité de condo est optionnelle pour tous les rôles
     
     @staticmethod
     def hash_password(password: str) -> str:

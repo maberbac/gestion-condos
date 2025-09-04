@@ -374,7 +374,7 @@ class ProjectService:
             # Calcul des statistiques basé sur les unités EXISTANTES du projet
             stats = project.get_project_statistics()
             
-            logger.info(f"Statistiques calculées pour {project.name}: {stats['sold_units']}/{stats['total_units']} unités vendues")
+            logger.info(f"Statistiques calculées pour {project.name}: {stats['occupied_units']}/{stats['total_units']} unités occupées")
             
             # Sauvegarder le projet pour s'assurer que les modifications d'unités sont persistées
             self.project_repository.save_project(project)
@@ -576,31 +576,31 @@ class ProjectService:
                 {
                     'name': 'Résidence du Parc',
                     'total_units': 15,
-                    'sold_units': 8,
+                    'occupied_units': 8,
                     'available_units': 7,
                     'occupancy_rate': 53.3
                 },
                 {
                     'name': 'Les Jardins de Ville',
                     'total_units': 24,
-                    'sold_units': 18,
+                    'occupied_units': 18,
                     'available_units': 6,
                     'occupancy_rate': 75.0
                 }
             ]
             
             total_units = sum(p['total_units'] for p in projects_summary)
-            total_sold = sum(p['sold_units'] for p in projects_summary)
+            total_occupied = sum(p['occupied_units'] for p in projects_summary)
             
-            logger.info(f"Résumé calculé: {len(projects_summary)} projets, {total_sold}/{total_units} unités vendues")
+            logger.info(f"Résumé calculé: {len(projects_summary)} projets, {total_occupied}/{total_units} unités occupées")
             
             return {
                 'success': True,
                 'projects': projects_summary,
                 'total_projects': len(projects_summary),
                 'total_units': total_units,
-                'total_sold': total_sold,
-                'overall_occupancy': (total_sold / total_units * 100) if total_units > 0 else 0
+                'total_occupied': total_occupied,
+                'overall_occupancy': (total_occupied / total_units * 100) if total_units > 0 else 0
             }
             
         except Exception as e:
@@ -767,7 +767,7 @@ class ProjectService:
             # Calculer les statistiques
             stats = project.get_project_statistics()
             
-            logger.info(f"Statistiques calculées pour {project.name}: {stats['sold_units']}/{stats['total_units']} unités vendues")
+            logger.info(f"Statistiques calculées pour {project.name}: {stats['occupied_units']}/{stats['total_units']} unités occupées")
             
             return {
                 'success': True,

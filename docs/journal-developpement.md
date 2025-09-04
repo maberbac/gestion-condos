@@ -5,7 +5,7 @@
 **Objectif** : Développer un MVP (Minimum Viable Product) d'application web de gestion de condominiums démontrant 4 concepts techniques obligatoires.
 
 **Statut Final** : **PROJET RÉUSSI**   
-**Date de finalisation** : 1er septembre 2025  
+**Date de finalisation** : 3 septembre 2025  
 **Approche** : Architecture hexagonale avec méthodologie TDD stricte
 
 **Résultats Finaux** :
@@ -14,6 +14,7 @@
 - 4 concepts techniques entièrement implémentés
 - Base de données SQLite avec migrations centralisées
 - Système de logging et authentification sécurisés
+- Correction critique du calcul d'unités disponibles (bug enum résolu)
 
 ---
 
@@ -585,3 +586,35 @@ Cette implémentation établit les fondations pour :
 - **Notifications** et alertes administratives
 - **Export PDF/Excel** des données utilisateur
 - **API versionnée** pour intégrations externes
+
+## Correction Critique - Calcul Unités Disponibles (3 septembre 2025)
+
+### Problème Identifié
+Bug critique dans le calcul `available_units` dans `/projets` : affichage permanent de 0 unités disponibles malgré la présence d'unités avec statut `UnitStatus.AVAILABLE`.
+
+### Analyse Technique
+**Cause racine** : Comparaison incorrecte d'enum dans `src/web/condo_app.py` ligne 1693
+- **Code défaillant** : `unit.status == 'available'` (comparaison string vs enum)
+- **Statut réel** : Unités avec `UnitStatus.AVAILABLE` (enum)
+- **Résultat** : Aucune correspondance, count = 0 systématiquement
+
+### Solution Implémentée
+**Correction** : Remplacement par méthode d'entité appropriée
+```python
+# AVANT (incorrect)
+available_units = sum(1 for project in projects for unit in project.units if unit.status == 'available')
+
+# APRÈS (correct)
+available_units = sum(1 for project in projects for unit in project.units if unit.is_available())
+```
+
+### Validation de la Correction
+**Test de validation** : Script diagnostic `tmp/test_corrected_available_units.py`
+- **Résultat AVANT** : 0 unités disponibles (incorrect)
+- **Résultat APRÈS** : 8 unités disponibles sur 10 total (correct)
+- **Méthode `is_available()`** : Comparaison enum appropriée `status == UnitStatus.AVAILABLE`
+
+### Impact
+- **Interface utilisateur** : Statistiques `/projets` maintenant exactes
+- **Fiabilité données** : Calculs de disponibilité corrigés
+- **Cohérence système** : Utilisation systématique des méthodes d'entité appropriées

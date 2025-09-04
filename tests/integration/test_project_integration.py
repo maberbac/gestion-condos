@@ -73,8 +73,7 @@ class TestProjectIntegration(unittest.TestCase):
                 area=150.0,
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
-                estimated_price=250000.0,
-                monthly_fees_base=500.0
+                estimated_price=250000.0
             )
             created_units.append(unit)
         
@@ -122,7 +121,7 @@ class TestProjectIntegration(unittest.TestCase):
         mock_stats = {
             'total_projects': 1,
             'total_units': 10,
-            'sold_units': 3,
+            'occupied_units': 3,
             'available_units': 7,
             'total_revenue': 450000.0,
             'average_price': 150000.0
@@ -137,7 +136,7 @@ class TestProjectIntegration(unittest.TestCase):
         self.assertIsInstance(stats, dict)
         self.assertEqual(stats['total_projects'], 1)
         self.assertEqual(stats['total_units'], 10)
-        self.assertEqual(stats['sold_units'], 3)
+        self.assertEqual(stats['occupied_units'], 3)
         self.assertEqual(stats['available_units'], 7)
         self.assertEqual(stats['total_revenue'], 450000.0)
         self.assertEqual(stats['average_price'], 150000.0)
@@ -228,8 +227,7 @@ class TestProjectIntegration(unittest.TestCase):
                 area=150.0 + (i * 10),  # Superficies variables
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
-                estimated_price=250000.0 + (i * 10000),  # Prix variables
-                monthly_fees_base=500.0 + (i * 50)  # Frais variables
+                estimated_price=250000.0 + (i * 10000)  # Prix variables
             )
             mock_units.append(unit)
         

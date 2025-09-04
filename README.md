@@ -2,13 +2,15 @@
 
 Application web de gestion administrative et financière pour copropriétés développée en Python.
 
-## État du Projet : Production Ready avec Fonctionnalités Critiques
+## État du Projet : Production Ready
 
 **Statut** : Production Ready  
-**Tests** : 193/199 passent (97% succès)
+**Tests** : 333/333 passent (100% succès)  
+**Date de finalisation** : 3 septembre 2025
 
 ### Fonctionnalités Principales
-- **Stabilité des IDs garantie** : Modification d'une unité ne recrée plus toutes les unités du projet
+- **Calcul d'unités disponibles corrigé** : Statistiques projets affichent maintenant les bonnes valeurs
+- **Stabilité des IDs garantie** : Modification d'une unité ne recrée plus toutes les unités du projet  
 - **Performance optimisée** : Amélioration significative des opérations de modification d'unités
 - **Intégrité des données** : Contexte de filtrage par projet préservé lors des modifications
 - **Interface utilisateur robuste** : Support flexible des identifiants d'unités
@@ -743,9 +745,56 @@ gestion-condos/
 
 ### Problèmes Courants
 
+## Dépannage
+
+### Problèmes Courants
+
 **Erreur de démarrage de l'application**
 ```bash
 # Vérifier la version Python
+python --version
+
+# Vérifier les dépendances
+pip list
+
+# Réinstaller les dépendances
+pip install -r requirements.txt
+```
+
+**Erreur "Unités disponibles = 0"**
+Ce problème a été résolu par la correction de la comparaison d'enum dans le calcul `available_units`. La logique utilise maintenant `unit.is_available()` au lieu de comparer directement avec des chaînes de caractères.
+
+**Tests qui échouent**
+```bash
+# Exécuter les tests par catégorie pour identifier le problème
+python tests/run_all_unit_tests.py      # Tests unitaires
+python tests/run_all_integration_tests.py  # Tests d'intégration
+python tests/run_all_acceptance_tests.py   # Tests d'acceptance
+```
+
+**Base de données corrompue**
+```bash
+# Réinitialiser la base de données
+rm data/condos.db
+python run_app.py  # Les migrations recréeront automatiquement la base
+```
+
+## Licence
+
+Ce projet est développé dans un cadre éducatif pour démontrer l'implémentation de concepts techniques avancés en Python.
+
+## Support
+
+Pour toute question ou problème :
+1. Consulter la documentation dans `docs/`
+2. Vérifier les tests pour des exemples d'usage
+3. Examiner les logs dans `logs/`
+
+---
+
+**Statut du projet** : Production Ready  
+**Dernière mise à jour** : 3 septembre 2025  
+**Tests** : 333/333 passent (100% succès)
 python --version
 
 # Vérifier les dépendances

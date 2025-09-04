@@ -158,7 +158,7 @@ class TestProjectService(unittest.TestCase):
         stats = result['statistics']
         
         self.assertEqual(stats['total_units'], 15)
-        self.assertEqual(stats['sold_units'], 2)
+        self.assertEqual(stats['occupied_units'], 2)
         self.assertEqual(stats['available_units'], 13)
         self.assertAlmostEqual(stats['occupancy_rate'], (2/15)*100, places=1)
     
@@ -168,19 +168,19 @@ class TestProjectService(unittest.TestCase):
         project = Project(**self.valid_project_data)
         project.generate_units()
         
-        # Simuler des ventes pour certaines unités
-        sold_units = project.units[:5]  # 5 premières unités vendues
-        for i, unit in enumerate(sold_units):
+        # Simuler des occupations pour certaines unités
+        occupied_units = project.units[:5]  # 5 premières unités occupées
+        for i, unit in enumerate(occupied_units):
             unit.transfer_ownership(f"Propriétaire {i+1}")
         
         # Act - Utilisation de filter et map (programmation fonctionnelle)
         available_units = list(filter(lambda u: u.owner_name is None or u.owner_name == "Disponible", project.units))
-        sold_units_list = list(filter(lambda u: u.owner_name is not None and u.owner_name != "Disponible", project.units))
+        occupied_units_list = list(filter(lambda u: u.owner_name is not None and u.owner_name != "Disponible", project.units))
         unit_areas = list(map(lambda u: u.area, project.units))
         
         # Assert
         self.assertEqual(len(available_units), 10)  # 15 - 5 = 10
-        self.assertEqual(len(sold_units_list), 5)
+        self.assertEqual(len(occupied_units_list), 5)
         self.assertEqual(len(unit_areas), 15)
         
         # Vérifier que toutes les superficies sont positives

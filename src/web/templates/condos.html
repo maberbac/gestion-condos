@@ -92,10 +92,10 @@
             <div class="filter-section">
                 <select id="filter-type" class="filter-type">
                     <option value="">Tous les types</option>
-                    <option value="residential">Résidentiel</option>
-                    <option value="commercial">Commercial</option>
-                    <option value="parking">Stationnement</option>
-                    <option value="storage">Entreposage</option>
+                    <option value="RESIDENTIAL">Résidentiel</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                    <option value="PARKING">Stationnement</option>
+                    <option value="STORAGE">Entreposage</option>
                 </select>
                 
                 <select id="filter-status" class="filter-status">
@@ -218,9 +218,8 @@
                             data-owner-name="{{ condo.owner_name or '' }}"
                             data-square-feet="{{ condo.square_feet or 0 }}"
                             data-monthly-fees="{{ condo.monthly_fees or 0 }}"
-                            data-unit-type="{{ condo.unit_type.name.lower() if condo.unit_type else 'residential' }}"
-                            data-status="{{ condo.status.value if condo.status else 'available' }}"
-                            data-is-sold="{{ 'true' if not condo.is_available else 'false' }}">
+                            data-unit-type="{{ condo.unit_type.value if condo.unit_type else 'RESIDENTIAL' }}"
+                            data-status="{{ condo.status.value if condo.status else 'available' }}">
                         <span class="btn-icon">✏️</span>
                         <span class="btn-text">Modifier</span>
                     </button>
@@ -229,59 +228,6 @@
             </div>
             {% endfor %}
         </div>
-
-        <!-- Detailed Analytics -->
-        {% if user_role == 'admin' and stats %}
-        <div class="condo-analytics">
-            <h3>Analyse des Unités</h3>
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <span class="analytics-title">Répartition par Type</span>
-                        <span class="analytics-icon">📊</span>
-                    </div>
-                    <div class="type-distribution">
-                        <div class="distribution-item">
-                            <div class="distribution-bar residential" style="width: {{ (stats.get('residential_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
-                            <span class="distribution-label">Résidentiels</span>
-                            <span class="distribution-value">{{ (stats.get('residential_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-bar commercial" style="width: {{ (stats.get('commercial_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
-                            <span class="distribution-label">Commerciaux</span>
-                            <span class="distribution-value">{{ (stats.get('commercial_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-bar parking" style="width: {{ (stats.get('parking_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%"></div>
-                            <span class="distribution-label">Stationnements</span>
-                            <span class="distribution-value">{{ (stats.get('parking_condos', 0) / stats.get('total_condos', 1) * 100)|round if stats.get('total_condos', 0) > 0 else 0 }}%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <span class="analytics-title">Métriques Financières</span>
-                        <span class="analytics-icon">💵</span>
-                    </div>
-                    <div class="financial-metrics">
-                        <div class="metric-item">
-                            <span class="metric-label">Revenus mensuels totaux</span>
-                            <span class="metric-value">${{ "{:,}".format(stats.total_monthly_revenue or 0) }}</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-label">Superficie totale</span>
-                            <span class="metric-value">{{ "{:,}".format(stats.total_area or 0) }} pi²</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-label">Superficie moyenne</span>
-                            <span class="metric-value">{{ stats.average_area or 0 }} pi²</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
     {% else %}
         <!-- Empty State -->
@@ -338,10 +284,10 @@
             <div class="form-group">
                 <label for="unit_type">Type</label>
                 <select id="unit_type" name="unit_type">
-                    <option value="residential" selected>Résidentiel</option>
-                    <option value="commercial">Commercial</option>
-                    <option value="parking">Stationnement</option>
-                    <option value="storage">Entreposage</option>
+                    <option value="RESIDENTIAL" selected>Résidentiel</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                    <option value="PARKING">Stationnement</option>
+                    <option value="STORAGE">Entreposage</option>
                 </select>
             </div>                <div class="form-group">
                     <label for="status">Statut</label>
@@ -350,19 +296,11 @@
                         <option value="available">Disponible</option>
                         <option value="inactive">Inactif</option>
                         <option value="maintenance">Maintenance</option>
-                        <option value="sold">Vendu</option>
-                        
                     </select>
                 </div>
             </div>
             
-            <div class="form-group checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="is_sold" name="is_sold">
-                    <span class="checkmark"></span>
-                    Unité vendue/occupée
-                </label>
-            </div>
+
             
             <div class="modal-actions">
                 <button type="button" class="btn-cancel" onclick="closeCreateUnitModal()">Annuler</button>
@@ -412,10 +350,10 @@
                 <div class="form-group">
                     <label for="edit_unit_type">Type</label>
                     <select id="edit_unit_type" name="unit_type">
-                        <option value="residential">Résidentiel</option>
-                        <option value="commercial">Commercial</option>
-                        <option value="parking">Stationnement</option>
-                        <option value="storage">Entreposage</option>
+                        <option value="RESIDENTIAL">Résidentiel</option>
+                        <option value="COMMERCIAL">Commercial</option>
+                        <option value="PARKING">Stationnement</option>
+                        <option value="STORAGE">Entreposage</option>
                     </select>
                 </div>
                 
@@ -426,18 +364,10 @@
                         <option value="available">Disponible</option>
                         <option value="inactive">Inactif</option>
                         <option value="maintenance">Maintenance</option>
-                        <option value="sold">Vendu</option>
                     </select>
                 </div>
             </div>
-            
-            <div class="form-group checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="edit_is_sold" name="is_sold">
-                    <span class="checkmark"></span>
-                    Unité vendue/occupée
-                </label>
-            </div>
+
             
             <div class="modal-actions">
                 <button type="button" class="btn-cancel" onclick="closeEditUnitModal()">Annuler</button>
@@ -1365,7 +1295,6 @@ function showEditUnitModal(button) {
     const monthlyFees = button.dataset.monthlyFees;
     const unitType = button.dataset.unitType;
     const status = button.dataset.status;
-    const isSold = button.dataset.isSold === 'true';
 
     // Stocker le numéro d'unité original pour la soumission (pour compatibilité)
     originalUnitNumber = unitNumber;
@@ -1375,9 +1304,8 @@ function showEditUnitModal(button) {
     document.getElementById('edit_owner_name').value = ownerName || '';
     document.getElementById('edit_square_feet').value = squareFeet || '';
     document.getElementById('edit_monthly_fees').value = monthlyFees || '';
-    document.getElementById('edit_unit_type').value = unitType || 'residential';
+    document.getElementById('edit_unit_type').value = unitType || 'RESIDENTIAL';
     document.getElementById('edit_status').value = status || 'available';
-    document.getElementById('edit_is_sold').checked = isSold;
     
     // Utiliser UNIQUEMENT l'ID de base de données - pas de fallback
     if (!unitId || unitId.trim() === '') {

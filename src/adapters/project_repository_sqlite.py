@@ -135,8 +135,7 @@ class ProjectRepositorySQLite:
             condo_type = unit.get('condo_type', 'residential')
             status = unit.get('status', 'active')
             owner_name = unit.get('owner_name', 'Disponible')
-            purchase_date = unit.get('purchase_date')
-            monthly_fees = unit.get('calculated_monthly_fees', unit.get('monthly_fees_base'))
+            monthly_fees = unit.get('calculated_monthly_fees')
         else:
             # Objet Unit ou Condo - gérer les différents attributs
             unit_number = unit.unit_number
@@ -163,14 +162,13 @@ class ProjectRepositorySQLite:
                 status = 'active'
                 
             owner_name = getattr(unit, 'owner_name', 'Disponible')
-            purchase_date = getattr(unit, 'purchase_date', None)
-            monthly_fees = getattr(unit, 'calculated_monthly_fees', getattr(unit, 'monthly_fees_base', None))
+            monthly_fees = getattr(unit, 'calculated_monthly_fees', None)
         
         conn.execute("""
             INSERT INTO units 
             (unit_number, project_id, area, condo_type, status, 
-             owner_name, purchase_date, calculated_monthly_fees)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             owner_name, calculated_monthly_fees)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             unit_number,
             project_id,
@@ -178,7 +176,6 @@ class ProjectRepositorySQLite:
             condo_type,
             status,
             owner_name,
-            purchase_date,
             str(monthly_fees) if monthly_fees else None
         ))
     
@@ -233,7 +230,7 @@ class ProjectRepositorySQLite:
                     # Récupérer les unités du projet
                     unit_cursor = conn.execute("""
                         SELECT id, unit_number, area, condo_type, status,
-                               owner_name, purchase_date, calculated_monthly_fees
+                               owner_name, calculated_monthly_fees
                         FROM units 
                         WHERE project_id = ?
                         ORDER BY unit_number
@@ -256,9 +253,13 @@ class ProjectRepositorySQLite:
                             if old_status == 'active':
                                 status = UnitStatus.AVAILABLE
                             elif old_status == 'inactive':
-                                status = UnitStatus.AVAILABLE  # Inactif devient disponible
+                                status = UnitStatus.INACTIVE  # CORRECTION: inactive reste inactive !
+                            elif old_status == 'available':
+                                status = UnitStatus.AVAILABLE
+                            elif old_status == 'reserved':
+                                status = UnitStatus.RESERVED
                             elif old_status == 'sold':
-                                status = UnitStatus.SOLD
+                                status = UnitStatus.AVAILABLE  # Les anciens "sold" deviennent disponibles
                             elif old_status == 'maintenance':
                                 status = UnitStatus.MAINTENANCE
                             else:
@@ -267,24 +268,16 @@ class ProjectRepositorySQLite:
                         except (ValueError, KeyError):
                             status = UnitStatus.AVAILABLE  # Valeur par défaut
                         
-                        # Conversion date d'achat
-                        purchase_date = None
-                        if unit_row['purchase_date']:
-                            try:
-                                purchase_date = datetime.fromisoformat(unit_row['purchase_date'])
-                            except (ValueError, TypeError):
-                                purchase_date = None
-                        
                         unit = Unit(
                             unit_number=unit_row['unit_number'],
-                            area=float(unit_row['area']),
+                            area=float(unit_row['area'] or 0),  # Protection contre None
                             unit_type=unit_type,
                             status=status,
                             owner_name=unit_row['owner_name'] or "Disponible",
-                            purchase_date=purchase_date,
-                            estimated_price=float(unit_row['price'] if 'price' in unit_row.keys() else 0),  # Si pas de colonne price, défaut à 0
+                            estimated_price=float(unit_row['price'] if 'price' in unit_row.keys() and unit_row['price'] is not None else 0),  # Protection contre None
                             project_id=row['project_id'],          # Ajouter l'ID du projet
-                            id=unit_row['id']  # Utiliser l'attribut id directement
+                            id=unit_row['id'],  # Utiliser l'attribut id directement
+                            calculated_monthly_fees=unit_row['calculated_monthly_fees']  # AJOUT: Récupérer les frais stockés
                         )
                         units.append(unit)
                     
@@ -336,7 +329,7 @@ class ProjectRepositorySQLite:
                 # Récupérer l'unité et le projet associé
                 cursor = conn.execute("""
                     SELECT u.id, u.unit_number, u.area, u.condo_type, u.status,
-                           u.owner_name, u.purchase_date, u.calculated_monthly_fees,
+                           u.owner_name, u.calculated_monthly_fees,
                            p.project_id, p.name as project_name
                     FROM units u
                     JOIN projects p ON u.project_id = p.project_id
@@ -361,9 +354,13 @@ class ProjectRepositorySQLite:
                     if old_status == 'active':
                         status = UnitStatus.AVAILABLE
                     elif old_status == 'inactive':
+                        status = UnitStatus.INACTIVE  # CORRECTION: inactive reste inactive !
+                    elif old_status == 'available':
                         status = UnitStatus.AVAILABLE
+                    elif old_status == 'reserved':
+                        status = UnitStatus.RESERVED
                     elif old_status == 'sold':
-                        status = UnitStatus.SOLD
+                        status = UnitStatus.AVAILABLE  # Les anciens "sold" deviennent disponibles
                     elif old_status == 'maintenance':
                         status = UnitStatus.MAINTENANCE
                     else:
@@ -371,24 +368,18 @@ class ProjectRepositorySQLite:
                 except (ValueError, KeyError):
                     status = UnitStatus.AVAILABLE
                 
-                # Conversion date d'achat
-                purchase_date = None
-                if row['purchase_date']:
-                    try:
-                        purchase_date = datetime.fromisoformat(row['purchase_date'])
-                    except (ValueError, TypeError):
-                        purchase_date = None
+                # Conversion date d'achat - supprimée
                 
                 unit = Unit(
                     unit_number=row['unit_number'],
-                    area=float(row['area']),
+                    area=float(row['area'] or 0),  # Protection contre None
                     unit_type=unit_type,
                     status=status,
                     owner_name=row['owner_name'] or "Disponible",
-                    purchase_date=purchase_date,
                     estimated_price=0.0,  # À récupérer depuis estimated_price si nécessaire
                     project_id=row['project_id'],
-                    id=row['id']  # Utiliser l'attribut id directement
+                    id=row['id'],  # Utiliser l'attribut id directement
+                    calculated_monthly_fees=row['calculated_monthly_fees']  # AJOUT: Récupérer les frais stockés
                 )
                 
                 # Récupérer le projet minimal pour le contexte
@@ -514,27 +505,20 @@ class ProjectRepositorySQLite:
                 
                 # Mapper les champs de condo_data aux colonnes de la base
                 field_mapping = {
+                    'unit_number': 'unit_number',                    # AJOUT: Mapping pour le numéro d'unité
                     'owner_name': 'owner_name',
                     'square_feet': 'area',
                     'area': 'area',
                     'monthly_fees': 'calculated_monthly_fees',
-                    'monthly_fees_base': 'calculated_monthly_fees',
                     'condo_type': 'condo_type',
                     'unit_type': 'condo_type',
-                    'status': 'status',
-                    'is_sold': 'status'  # Gérer is_sold → status
+                    'status': 'status'
                 }
                 
                 for field, db_column in field_mapping.items():
                     if field in unit_data:
-                        if field == 'is_sold':
-                            # Convertir is_sold en status approprié
-                            if unit_data[field]:
-                                set_clauses.append(f"{db_column} = ?")
-                                values.append('sold')
-                        else:
-                            set_clauses.append(f"{db_column} = ?")
-                            values.append(unit_data[field])
+                        set_clauses.append(f"{db_column} = ?")
+                        values.append(unit_data[field])
                 
                 if not set_clauses:
                     logger.warning(f"Aucune donnée à mettre à jour pour l'unité {unit_id}")

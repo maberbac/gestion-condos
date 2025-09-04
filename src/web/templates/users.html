@@ -67,7 +67,6 @@
                         {% elif user.role.value == 'resident' %}🏠
                         {% else %}👤{% endif %}
                     </div>
-                    <div class="user-status {% if user.last_login %}active{% else %}inactive{% endif %}"></div>
                 </div>
 
                 <div class="user-info">
@@ -82,7 +81,7 @@
                         
                         <div class="detail-item">
                             <span class="detail-icon">🏠</span>
-                            <span class="detail-text">{{ user.condo_unit or 'Non assigné' }}</span>
+                            <span class="detail-text">{{ user.condo_unit }}</span>
                         </div>
                         
                         <div class="detail-item">
@@ -124,57 +123,6 @@
                 </div>
             </div>
             {% endfor %}
-        </div>
-
-        <!-- Detailed Analytics -->
-        <div class="user-analytics">
-            <h3>Analyse des Utilisateurs</h3>
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <span class="analytics-title">Répartition par Rôle</span>
-                        <span class="analytics-icon">📊</span>
-                    </div>
-                    <div class="role-distribution">
-                        <div class="distribution-item">
-                            <div class="distribution-bar admin" style="width: {{ (users|selectattr('role.value', 'equalto', 'admin')|list|length / users|length * 100)|round }}%"></div>
-                            <span class="distribution-label">Administrateurs</span>
-                            <span class="distribution-value">{{ (users|selectattr('role.value', 'equalto', 'admin')|list|length / users|length * 100)|round }}%</span>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-bar resident" style="width: {{ (users|selectattr('role.value', 'equalto', 'resident')|list|length / users|length * 100)|round }}%"></div>
-                            <span class="distribution-label">Résidents</span>
-                            <span class="distribution-value">{{ (users|selectattr('role.value', 'equalto', 'resident')|list|length / users|length * 100)|round }}%</span>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-bar guest" style="width: {{ (users|selectattr('role.value', 'equalto', 'guest')|list|length / users|length * 100)|round }}%"></div>
-                            <span class="distribution-label">Invités</span>
-                            <span class="distribution-value">{{ (users|selectattr('role.value', 'equalto', 'guest')|list|length / users|length * 100)|round }}%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <span class="analytics-title">Activité Utilisateurs</span>
-                        <span class="analytics-icon">📈</span>
-                    </div>
-                    <div class="activity-metrics">
-                        <div class="metric-item">
-                            <span class="metric-label">Connexions récentes</span>
-                            <span class="metric-value">{{ users|selectattr('last_login')|list|length }}</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-label">Comptes inactifs</span>
-                            <span class="metric-value">{{ users|rejectattr('last_login')|list|length }}</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-label">Unités non assignées</span>
-                            <span class="metric-value">{{ users|rejectattr('condo_unit')|list|length }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
     {% else %}
@@ -219,9 +167,9 @@
                     <label for="new_role">Rôle</label>
                     <select id="new_role" name="role" required>
                         <option value="">Sélectionner un rôle</option>
-                        <option value="admin">👑 Administrateur</option>
-                        <option value="resident">🏠 Résident</option>
-                        <option value="guest">👤 Invité</option>
+                        <option value="admin">Administrateur</option>
+                        <option value="resident">Résident</option>
+                        <option value="guest">Invité</option>
                     </select>
                 </div>
                 
@@ -231,7 +179,7 @@
                     <small>Minimum 6 caractères</small>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label for="new_condo_unit">Unité de condo</label>
                     <input type="text" id="new_condo_unit" name="condo_unit" placeholder="ex: 101 (optionnel)">
                 </div>
@@ -275,19 +223,13 @@
                 <div class="form-group">
                     <label for="edit_role">Rôle</label>
                     <select id="edit_role" name="role" required>
-                        <option value="admin">👑 Administrateur</option>
-                        <option value="resident">🏠 Résident</option>
-                        <option value="guest">👤 Invité</option>
+                        <option value="admin">Administrateur</option>
+                        <option value="resident">Résident</option>
+                        <option value="guest">Invité</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label for="edit_password">Nouveau mot de passe</label>
-                    <input type="password" id="edit_password" name="password" placeholder="Laisser vide pour ne pas changer">
-                    <small>Laisser vide pour conserver le mot de passe actuel</small>
-                </div>
-                
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label for="edit_condo_unit">Unité de condo</label>
                     <input type="text" id="edit_condo_unit" name="condo_unit" placeholder="ex: 101 (optionnel)">
                 </div>
@@ -963,6 +905,42 @@
                 document.getElementById('edit_role').value = user.role;
                 document.getElementById('edit_condo_unit').value = user.condo_unit || '';
                 
+                // Vérifier si l'utilisateur édite son propre profil
+                const currentUsername = '{{ session.user_id }}';
+                const roleField = document.getElementById('edit_role');
+                const roleGroup = roleField.closest('.form-group');
+                
+                if (username === currentUsername) {
+                    // L'utilisateur ne peut pas modifier son propre rôle
+                    roleField.disabled = true;
+                    roleField.style.backgroundColor = '#f8f9fa';
+                    roleField.style.color = '#6c757d';
+                    roleField.style.cursor = 'not-allowed';
+                    
+                    // Ajouter une indication visuelle
+                    let helpText = roleGroup.querySelector('.role-help-text');
+                    if (!helpText) {
+                        helpText = document.createElement('small');
+                        helpText.className = 'role-help-text';
+                        helpText.style.color = '#dc3545';
+                        helpText.style.fontStyle = 'italic';
+                        helpText.textContent = 'Vous ne pouvez pas modifier votre propre rôle';
+                        roleGroup.appendChild(helpText);
+                    }
+                } else {
+                    // Réactiver le champ pour les autres utilisateurs
+                    roleField.disabled = false;
+                    roleField.style.backgroundColor = '';
+                    roleField.style.color = '';
+                    roleField.style.cursor = '';
+                    
+                    // Supprimer l'indication visuelle
+                    const helpText = roleGroup.querySelector('.role-help-text');
+                    if (helpText) {
+                        helpText.remove();
+                    }
+                }
+                
                 // Afficher la popup
                 document.getElementById('editUserModal').style.display = 'block';
             } else {
@@ -1165,11 +1143,7 @@
             return;
         }
         
-        if (userData.role === 'resident' && !userData.condo_unit) {
-            if (!confirm('Aucune unité de condo spécifiée pour un résident. Continuer ?')) {
-                return;
-            }
-        }
+        // Note: L'unité de condo est optionnelle pour tous les rôles
         
         // Envoi vers le serveur
         fetch(`/api/user/${originalUsername}`, {

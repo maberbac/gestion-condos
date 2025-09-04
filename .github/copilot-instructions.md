@@ -28,7 +28,19 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - Ne pas assumer la nature du projet
 - **DÉVELOPPEMENT TDD OBLIGATOIRE** : Toujours écrire les tests AVANT le code (Red-Green-Refactor)
 
-### 4. INTERDICTION STRICTE DES EMOJIS
+### 4. INTERDICTION ABSOLUE DE MODIFICATION DES MONTANTS FINANCIERS
+- **JAMAIS** modifier, ajuster ou corriger des frais, montants ou valeurs monétaires sans autorisation explicite de l'utilisateur
+- **JAMAIS** changer des calculs de frais, tarifs, prix ou montants de façon autonome
+- **JAMAIS** "corriger" des valeurs financières qui semblent incorrectes sans demander confirmation
+- **JAMAIS** appliquer des "améliorations" aux calculs financiers sans instruction directe
+- **JAMAIS** modifier les algorithmes de calcul de frais sans accord explicite
+- **TOUJOURS** demander l'autorisation avant toute modification touchant aux aspects financiers
+- **TOUJOURS** préserver les valeurs monétaires existantes sauf instruction contraire explicite
+- **PRINCIPE** : Les données financières sont critiques et ne doivent JAMAIS être modifiées sans accord
+- **EXCEPTION UNIQUE** : Correction de bugs évidents avec autorisation explicite de l'utilisateur
+- **VALIDATION OBLIGATOIRE** : Toute modification financière doit être approuvée avant implémentation
+
+### 5. INTERDICTION STRICTE DES EMOJIS
 - **JAMAIS** utiliser d'emojis dans les réponses, commentaires, ou documentation
 - **JAMAIS** inclure d'emojis dans les noms de fichiers, variables, ou fonctions
 - **JAMAIS** ajouter d'emojis dans les commits, README, ou fichiers markdown
@@ -697,6 +709,9 @@ tests/
 
 Avant toute implémentation de code, vérifier :
 - [ ] **ÉCRIRE LES TESTS EN PREMIER** (méthodologie Red-Green-Refactor obligatoire mais transparente)
+- [ ] **VÉRIFIER ABSOLUMENT qu'AUCUNE valeur financière, frais ou montant n'est modifié sans autorisation explicite**
+- [ ] **DEMANDER CONFIRMATION avant toute modification touchant aux calculs financiers, tarifs ou prix**
+- [ ] **PRÉSERVER STRICTEMENT toutes les valeurs monétaires existantes sauf instruction contraire**
 - [ ] Créer les tests unitaires pour la nouvelle fonctionnalité
 - [ ] Créer les tests d'intégration si nécessaire
 - [ ] Créer les tests d'acceptance pour les fonctionnalités utilisateur
@@ -747,6 +762,8 @@ Avant toute implémentation de code, vérifier :
 
 Après toute implémentation de code, s'assurer que :
 - [ ] **TOUS LES TESTS PASSENT** (unitaires, intégration, acceptance)
+- [ ] **VALIDATION CRITIQUE** : Aucune modification de valeurs financières sans autorisation explicite
+- [ ] **VÉRIFICATION MONTANTS** : Tous les frais, tarifs et prix sont préservés intacts
 - [ ] Les nouveaux tests sont ajoutés aux scripts run_all_*_tests.py appropriés
 - [ ] La couverture de tests est maintenue ou améliorée
 - [ ] Le cycle méthodologique Red-Green-Refactor a été respecté (sans traces dans le code)

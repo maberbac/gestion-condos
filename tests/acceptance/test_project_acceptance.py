@@ -81,7 +81,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             mock_units.append(unit)
@@ -150,7 +150,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id=" test-project"
             )
             mock_units.append(unit)
@@ -171,7 +171,7 @@ class TestProjectAcceptance(unittest.TestCase):
             'success': True,
             'statistics': {
                 'total_units': 25,
-                'sold_units': 10,
+                'occupied_units': 10,
                 'available_units': 15,
                 'occupancy_rate': 40.0
             }
@@ -189,10 +189,10 @@ class TestProjectAcceptance(unittest.TestCase):
             project = creation_result['project']
             units = creation_result['units']
             
-            # Simuler des ventes réalistes (40% vendues)
-            sold_count = 10
+            # Simuler des occupations réalistes (40% occupées)
+            occupied_count = 10
             transfers = []
-            for i in range(sold_count):
+            for i in range(occupied_count):
                 transfers.append({
                     'unit_number': units[i].unit_number,
                     'new_owner': f"Propriétaire_{i+1:02d}"
@@ -210,12 +210,12 @@ class TestProjectAcceptance(unittest.TestCase):
         stats = stats_result['statistics']
         
         self.assertEqual(stats['total_units'], 25)
-        self.assertEqual(stats['sold_units'], 10)
+        self.assertEqual(stats['occupied_units'], 10)
         self.assertEqual(stats['available_units'], 15)
         self.assertAlmostEqual(stats['occupancy_rate'], 40.0, places=1)
         
         # ET: Les données reflètent l'état réel du projet
-        self.assertEqual(stats['sold_units'] + stats['available_units'], stats['total_units'])
+        self.assertEqual(stats['occupied_units'] + stats['available_units'], stats['total_units'])
     
     def test_scenario_expansion_projet_existant(self):
         """
@@ -246,7 +246,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             original_units.append(unit)
@@ -260,7 +260,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             expanded_units.append(new_unit)
@@ -307,14 +307,14 @@ class TestProjectAcceptance(unittest.TestCase):
             original_project = creation_result['project']
             original_units = creation_result['units']
             
-            # Simuler quelques ventes avant expansion
+            # Simuler quelques occupations avant expansion
             transfers = [
                 {'unit_number': original_units[0].unit_number, 'new_owner': "Client Existant 1"},
                 {'unit_number': original_units[1].unit_number, 'new_owner': "Client Existant 2"}
             ]
             transfer_result = self.project_service.transfer_multiple_units(original_project.project_id, transfers)
             self.assertTrue(transfer_result['success'], "Échec des transferts avant expansion")
-            sold_before_expansion = 2
+            occupied_before_expansion = 2
             
             # QUAND: L'administrateur ajoute 10 unités supplémentaires
             new_total = 35  # 25 + 10
@@ -329,11 +329,11 @@ class TestProjectAcceptance(unittest.TestCase):
         self.assertEqual(updated_project.unit_count, new_total)  # Utiliser unit_count
         self.assertEqual(len(updated_project.units), new_total)
         
-        # ET: Les ventes existantes sont préservées
-        sold_units_after = [u for u in updated_project.units if u.owner_name != "Disponible"]
-        self.assertGreaterEqual(len(sold_units_after), sold_before_expansion)
+        # ET: Les occupations existantes sont préservées
+        occupied_units_after = [u for u in updated_project.units if u.owner_name != "Disponible"]
+        self.assertGreaterEqual(len(occupied_units_after), occupied_before_expansion)
         
-        # ET: Les nouvelles unités sont disponibles pour vente
+        # ET: Les nouvelles unités sont disponibles pour occupation
         new_units = expansion_result['added_units']
         self.assertEqual(len(new_units), 10)
         for unit in new_units:
@@ -431,7 +431,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             initial_units.append(unit)
@@ -446,7 +446,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             phase1_units.append(unit)
@@ -461,7 +461,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             expanded_units.append(unit)
@@ -473,7 +473,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             expanded_units.append(new_unit)
@@ -488,7 +488,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             final_units.append(unit)
@@ -501,7 +501,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name=owner,
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             final_units.append(new_unit)
@@ -535,7 +535,7 @@ class TestProjectAcceptance(unittest.TestCase):
             'success': True,
             'statistics': {
                 'total_units': 25,
-                'sold_units': 7,
+                'occupied_units': 7,
                 'available_units': 18,
                 'occupancy_rate': 28.0
             }
@@ -552,7 +552,7 @@ class TestProjectAcceptance(unittest.TestCase):
             'success': True,
             'statistics': {
                 'total_units': 30,
-                'sold_units': 15,  # 7 + 8
+                'occupied_units': 15,  # 7 + 8
                 'available_units': 15,
                 'occupancy_rate': 50.0
             }
@@ -590,12 +590,12 @@ class TestProjectAcceptance(unittest.TestCase):
             # Vérifier les statistiques après phase 1
             stats_phase1 = self.project_service.get_project_statistics_by_id(project.project_id)
             self.assertTrue(stats_phase1['success'])
-            self.assertEqual(stats_phase1['statistics']['sold_units'], phase1_sales)
+            self.assertEqual(stats_phase1['statistics']['occupied_units'], phase1_sales)
             self.assertAlmostEqual(stats_phase1['statistics']['occupancy_rate'], 28.0, delta=1.0)
             
             # ÉTAPE 3: Décision d'expansion basée sur le succès
             expansion_decision = stats_phase1['statistics']['occupancy_rate'] > 25
-            self.assertTrue(expansion_decision, "Expansion justifiée par les ventes")
+            self.assertTrue(expansion_decision, "Expansion justifiée par les occupations")
             
             # Ajouter 5 unités supplémentaires
             expansion_result = self.project_service.update_project_units(project.name, 30, project)
@@ -621,12 +621,12 @@ class TestProjectAcceptance(unittest.TestCase):
             
             final_data = final_stats['statistics']
             self.assertEqual(final_data['total_units'], 30)  # 25 + 5 expansion
-            self.assertEqual(final_data['sold_units'], phase1_sales + phase2_sales)
-            self.assertGreater(final_data['occupancy_rate'], 40.0)  # Bon taux de vente
+            self.assertEqual(final_data['occupied_units'], phase1_sales + phase2_sales)
+            self.assertGreater(final_data['occupancy_rate'], 40.0)  # Bon taux d'occupation
             
             # Vérifier la cohérence finale
             self.assertEqual(
-                final_data['sold_units'] + final_data['available_units'],
+                final_data['occupied_units'] + final_data['available_units'],
                 final_data['total_units']
             )
     
@@ -659,7 +659,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
                 owner_name="Disponible",
-                monthly_fees_base=450.0,
+
                 project_id="test-project"
             )
             mock_units.append(unit)
@@ -675,7 +675,7 @@ class TestProjectAcceptance(unittest.TestCase):
             'success': True,
             'statistics': {
                 'total_units': 25,
-                'sold_units': 0,
+                'occupied_units': 0,
                 'available_units': 25,
                 'occupancy_rate': 0.0
             }
@@ -813,7 +813,7 @@ class TestProjectAcceptance(unittest.TestCase):
                 'success': True,
                 'statistics': {
                     'total_units': project_data['unit_count'],
-                    'sold_units': 0,
+                    'occupied_units': 0,
                     'available_units': project_data['unit_count'],
                     'occupancy_rate': 0.0
                 }
@@ -861,7 +861,7 @@ class TestProjectAcceptance(unittest.TestCase):
                     
                     stats_data = stats['statistics']
                     self.assertEqual(stats_data['total_units'], project_data['unit_count'])
-                    self.assertEqual(stats_data['sold_units'], 0)  # Aucune vente initiale
+                    self.assertEqual(stats_data['occupied_units'], 0)  # Aucune occupation initiale
                     self.assertEqual(stats_data['available_units'], project_data['unit_count'])
                     self.assertEqual(stats_data['occupancy_rate'], 0.0)
 

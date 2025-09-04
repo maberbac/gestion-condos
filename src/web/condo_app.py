@@ -43,7 +43,6 @@ class UnitData:
             self.status = from_dict.get('status', 'available')
             self.monthly_fees = from_dict.get('monthly_fees', 0)
             self.building_name = from_dict.get('building_name', project_name)
-            self.is_sold = from_dict.get('is_sold', False)
             self.project_id = from_dict.get('project_id', '')  # Ajouter project_id
         elif unit:
             # Création depuis un objet Unit (nouvelle API)
@@ -54,9 +53,20 @@ class UnitData:
             # Convertir les enums en strings pour compatibilité template
             self.condo_type = unit.unit_type.value if hasattr(unit.unit_type, 'value') else str(unit.unit_type)
             self.status = unit.status.value if hasattr(unit.status, 'value') else str(unit.status)
-            self.monthly_fees = float(unit.calculate_monthly_fees())
+            
+            # CORRECTION: Utiliser les frais stockés au lieu des frais calculés
+            if unit.calculated_monthly_fees is not None:
+                # Utiliser la valeur stockée en base (peut être string ou float)
+                try:
+                    self.monthly_fees = float(unit.calculated_monthly_fees)
+                except (ValueError, TypeError):
+                    # Si conversion échoue, utiliser le calcul comme fallback
+                    self.monthly_fees = float(unit.calculate_monthly_fees())
+            else:
+                # Si pas de valeur stockée, utiliser le calcul
+                self.monthly_fees = float(unit.calculate_monthly_fees())
+            
             self.building_name = project_name
-            self.is_sold = unit.status == UnitStatus.SOLD
             self.project_id = unit.project_id  # Ajouter project_id depuis Unit
         else:
             # Initialisation vide
@@ -68,7 +78,6 @@ class UnitData:
             self.status = 'available'
             self.monthly_fees = 0
             self.building_name = project_name
-            self.is_sold = False
             self.project_id = ''  # Ajouter project_id vide
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
 from src.adapters.sqlite_adapter import SQLiteAdapter
@@ -132,11 +141,10 @@ class SQLiteCondoService:
                             'square_feet': unit.area,
                             'unit_type': {'name': unit.unit_type.value.upper()},
                             'status': unit.status.value.upper(),
-                            'monthly_fees': float(unit.calculate_monthly_fees()),
+                            'monthly_fees': float(unit.calculated_monthly_fees) if unit.calculated_monthly_fees else 0.0,
                             'is_available': unit.status == UnitStatus.AVAILABLE,
                             'type_icon': unit.type_icon,
-                            'status_icon': unit.status_icon,
-                            'is_sold': unit.status == UnitStatus.SOLD
+                            'status_icon': unit.status_icon
                         }
                         condos.append(condo)
             
@@ -188,7 +196,6 @@ class SQLiteCondoService:
                 unit_type=unit_type,
                 status=status,
                 owner_name=condo_data.get('owner_name', ''),
-                monthly_fees_base=float(condo_data.get('monthly_fees', 0)),
                 estimated_price=float(condo_data.get('estimated_price', 0)) if condo_data.get('estimated_price') else None
             )
             
@@ -707,8 +714,7 @@ def create_condo():
             'square_feet': request.form.get('square_feet'),
             'condo_type': request.form.get('condo_type', 'residential'),
             'status': request.form.get('status', 'available'),
-            'monthly_fees': request.form.get('monthly_fees'),
-            'is_sold': request.form.get('is_sold') == 'on'
+            'monthly_fees': request.form.get('monthly_fees')
         }
         
         # Créer le condo
@@ -747,15 +753,15 @@ def edit_condo(identifier):
         
         # Traitement POST - mise à jour
         condo_data = {
+            'unit_number': request.form.get('unit_number'),              # AJOUT: Récupérer le numéro d'unité
             'owner_name': request.form.get('owner_name'),
             'square_feet': request.form.get('square_feet'),
-            'condo_type': request.form.get('condo_type', 'residential'),  # Valeur par défaut
+            'unit_type': request.form.get('unit_type', 'RESIDENTIAL'),  # Corriger le nom du champ
             'status': request.form.get('status', 'available'),           # Valeur par défaut
-            'monthly_fees': request.form.get('monthly_fees'),
-            'is_sold': request.form.get('is_sold') == 'on'
+            'monthly_fees': request.form.get('monthly_fees')
         }
         
-        if condo_service.update_condo(condo.unit_number, condo_data):
+        if condo_service.update_condo(identifier, condo_data):  # CORRECTION: Utiliser identifier au lieu de condo.unit_number
             flash(f"Condo {condo.unit_number or identifier} modifié avec succès", "success")
             # Préserver le project_id dans la redirection si disponible
             if hasattr(condo, 'project_id') and condo.project_id:
@@ -1045,6 +1051,28 @@ def api_update_user(username):
         password = request.form.get('password')  # Optionnel
         condo_unit = request.form.get('condo_unit')
         
+        # SÉCURITÉ CRITIQUE: Empêcher un utilisateur de modifier son propre rôle
+        if current_username == username and role:
+            # Récupérer le rôle actuel de l'utilisateur
+            try:
+                user_service_temp = UserService()
+                current_user_details = user_service_temp.get_user_by_username(current_username)
+                if current_user_details and current_user_details.get('success', False):
+                    current_role = current_user_details.get('user', {}).get('role')
+                    if current_role and role != current_role:
+                        logger.warning(f"SÉCURITÉ: Tentative de modification de rôle par soi-même: {current_username} (actuel: {current_role} -> demandé: {role})")
+                        return jsonify({
+                            'success': False, 
+                            'error': 'Vous ne pouvez pas modifier votre propre rôle. Contactez un administrateur.'
+                        }), 403
+            except Exception as role_check_error:
+                logger.error(f"Erreur lors de la vérification du rôle pour {current_username}: {role_check_error}")
+                # En cas d'erreur, on refuse par sécurité
+                return jsonify({
+                    'success': False, 
+                    'error': 'Erreur de sécurité lors de la vérification des permissions'
+                }), 500
+        
         # Validation basique
         if not all([new_username, email, full_name, role]):
             return jsonify({'success': False, 'error': 'Tous les champs obligatoires doivent Ãªtre remplis'}), 400
@@ -1084,6 +1112,68 @@ def api_update_user(username):
     except Exception as e:
         logger.error(f"Erreur mise à jour utilisateur {username}: {e}")
         return jsonify({'success': False, 'error': 'Erreur systÃ¨me lors de la mise à jour'}), 500
+
+@app.route('/api/profile', methods=['PUT'])
+@require_login
+def api_update_profile():
+    """API pour mettre à jour le profil de l'utilisateur connecté."""
+    from src.application.services.user_service import UserService
+    
+    try:
+        # Récupérer l'utilisateur connecté
+        current_username = session.get('user_id')
+        
+        if not current_username:
+            return jsonify({'success': False, 'error': 'Session non valide'}), 401
+        
+        # Récupérer les données JSON du body
+        if request.content_type == 'application/json':
+            profile_data = request.get_json()
+        else:
+            # Fallback pour form data
+            profile_data = {
+                'full_name': request.form.get('full_name'),
+                'email': request.form.get('email'),
+                'condo_unit': request.form.get('condo_unit')
+            }
+        
+        # Validation basique
+        if not profile_data.get('full_name') or not profile_data.get('email'):
+            return jsonify({'success': False, 'error': 'Le nom complet et l\'email sont obligatoires'}), 400
+        
+        # Validation email
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, profile_data.get('email', '')):
+            return jsonify({'success': False, 'error': 'Format d\'email invalide'}), 400
+        
+        # Initialiser le service utilisateur
+        global user_service
+        ensure_services_initialized()
+        
+        # Préparer les données de mise à jour (sans changer le username et le rôle)
+        update_data = {
+            'full_name': profile_data.get('full_name'),
+            'email': profile_data.get('email'),
+            'condo_unit': profile_data.get('condo_unit', '')
+        }
+        
+        # Mettre à jour le profil
+        result = user_service.update_user_by_username(current_username, update_data)
+        
+        if result.get('success', False):
+            logger.info(f"Profil mis à jour avec succès pour {current_username}")
+            return jsonify({
+                'success': True, 
+                'message': 'Profil mis à jour avec succès'
+            })
+        else:
+            logger.warning(f"Erreur lors de la mise à jour du profil pour '{current_username}': {result.get('error', 'Erreur inconnue')}")
+            return jsonify({'success': False, 'error': result.get('error', 'Erreur lors de la mise à jour')}), 400
+        
+    except Exception as e:
+        logger.error(f"Erreur mise à jour profil pour {session.get('user_id')}: {e}")
+        return jsonify({'success': False, 'error': 'Erreur système lors de la mise à jour'}), 500
 
 @app.route('/profile')
 @require_login
@@ -1594,19 +1684,28 @@ def projets():
             total_units_with_data = sum(len(p.units) for p in projects if p.units)
             
             # Calculer les unités vendues et disponibles
-            sold_units = 0
+            occupied_units = 0
             available_units = 0
             for project in projects:
                 if project.units:
                     for unit in project.units:
-                        if hasattr(unit, 'status'):
-                            if unit.status == 'sold':
-                                sold_units += 1
-                            elif unit.status == 'active':
+                        if hasattr(unit, 'is_available') and callable(getattr(unit, 'is_available')):
+                            # Utiliser la méthode is_available() de l'entité Unit
+                            if unit.is_available():
                                 available_units += 1
+                            else:
+                                occupied_units += 1
+                        elif hasattr(unit, 'status'):
+                            # Fallback: Comparaison directe avec l'enum
+                            from src.domain.entities.unit import UnitStatus
+                            if unit.status == UnitStatus.AVAILABLE:
+                                available_units += 1
+                            else:
+                                occupied_units += 1
                         elif hasattr(unit, 'owner_name'):
+                            # Fallback final: Vérification par propriétaire
                             if unit.owner_name and unit.owner_name != 'Disponible':
-                                sold_units += 1
+                                occupied_units += 1
                             else:
                                 available_units += 1
             
@@ -1615,7 +1714,7 @@ def projets():
                 'active_projects_count': len(projects),  # Tous les projets chargés sont actifs
                 'completed_projects_count': 0,  # Pas de statut de projet pour l'instant
                 'total_units': total_units,
-                'sold_units': sold_units,
+                'occupied_units': occupied_units,
                 'available_units': available_units,
                 'construction_years': sorted(list(set(p.construction_year for p in projects))),
                 'projects_with_units': sum(1 for p in projects if p.units)
@@ -1631,7 +1730,7 @@ def projets():
             flash(f"Impossible de charger les projets: {result['error']}", 'error')
             return render_template('projects.html', projects=[], 
                                  active_projects_count=0, completed_projects_count=0,
-                                 total_units=0, sold_units=0, available_units=0,
+                                 total_units=0, occupied_units=0, available_units=0,
                                  construction_years=[], projects_with_units=0,
                                  current_year=datetime.now().year)
             
@@ -1640,7 +1739,7 @@ def projets():
         flash('Erreur lors du chargement des projets', 'error')
         return render_template('projects.html', projects=[],
                              active_projects_count=0, completed_projects_count=0,
-                             total_units=0, sold_units=0, available_units=0,
+                             total_units=0, occupied_units=0, available_units=0,
                              construction_years=[], projects_with_units=0,
                              current_year=datetime.now().year)
 

@@ -21,23 +21,23 @@
                 <div class="user-role-badge-large">
                     <span class="role-badge {{ user.role }}">
                         {% if user.role == 'admin' %}
-                            🛡️ {{ user.role_display }}
+                            🛡️ Administrateur
                         {% elif user.role == 'resident' %}
-                            🏠 {{ user.role_display }}
+                            🏠 Résident
                         {% else %}
-                            👤 {{ user.role_display }}
+                            👤 Invité
                         {% endif %}
                     </span>
                 </div>
             </div>
         </div>
         <div class="header-actions">
-            <button onclick="history.back()" class="back-btn">
+            <a href="/users" class="back-btn">
                 <span class="btn-icon">←</span>
                 <span class="btn-text">Retour</span>
-            </button>
-            {% if current_user == user.username or session.user_role == 'admin' %}
-            <button onclick="editUser('{{ user.username }}')" class="edit-btn">
+            </a>
+            {% if session.user_role == 'admin' %}
+            <button class="edit-btn" onclick="editUser('{{ user.username }}')">
                 <span class="btn-icon">✏️</span>
                 <span class="btn-text">Modifier</span>
             </button>
@@ -47,11 +47,10 @@
 
     <!-- Details Grid -->
     <div class="details-grid">
-        <!-- Personal Information Card -->
-        <div class="detail-card personal">
+        <!-- Informations personnelles -->
+        <div class="detail-card">
             <div class="card-header">
-                <div class="card-icon">👤</div>
-                <h3>Informations Personnelles</h3>
+                <h3>👤 Informations personnelles</h3>
             </div>
             <div class="card-content">
                 <div class="detail-row">
@@ -67,131 +66,170 @@
                     <span class="detail-value">{{ user.email }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Rôle système</span>
-                    <span class="detail-value">{{ user.role_display }}</span>
+                    <span class="detail-label">Rôle</span>
+                    <span class="detail-value">
+                        {% if user.role == 'admin' %}
+                            Administrateur
+                        {% elif user.role == 'resident' %}
+                            Résident
+                        {% else %}
+                            Invité
+                        {% endif %}
+                    </span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Property Information Card -->
-        <div class="detail-card property">
-            <div class="card-header">
-                <div class="card-icon">🏠</div>
-                <h3>Informations Propriété</h3>
-            </div>
-            <div class="card-content">
+                {% if user.condo_unit %}
                 <div class="detail-row">
                     <span class="detail-label">Unité de condo</span>
-                    <span class="detail-value {% if not user.has_condo_unit %}no-unit{% endif %}">
-                        {{ user.condo_unit }}
-                        {% if not user.has_condo_unit %}
-                            <span class="status-badge warning">Non assigné</span>
-                        {% endif %}
-                    </span>
+                    <span class="detail-value">{{ user.condo_unit }}</span>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Statut propriété</span>
-                    <span class="detail-value">
-                        {% if user.has_condo_unit %}
-                            <span class="status-badge success">Propriétaire</span>
-                        {% else %}
-                            <span class="status-badge neutral">Sans unité</span>
-                        {% endif %}
-                    </span>
-                </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Activity Information Card -->
-        <div class="detail-card activity">
+        <!-- Informations de compte -->
+        <div class="detail-card">
             <div class="card-header">
-                <div class="card-icon">📊</div>
-                <h3>Activité du Compte</h3>
+                <h3>🔐 Informations de compte</h3>
             </div>
             <div class="card-content">
+                <div class="detail-row">
+                    <span class="detail-label">Statut du compte</span>
+                    <span class="status-badge {% if user.last_login and user.last_login != 'Jamais connecté' %}active{% else %}inactive{% endif %}">
+                        {% if user.last_login and user.last_login != 'Jamais connecté' %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
                 <div class="detail-row">
                     <span class="detail-label">Dernière connexion</span>
                     <span class="detail-value">
-                        {{ user.last_login }}
                         {% if user.last_login and user.last_login != 'Jamais connecté' %}
-                            <span class="status-badge success">Actif</span>
+                            {% if user.last_login is string %}
+                                {{ user.last_login }}
+                            {% else %}
+                                {{ user.last_login.strftime('%d/%m/%Y à %H:%M') }}
+                            {% endif %}
                         {% else %}
-                            <span class="status-badge warning">Inactif</span>
+                            Jamais connecté
                         {% endif %}
                     </span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Compte créé</span>
-                    <span class="detail-value">{{ user.created_at }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Statut général</span>
                     <span class="detail-value">
-                        <span class="status-badge success">{{ user.status }}</span>
+                        {% if user.created_at and user.created_at != 'Non disponible' %}
+                            {% if user.created_at is string %}
+                                {{ user.created_at }}
+                            {% else %}
+                                {{ user.created_at.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        {% else %}
+                            Non disponible
+                        {% endif %}
                     </span>
                 </div>
             </div>
         </div>
 
-        <!-- Permissions Card -->
-        <div class="detail-card permissions">
+        <!-- Permissions -->
+        <div class="detail-card permissions-card">
             <div class="card-header">
-                <div class="card-icon">🔐</div>
-                <h3>Permissions & Accès</h3>
+                <h3>🔑 Permissions d'accès</h3>
             </div>
             <div class="card-content">
-                <div class="permission-list">
-                    {% if user.role == 'admin' %}
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Administration complète</span>
+                <div class="permissions-list">
+                    <div class="permission-item {% if user.role == 'admin' or user.role == 'resident' %}allowed{% else %}denied{% endif %}">
+                        <div class="permission-icon">
+                            {% if user.role == 'admin' or user.role == 'resident' %}✅{% else %}❌{% endif %}
                         </div>
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Gestion financière</span>
+                        <div class="permission-details">
+                            <span class="permission-name">Consultation des condos</span>
+                            <span class="permission-status">
+                                {% if user.role == 'admin' or user.role == 'resident' %}Autorisé{% else %}Refusé{% endif %}
+                            </span>
                         </div>
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Gestion utilisateurs</span>
+                    </div>
+                    
+                    <div class="permission-item {% if user.role == 'admin' %}allowed{% else %}denied{% endif %}">
+                        <div class="permission-icon">
+                            {% if user.role == 'admin' %}✅{% else %}❌{% endif %}
                         </div>
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Accès aux rapports</span>
+                        <div class="permission-details">
+                            <span class="permission-name">Gestion financière</span>
+                            <span class="permission-status">
+                                {% if user.role == 'admin' %}Autorisé{% else %}Refusé{% endif %}
+                            </span>
                         </div>
-                    {% elif user.role == 'resident' %}
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Consultation condos</span>
+                    </div>
+                    
+                    <div class="permission-item {% if user.role == 'admin' %}allowed{% else %}denied{% endif %}">
+                        <div class="permission-icon">
+                            {% if user.role == 'admin' %}✅{% else %}❌{% endif %}
                         </div>
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Profil personnel</span>
+                        <div class="permission-details">
+                            <span class="permission-name">Gestion des utilisateurs</span>
+                            <span class="permission-status">
+                                {% if user.role == 'admin' %}Autorisé{% else %}Refusé{% endif %}
+                            </span>
                         </div>
-                        <div class="permission-item denied">
-                            <span class="permission-icon">❌</span>
-                            <span class="permission-text">Gestion financière</span>
+                    </div>
+                    
+                    <div class="permission-item {% if user.role == 'admin' %}allowed{% else %}denied{% endif %}">
+                        <div class="permission-icon">
+                            {% if user.role == 'admin' %}✅{% else %}❌{% endif %}
                         </div>
-                        <div class="permission-item denied">
-                            <span class="permission-icon">❌</span>
-                            <span class="permission-text">Administration</span>
+                        <div class="permission-details">
+                            <span class="permission-name">Administration système</span>
+                            <span class="permission-status">
+                                {% if user.role == 'admin' %}Autorisé{% else %}Refusé{% endif %}
+                            </span>
                         </div>
-                    {% else %}
-                        <div class="permission-item granted">
-                            <span class="permission-icon">✅</span>
-                            <span class="permission-text">Informations publiques</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activité récente -->
+        <div class="detail-card">
+            <div class="card-header">
+                <h3>📈 Activité récente</h3>
+            </div>
+            <div class="card-content">
+                <div class="activity-timeline">
+                    {% if user.last_login and user.last_login != 'Jamais connecté' %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot active"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-action">Dernière connexion</span>
+                            <span class="timeline-time">
+                                {% if user.last_login is string %}
+                                    {{ user.last_login }}
+                                {% else %}
+                                    {{ user.last_login.strftime('%d/%m/%Y à %H:%M') }}
+                                {% endif %}
+                            </span>
                         </div>
-                        <div class="permission-item denied">
-                            <span class="permission-icon">❌</span>
-                            <span class="permission-text">Consultation condos</span>
+                    </div>
+                    {% endif %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-action">Consultation du profil</span>
+                            <span class="timeline-time">À l'instant</span>
                         </div>
-                        <div class="permission-item denied">
-                            <span class="permission-icon">❌</span>
-                            <span class="permission-text">Gestion financière</span>
+                    </div>
+                    {% if user.created_at and user.created_at != 'Non disponible' %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-action">Compte créé</span>
+                            <span class="timeline-time">
+                                {% if user.created_at is string %}
+                                    {{ user.created_at }}
+                                {% else %}
+                                    {{ user.created_at.strftime('%d/%m/%Y') }}
+                                {% endif %}
+                            </span>
                         </div>
-                        <div class="permission-item denied">
-                            <span class="permission-icon">❌</span>
-                            <span class="permission-text">Administration</span>
-                        </div>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -199,21 +237,16 @@
     </div>
 
     <!-- Action Buttons -->
-    {% if session.user_role == 'admin' and current_user != user.username %}
+    {% if session.user_role == 'admin' and session.user_id != user.username %}
     <div class="action-section">
-        <h3>Actions Administrateur</h3>
-        <div class="admin-actions">
-            <button onclick="resetPassword('{{ user.username }}')" class="action-btn warning">
-                <span class="btn-icon">🔑</span>
-                <span class="btn-text">Réinitialiser mot de passe</span>
+        <div class="action-buttons">
+            <button class="action-btn edit" onclick="editUser('{{ user.username }}')">
+                <span class="btn-icon">✏️</span>
+                <span class="btn-text">Modifier l'utilisateur</span>
             </button>
-            <button onclick="toggleUserStatus('{{ user.username }}')" class="action-btn secondary">
-                <span class="btn-icon">🔄</span>
-                <span class="btn-text">Changer statut</span>
-            </button>
-            <button onclick="confirmDeleteUser('{{ user.username }}')" class="action-btn danger">
+            <button class="action-btn delete" onclick="confirmDeleteUser('{{ user.username }}')">
                 <span class="btn-icon">🗑️</span>
-                <span class="btn-text">Supprimer utilisateur</span>
+                <span class="btn-text">Supprimer l'utilisateur</span>
             </button>
         </div>
     </div>
@@ -230,19 +263,18 @@
     /* Header */
     .user-details-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 25px;
+        border-radius: 20px;
         padding: 40px;
         color: white;
         margin-bottom: 30px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
     .header-content {
         display: flex;
         align-items: center;
         gap: 30px;
+        margin-bottom: 20px;
     }
 
     .user-avatar-large {
@@ -256,11 +288,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 3.5rem;
+        font-size: 3rem;
         color: white;
         font-weight: bold;
-        position: relative;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
     }
 
     .avatar-circle-large.admin { background: linear-gradient(135deg, #dc3545, #c82333); }
@@ -271,8 +303,8 @@
         position: absolute;
         bottom: 10px;
         right: 10px;
-        width: 30px;
-        height: 30px;
+        width: 25px;
+        height: 25px;
         border-radius: 50%;
         border: 4px solid white;
     }
@@ -282,7 +314,7 @@
 
     .header-info h1 {
         margin: 0 0 10px 0;
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 700;
         color: white;
         border: none;
@@ -290,20 +322,19 @@
 
     .user-username {
         margin: 0 0 15px 0;
-        opacity: 0.9;
-        font-size: 1.3rem;
-        font-weight: 500;
+        font-size: 1.2rem;
+        opacity: 0.8;
     }
 
     .user-role-badge-large {
-        margin-top: 10px;
+        display: inline-block;
     }
 
     .role-badge {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 12px 20px;
+        padding: 10px 20px;
         border-radius: 25px;
         font-size: 1rem;
         font-weight: 600;
@@ -317,87 +348,77 @@
     .header-actions {
         display: flex;
         gap: 15px;
-        flex-direction: column;
+        justify-content: flex-end;
     }
 
     .back-btn, .edit-btn {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 20px;
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
+        gap: 8px;
+        padding: 12px 24px;
         border: none;
-        border-radius: 15px;
+        border-radius: 12px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
+        text-decoration: none;
+        color: white;
+        background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
     }
 
     .back-btn:hover, .edit-btn:hover {
         background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-3px);
+        transform: translateY(-2px);
+        color: white;
     }
 
     /* Details Grid */
     .details-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: 25px;
-        margin-bottom: 40px;
+        margin-bottom: 30px;
     }
 
     .detail-card {
         background: white;
-        border-radius: 20px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .detail-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
     }
-
-    .detail-card.personal { border-left: 5px solid #667eea; }
-    .detail-card.property { border-left: 5px solid #28a745; }
-    .detail-card.activity { border-left: 5px solid #17a2b8; }
-    .detail-card.permissions { border-left: 5px solid #ffc107; }
 
     .card-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f8f9fa;
-    }
-
-    .card-icon {
-        font-size: 2rem;
-        opacity: 0.8;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 20px;
     }
 
     .card-header h3 {
         margin: 0;
-        color: #333;
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .card-content {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+        padding: 25px;
     }
 
+    /* Detail rows */
     .detail-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
+        padding: 15px 0;
         border-bottom: 1px solid #f0f0f0;
     }
 
@@ -407,120 +428,180 @@
 
     .detail-label {
         font-weight: 600;
-        color: #666;
-        font-size: 0.9rem;
+        color: #555;
+        flex-shrink: 0;
     }
 
     .detail-value {
         color: #333;
         font-weight: 500;
         text-align: right;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        word-break: break-word;
     }
 
-    .detail-value.no-unit {
-        color: #999;
-        font-style: italic;
-    }
-
+    /* Status badge */
     .status-badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .status-badge.success { background: #d4edda; color: #155724; }
-    .status-badge.warning { background: #fff3cd; color: #856404; }
-    .status-badge.neutral { background: #f8f9fa; color: #495057; }
+    .status-badge.active {
+        background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        color: #2d3748;
+    }
+
+    .status-badge.inactive {
+        background: linear-gradient(135deg, #f8d7da 0%, #f1c2c7 100%);
+        color: #721c24;
+    }
 
     /* Permissions */
-    .permission-list {
+    .permissions-list {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 15px;
     }
 
     .permission-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 10px;
-        border-radius: 10px;
-        transition: background 0.3s ease;
+        gap: 15px;
+        padding: 15px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
     }
 
-    .permission-item.granted {
-        background: rgba(40, 167, 69, 0.1);
+    .permission-item.allowed {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 1px solid #b8dabc;
     }
 
     .permission-item.denied {
-        background: rgba(220, 53, 69, 0.1);
+        background: linear-gradient(135deg, #f8d7da 0%, #f1c2c7 100%);
+        border: 1px solid #f0b7bd;
     }
 
     .permission-icon {
-        font-size: 1.2rem;
+        font-size: 1.5rem;
+        flex-shrink: 0;
     }
 
-    .permission-text {
-        font-weight: 500;
+    .permission-details {
+        flex: 1;
+    }
+
+    .permission-name {
+        display: block;
+        font-weight: 600;
         color: #333;
+        margin-bottom: 4px;
     }
 
-    /* Action Section */
+    .permission-status {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .permission-item.allowed .permission-status {
+        color: #155724;
+    }
+
+    .permission-item.denied .permission-status {
+        color: #721c24;
+    }
+
+    /* Activity timeline */
+    .activity-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .timeline-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #dee2e6;
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+
+    .timeline-dot.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .timeline-content {
+        flex: 1;
+    }
+
+    .timeline-action {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .timeline-time {
+        font-size: 0.85rem;
+        color: #888;
+    }
+
+    /* Action section */
     .action-section {
         background: white;
-        border-radius: 20px;
+        border-radius: 16px;
         padding: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
 
-    .action-section h3 {
-        margin: 0 0 20px 0;
-        color: #333;
-        font-size: 1.5rem;
-    }
-
-    .admin-actions {
+    .action-buttons {
         display: flex;
         gap: 15px;
-        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .action-btn {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 12px 20px;
+        padding: 15px 30px;
         border: none;
         border-radius: 12px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
+        min-width: 200px;
+        justify-content: center;
     }
 
-    .action-btn.warning {
-        background: linear-gradient(135deg, #ffc107, #ffca2c);
-        color: #212529;
-    }
-
-    .action-btn.secondary {
-        background: #f8f9fa;
-        color: #495057;
-        border: 2px solid #dee2e6;
-    }
-
-    .action-btn.danger {
-        background: linear-gradient(135deg, #dc3545, #c82333);
+    .action-btn.edit {
+        background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
     }
 
-    .action-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    .action-btn.edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .action-btn.delete {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+
+    .action-btn.delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
     }
 
     /* Responsive */
@@ -529,77 +610,103 @@
             padding: 15px;
         }
 
-        .user-details-header {
-            flex-direction: column;
-            gap: 25px;
-            text-align: center;
-        }
-
         .header-content {
             flex-direction: column;
+            text-align: center;
             gap: 20px;
         }
 
-        .avatar-circle-large {
-            width: 100px;
-            height: 100px;
-            font-size: 3rem;
-        }
-
-        .header-info h1 {
-            font-size: 2.5rem;
+        .header-actions {
+            justify-content: center;
         }
 
         .details-grid {
             grid-template-columns: 1fr;
         }
 
-        .admin-actions {
+        .header-info h1 {
+            font-size: 2rem;
+        }
+
+        .action-buttons {
             flex-direction: column;
+        }
+
+        .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .detail-value {
+            text-align: left;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .user-details-container {
+            padding: 10px;
+        }
+
+        .user-details-header {
+            padding: 20px 15px;
+        }
+
+        .avatar-circle-large {
+            width: 80px !important;
+            height: 80px !important;
+            font-size: 2rem !important;
+        }
+
+        .header-info h1 {
+            font-size: 1.5rem;
         }
     }
 </style>
 
 <script>
     function editUser(username) {
-        // Redirection vers la page de gestion des utilisateurs pour éditer
+        // Rediriger vers la page users avec le paramètre edit
         window.location.href = `/users?edit=${username}`;
     }
 
-    function resetPassword(username) {
-        if (confirm(`Réinitialiser le mot de passe pour "${username}" ?\n\nUn nouveau mot de passe temporaire sera généré et envoyé par email.`)) {
-            alert(`Réinitialisation du mot de passe pour "${username}" - Fonctionnalité en développement`);
-            // Implémentation de la réinitialisation
-        }
-    }
-
-    function toggleUserStatus(username) {
-        if (confirm(`Changer le statut de l'utilisateur "${username}" ?\n\nCeci peut affecter l'accès au système.`)) {
-            alert(`Changement de statut pour "${username}" - Fonctionnalité en développement`);
-            // Implémentation du changement de statut
-        }
-    }
-
     function confirmDeleteUser(username) {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible et supprimera toutes les données associées.`)) {
-            if (confirm(`CONFIRMATION FINALE : Supprimer définitivement "${username}" ?`)) {
-                alert(`Suppression de "${username}" - Fonctionnalité en développement`);
-                // Implémentation de la suppression
-            }
+        if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible.`)) {
+            // Appel AJAX pour supprimer l'utilisateur
+            fetch(`/api/user/${username}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Utilisateur "${username}" supprimé avec succès`);
+                    // Rediriger vers la liste des utilisateurs
+                    window.location.href = '/users';
+                } else {
+                    alert('Erreur lors de la suppression: ' + (data.error || 'Erreur inconnue'));
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la suppression:', error);
+                alert('Erreur réseau lors de la suppression de l\'utilisateur');
+            });
         }
     }
 
-    // Animation d'entrée
+    // Animation au chargement
     document.addEventListener('DOMContentLoaded', function() {
         const cards = document.querySelectorAll('.detail-card');
         cards.forEach((card, index) => {
             card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
+            card.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                card.style.transition = 'all 0.5s ease';
+                card.style.transition = 'all 0.6s ease';
                 card.style.opacity = '1';
                 card.style.transform = 'translateY(0)';
-            }, index * 100);
+            }, index * 150);
         });
     });
 </script>

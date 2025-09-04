@@ -174,7 +174,7 @@ class Project:
         if total_units == 0:
             return {
                 'total_units': 0,
-                'sold_units': 0,
+                'occupied_units': 0,
                 'available_units': 0,
                 'reserved_units': 0,
                 'completion_percentage': 0.0,
@@ -184,14 +184,14 @@ class Project:
                 'revenue': 0.0
             }
         
-        # Compter par statut
-        sold_count = sum(1 for unit in self.units if unit.status == UnitStatus.SOLD)
-        available_count = sum(1 for unit in self.units if unit.status == UnitStatus.AVAILABLE)
+        # Compter par statut (les unités occupées sont celles avec un propriétaire)
+        occupied_count = sum(1 for unit in self.units if unit.owner_name and unit.owner_name != "Disponible")
+        available_count = sum(1 for unit in self.units if (not unit.owner_name or unit.owner_name == "Disponible") and unit.status == UnitStatus.AVAILABLE)
         reserved_count = sum(1 for unit in self.units if unit.status == UnitStatus.RESERVED)
         
         # Calculs financiers
         total_value = sum(unit.estimated_price for unit in self.units if unit.estimated_price)
-        revenue = sum(unit.estimated_price for unit in self.units if unit.status == UnitStatus.SOLD and unit.estimated_price)
+        revenue = sum(unit.estimated_price for unit in self.units if unit.owner_name and unit.owner_name != "Disponible" and unit.estimated_price)
         average_price = total_value / total_units if total_units > 0 else 0.0
         
         # Répartition par type
@@ -200,12 +200,12 @@ class Project:
             unit_type = unit.unit_type.value if hasattr(unit.unit_type, 'value') else str(unit.unit_type)
             units_by_type[unit_type] = units_by_type.get(unit_type, 0) + 1
         
-        # Pourcentage de completion (unités vendues)
-        completion_percentage = (sold_count / total_units * 100) if total_units > 0 else 0.0
+        # Pourcentage de completion (unités occupées)
+        completion_percentage = (occupied_count / total_units * 100) if total_units > 0 else 0.0
         
         return {
             'total_units': total_units,
-            'sold_units': sold_count,
+            'occupied_units': occupied_count,
             'available_units': available_count,
             'reserved_units': reserved_count,
             'completion_percentage': completion_percentage,
@@ -242,7 +242,6 @@ class Project:
                     unit_type=UnitType.RESIDENTIAL,  # Type par défaut
                     status=UnitStatus.AVAILABLE,  # Statut disponible
                     estimated_price=0,  # Prix à définir
-                    monthly_fees_base=0,  # Frais à définir
                     owner_name="Disponible"  # Pas d'attribution automatique
                 )
                 units.append(unit)
@@ -329,8 +328,7 @@ class Project:
                 area=square_feet,
                 unit_type=selected_type,
                 status=status,
-                estimated_price=price,
-                monthly_fees_base=square_feet * 0.45  # Frais de base
+                estimated_price=price
             )
             
             units.append(unit)
@@ -395,8 +393,7 @@ class Project:
                 area=square_feet,
                 unit_type=selected_type,
                 status=status,
-                estimated_price=price,
-                monthly_fees_base=square_feet * 0.45
+                estimated_price=price
             )
             
             added_units.append(unit)

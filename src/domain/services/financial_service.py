@@ -91,7 +91,7 @@ class FinancialService:
         
         # 1. FILTER: Conserver seulement les unités actives
         active_units = list(filter(
-            lambda unit: unit.status == UnitStatus.SOLD,
+            lambda unit: unit.status == UnitStatus.AVAILABLE,
             units
         ))
         
@@ -325,7 +325,7 @@ class FinancialService:
         total_income = FinancialService.calculate_total_income_functional(financial_records)
         
         active_units_count = len(
-            [unit for unit in units if unit.status == UnitStatus.SOLD]
+            [unit for unit in units if unit.status == UnitStatus.AVAILABLE]
         )
         
         average_fees = total_income / active_units_count if active_units_count > 0 else Decimal('0.00')
