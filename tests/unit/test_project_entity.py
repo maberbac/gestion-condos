@@ -22,7 +22,7 @@ class TestProjectEntity(unittest.TestCase):
         self.valid_project_data = {
             'name': 'Résidence du Parc',
             'address': '123 Rue de la Paix, Montréal, QC H1A 1A1',
-            'total_area': 5000.0,
+            'building_area': 5000.0,
             'construction_year': 2020,
             'unit_count': 15,
             'constructor': 'Construction ABC Inc.'
@@ -36,7 +36,7 @@ class TestProjectEntity(unittest.TestCase):
         # Assert
         self.assertEqual(project.name, 'Résidence du Parc')
         self.assertEqual(project.address, '123 Rue de la Paix, Montréal, QC H1A 1A1')
-        self.assertEqual(project.total_area, 5000.0)
+        self.assertEqual(project.building_area, 5000.0)
         self.assertEqual(project.construction_year, 2020)
         self.assertEqual(project.unit_count, 15)
         self.assertEqual(project.constructor, 'Construction ABC Inc.')
@@ -69,7 +69,7 @@ class TestProjectEntity(unittest.TestCase):
         """La superficie totale doit être positive"""
         # Arrange
         invalid_data = self.valid_project_data.copy()
-        invalid_data['total_area'] = -100.0
+        invalid_data['building_area'] = -100.0
         
         # Act & Assert
         with self.assertRaises(ValueError) as context:
@@ -142,7 +142,7 @@ class TestProjectEntity(unittest.TestCase):
         
         # Assert
         # Superficie totale divisée par nombre d'unités (avec variation)
-        expected_avg_area = project.total_area / project.unit_count
+        expected_avg_area = project.building_area / project.unit_count
         for unit in units:
             self.assertGreater(unit.area, 0)
             # La superficie doit être dans une plage raisonnable (±40% de la moyenne)
@@ -188,10 +188,10 @@ class TestProjectEntity(unittest.TestCase):
         project.generate_units()
         
         # Act
-        average_area = project.get_average_unit_area()
+        average_area = project.average_unit_area()
         
         # Assert
-        expected_average = project.total_area / project.unit_count
+        expected_average = project.building_area / project.unit_count
         self.assertAlmostEqual(average_area, expected_average, delta=50.0)  # Tolérance de 50 sq ft
 
 

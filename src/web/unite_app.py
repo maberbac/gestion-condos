@@ -29,7 +29,6 @@ from src.domain.services.authentication_service import AuthenticationService
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
 from src.adapters.sqlite_adapter import SQLiteAdapter
 from src.infrastructure.config_manager import ConfigurationManager
-from src.application.services.condo_service import CondoService
 
 # Configuration de l'application
 app = Flask(__name__, 
@@ -134,11 +133,9 @@ def init_services():
                                     'unit_type': {'name': unit.condo_type.value.upper()},
                                     'status': unit.status.value.upper(),
                                     'monthly_fees': float(unit.calculate_monthly_fees()),
-                                    'building_name': unit.building_name or project.name,
-                                    'is_available': not unit.is_sold,
+                                    'is_available': unit.is_available(),
                                     'type_icon': self._get_type_icon(unit.condo_type),
-                                    'status_icon': self._get_status_icon(unit.status),
-                                    'is_sold': unit.is_sold
+                                    'status_icon': unit.status_icon
                                 }
                                 condos.append(condo)
                     
@@ -168,8 +165,6 @@ def init_services():
                                             self.condo_type = unit.condo_type
                                             self.status = unit.status
                                             self.monthly_fees = float(unit.calculate_monthly_fees())
-                                            self.building_name = unit.building_name or project_name
-                                            self.is_sold = unit.is_sold
                                     
                                     return CondoData(unit, project.name)
                     return None
@@ -185,13 +180,13 @@ def init_services():
                         return {}
                     
                     total = len(condos)
-                    occupied = len([c for c in condos if c['is_sold']])
+                    occupied = len([c for c in condos if not c['is_available']])
                     vacant = total - occupied
                     residential = len([c for c in condos if c['unit_type']['name'] == 'RESIDENTIAL'])
                     commercial = len([c for c in condos if c['unit_type']['name'] == 'COMMERCIAL'])
                     parking = len([c for c in condos if c['unit_type']['name'] == 'PARKING'])
                     total_revenue = sum(c['monthly_fees'] for c in condos)
-                    total_area = sum(c['square_feet'] for c in condos)
+                    units_total_area = sum(c['square_feet'] for c in condos)
                     
                     return {
                         'total_condos': total,
@@ -201,8 +196,8 @@ def init_services():
                         'commercial': commercial,
                         'parking': parking,
                         'total_monthly_revenue': total_revenue,
-                        'total_area': total_area,
-                        'average_area': round(total_area / total if total > 0 else 0, 1)
+                        'total_area': units_total_area,
+                        'average_area': round(units_total_area / total if total > 0 else 0, 1)
                     }
                 except Exception as e:
                     logger.error(f"Erreur calcul statistiques: {e}")
@@ -223,15 +218,14 @@ def init_services():
                 icons = {
                     'ACTIVE': '✅',
                     'INACTIVE': '❌',
-                    'MAINTENANCE': '🔧',
-                    'SOLD': '💰'
+                    'MAINTENANCE': '🔧'
                 }
                 return icons.get(status.value.upper(), '✅')
             
             def create_condo(self, condo_data):
                 """Crée un nouveau condo dans SQLite."""
                 try:
-                    from src.domain.entities.condo import Condo, CondoType, CondoStatus
+                    from src.domain.entities.unit import Unit, UnitType, UnitStatus
                     
                     # Validation de base
                     if not condo_data.get('unit_number'):
@@ -264,14 +258,12 @@ def init_services():
                         return False
                     
                     # Créer le nouveau condo
-                    new_condo = Condo(
+                    new_condo = Unit(
                         unit_number=condo_data['unit_number'],
                         owner_name=condo_data.get('owner_name', 'Disponible'),
                         square_feet=int(condo_data.get('square_feet', 800)),
-                        condo_type=CondoType(condo_data.get('condo_type', 'residential')),
-                        status=CondoStatus(condo_data.get('status', 'active')),
-                        building_name=condo_data.get('building_name', target_project.name),
-                        is_sold=condo_data.get('is_sold', False) == 'true' if isinstance(condo_data.get('is_sold'), str) else condo_data.get('is_sold', False)
+                        unit_type=UnitType(condo_data.get('condo_type', 'residential')),
+                        status=UnitStatus(condo_data.get('status', 'active'))
                     )
                     
                     # Ajouter au projet
@@ -295,8 +287,9 @@ def init_services():
             
             def update_condo(self, unit_number, update_data):
                 """Met à jour un condo existant dans SQLite."""
+                logger.info(f"Mise à jour du condo {unit_number} avec données: {update_data}")
                 try:
-                    from src.domain.entities.condo import CondoType, CondoStatus
+                    from src.domain.entities.unit import UnitType, UnitStatus
                     
                     # Trouver le condo dans les projets
                     projects_result = self.project_service.get_all_projects()
@@ -308,16 +301,45 @@ def init_services():
                         if project.units:
                             for unit in project.units:
                                 if unit.unit_number == unit_number:
+                                    # Mettre à jour le numéro d'unité si fourni
+                                    if 'unit_number' in update_data and update_data['unit_number']:
+                                        unit.unit_number = update_data['unit_number']
+                                    
                                     # Mettre à jour les propriétés
                                     unit.owner_name = update_data.get('owner_name', unit.owner_name)
-                                    unit.square_feet = float(update_data.get('square_feet', unit.square_feet))
-                                    unit.building_name = update_data.get('building_name', unit.building_name)
                                     
-                                    # Mettre à jour le type et statut si fournis
-                                    if 'condo_type' in update_data:
-                                        unit.condo_type = CondoType(update_data['condo_type'])
-                                    if 'status' in update_data:
-                                        unit.status = CondoStatus(update_data['status'])
+                                    # Mettre à jour la superficie (support de plusieurs noms de champs)
+                                    if 'area' in update_data and update_data['area']:
+                                        unit.area = float(update_data['area'])
+                                    elif 'square_feet' in update_data and update_data['square_feet']:
+                                        unit.area = float(update_data['square_feet'])
+                                    
+                                    # Mettre à jour le type d'unité (support de plusieurs noms de champs)
+                                    if 'unit_type' in update_data and update_data['unit_type']:
+                                        try:
+                                            unit.unit_type = UnitType(update_data['unit_type'])
+                                        except (ValueError, AttributeError):
+                                            logger.warning(f"Type d'unité invalide: {update_data['unit_type']}")
+                                    elif 'condo_type' in update_data and update_data['condo_type']:
+                                        try:
+                                            unit.unit_type = UnitType(update_data['condo_type'])
+                                        except (ValueError, AttributeError):
+                                            logger.warning(f"Type de condo invalide: {update_data['condo_type']}")
+                                    
+                                    # Mettre à jour le statut si fourni
+                                    if 'status' in update_data and update_data['status']:
+                                        try:
+                                            unit.status = UnitStatus(update_data['status'].lower())
+                                        except (ValueError, AttributeError):
+                                            logger.warning(f"Statut invalide: {update_data['status']}")
+                                    
+                                    # Mettre à jour les frais mensuels si fournis
+                                    if 'monthly_fees' in update_data and update_data['monthly_fees']:
+                                        unit.monthly_fees_base = float(update_data['monthly_fees'])
+                                    
+                                    # Marquer la mise à jour
+                                    from datetime import datetime
+                                    unit.updated_at = datetime.now()
                                     
                                     # Sauvegarder le projet mis à jour
                                     update_result = self.project_service.update_project(project)
@@ -334,39 +356,6 @@ def init_services():
                     
                 except Exception as e:
                     logger.error(f"Erreur lors de la modification du condo: {e}")
-                    return False
-            
-            def delete_condo(self, unit_number):
-                """Supprime un condo de la base de données SQLite."""
-                try:
-                    # Trouver le condo dans les projets
-                    projects_result = self.project_service.get_all_projects()
-                    if not projects_result['success']:
-                        logger.error("Erreur récupération projets pour suppression condo")
-                        return False
-                    
-                    for project in projects_result['projects']:
-                        if project.units:
-                            for unit in project.units:
-                                if unit.unit_number == unit_number:
-                                    # Supprimer le condo du projet
-                                    project.units = [u for u in project.units if u.unit_number != unit_number]
-                                    
-                                    # Sauvegarder le projet mis à jour
-                                    update_result = self.project_service.update_project(project)
-                                    
-                                    if update_result['success']:
-                                        logger.info(f"Condo supprimé avec succès: {unit_number}")
-                                        return True
-                                    else:
-                                        logger.error(f"Erreur sauvegarde après suppression condo: {update_result.get('error', 'Erreur inconnue')}")
-                                        return False
-                    
-                    logger.error(f"Condo {unit_number} non trouvé pour suppression")
-                    return False
-                    
-                except Exception as e:
-                    logger.error(f"Erreur lors de la suppression du condo: {e}")
                     return False
         
         unite_service = SQLiteUniteService()
@@ -388,11 +377,7 @@ def ensure_services_initialized():
             init_services()
         except Exception as e:
             logger.warning(f"Échec d'initialisation complète des services, utilisation du service de condos de base: {e}")
-            # En cas d'échec, utiliser l'ancien service de base
-            from src.application.services.condo_service import CondoService
-            condo_service = CondoService()
-            
-            # Initialiser user_service même en cas d'échec
+            # En cas d'échec, initialiser user_service quand même
             from src.application.services.user_service import UserService
             user_service = UserService()
 
@@ -642,9 +627,7 @@ def create_condo():
             'square_feet': request.form.get('square_feet'),
             'condo_type': request.form.get('condo_type', 'residential'),
             'status': request.form.get('status', 'active'),
-            'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name', 'Bâtiment Principal'),
-            'is_sold': request.form.get('is_sold') == 'on'
+            'monthly_fees': request.form.get('monthly_fees')
         }
         
         # Créer le condo
@@ -677,13 +660,14 @@ def edit_condo(unit_number):
         
         # Traitement POST - mise à jour
         condo_data = {
+            'unit_number': request.form.get('unit_number'),  # Ajouter le numéro d'unité
             'owner_name': request.form.get('owner_name'),
             'square_feet': request.form.get('square_feet'),
-            'condo_type': request.form.get('condo_type'),
+            'area': request.form.get('area') or request.form.get('square_feet'),  # Support des deux noms
+            'unit_type': request.form.get('unit_type'),  # Corriger le nom du champ
+            'condo_type': request.form.get('condo_type') or request.form.get('unit_type'),  # Support des deux noms
             'status': request.form.get('status'),
-            'monthly_fees': request.form.get('monthly_fees'),
-            'building_name': request.form.get('building_name'),
-            'is_sold': request.form.get('is_sold') == 'on'
+            'monthly_fees': request.form.get('monthly_fees')
         }
         
         if condo_service.update_condo(unit_number, condo_data):
@@ -697,23 +681,6 @@ def edit_condo(unit_number):
         logger.error(f"Erreur lors de la modification du condo {unit_number}: {e}")
         flash("Erreur technique lors de la modification", "error")
         return redirect(url_for('condos'))
-
-@app.route('/condos/<unit_number>/delete', methods=['POST'])
-@require_admin
-def delete_condo(unit_number):
-    """Suppression d'un condo."""
-    try:
-        ensure_services_initialized()
-        if condo_service.delete_condo(unit_number):
-            flash(f"Condo {unit_number} supprimé avec succès", "success")
-        else:
-            flash(f"Erreur lors de la suppression du condo {unit_number}", "error")
-            
-    except Exception as e:
-        logger.error(f"Erreur lors de la suppression du condo {unit_number}: {e}")
-        flash("Erreur technique lors de la suppression", "error")
-    
-    return redirect(url_for('condos'))
 
 @app.route('/finance')
 @require_admin  
@@ -1263,76 +1230,20 @@ def admin_condos():
 @app.route('/admin/condos/new', methods=['GET', 'POST'])
 @require_admin
 def admin_condos_new():
-    """Création de nouveau condo."""
-    if request.method == 'POST':
-        # Vérifier si les données sont invalides pour test d'erreur
-        unit_number = request.form.get('unit_number', '')
-        if 'invalid' in unit_number.lower() or unit_number == '':
-            return render_template('error.html',
-                                 error_message="Données invalides pour la création du condo",
-                                 return_url="/admin/condos/new",
-                                 return_text="Retourner au formulaire"), 200
-        return render_template('success.html',
-                             message="Condo créé avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    return render_template('condo_new.html')
+    """Redirection vers la page moderne de création de condo."""
+    return redirect(url_for('create_condo'))
 
 @app.route('/admin/condos/<condo_id>')
 @require_admin
 def admin_condo_detail(condo_id):
-    """Détail d'un condo."""
-    if condo_id == '999' or condo_id == 'INEXISTANT':  # Condo inexistant pour test d'erreur
-        return render_template('error.html',
-                             error_message="Condo introuvable",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos"), 404
-    
-    # Vérifier s'il y a des modifications stockées
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
-        default_owner = 'Jean Dupont'
-    
-    owner_info = unite_modifications.get(condo_id, {}).get('owner', default_owner)
-    square_footage = unite_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_detail.html',
-                         condo_id=condo_id,
-                         owner_info=owner_info,
-                         square_footage=square_footage)
+    """Redirection vers la page moderne de détails d'un condo."""
+    return redirect(url_for('condo_details', unit_number=condo_id))
 
 @app.route('/admin/condos/<condo_id>/edit', methods=['GET', 'POST'])
 @require_admin
 def admin_condo_edit(condo_id):
-    """Édition d'un condo."""
-    if request.method == 'POST':
-        # Simuler la sauvegarde des modifications
-        owner = request.form.get('owner', '') or request.form.get('owner_name', '')
-        square_footage = request.form.get('square_footage', '')
-        if owner or square_footage:
-            if condo_id not in unite_modifications:
-                unite_modifications[condo_id] = {}
-            if owner:
-                unite_modifications[condo_id]['owner'] = owner
-            if square_footage:
-                unite_modifications[condo_id]['square_footage'] = square_footage
-        return render_template('success.html',
-                             message="Condo modifié avec succès",
-                             return_url="/admin/condos",
-                             return_text="Retour aux condos")
-    
-    # Afficher le formulaire avec la valeur actuelle
-    default_owner = 'Pierre Gagnon'
-    if condo_id in ['1', 'A-101']:  # Traiter A-101 et 1 comme le même condo
-        default_owner = 'Jean Dupont'
-    
-    current_owner = unite_modifications.get(condo_id, {}).get('owner', default_owner)
-    current_footage = unite_modifications.get(condo_id, {}).get('square_footage', '850')
-    
-    return render_template('condo_edit.html',
-                         condo_id=condo_id,
-                         current_owner=current_owner,
-                         current_footage=current_footage)
+    """Redirection vers la page moderne d'édition d'un condo."""
+    return redirect(url_for('edit_condo', unit_number=condo_id))
 
 @app.route('/admin/residents')
 @require_admin
@@ -1673,20 +1584,20 @@ def projets():
             total_units = sum(p.unit_count for p in projects)
             total_units_with_data = sum(len(p.units) for p in projects if p.units)
             
-            # Calculer les unités vendues et disponibles
-            sold_units = 0
+            # Calculer les unités occupées et disponibles
+            occupied_units = 0
             available_units = 0
             for project in projects:
                 if project.units:
                     for unit in project.units:
                         if hasattr(unit, 'status'):
-                            if unit.status == 'sold':
-                                sold_units += 1
-                            elif unit.status == 'active':
+                            if unit.status in ['reserved', 'maintenance']:
+                                occupied_units += 1
+                            elif unit.status == 'available':
                                 available_units += 1
                         elif hasattr(unit, 'owner_name'):
                             if unit.owner_name and unit.owner_name != 'Disponible':
-                                sold_units += 1
+                                occupied_units += 1
                             else:
                                 available_units += 1
             
@@ -1695,7 +1606,7 @@ def projets():
                 'active_projects_count': len(projects),  # Tous les projets chargés sont actifs
                 'completed_projects_count': 0,  # Pas de statut de projet pour l'instant
                 'total_units': total_units,
-                'sold_units': sold_units,
+                'occupied_units': occupied_units,
                 'available_units': available_units,
                 'construction_years': sorted(list(set(p.construction_year for p in projects))),
                 'projects_with_units': sum(1 for p in projects if p.units)
@@ -1711,7 +1622,7 @@ def projets():
             flash(f"Impossible de charger les projets: {result['error']}", 'error')
             return render_template('projects.html', projects=[], 
                                  active_projects_count=0, completed_projects_count=0,
-                                 total_units=0, sold_units=0, available_units=0,
+                                 total_units=0, occupied_units=0, available_units=0,
                                  construction_years=[], projects_with_units=0,
                                  current_year=datetime.now().year)
             
@@ -1720,7 +1631,7 @@ def projets():
         flash('Erreur lors du chargement des projets', 'error')
         return render_template('projects.html', projects=[],
                              active_projects_count=0, completed_projects_count=0,
-                             total_units=0, sold_units=0, available_units=0,
+                             total_units=0, occupied_units=0, available_units=0,
                              construction_years=[], projects_with_units=0,
                              current_year=datetime.now().year)
 
@@ -1738,7 +1649,7 @@ def create_project():
             'address': request.form.get('address'),
             'constructor': request.form.get('builder_name'),
             'construction_year': int(request.form.get('construction_year')),
-            'total_area': float(request.form.get('building_area')),  # Utilise building_area comme total_area
+            'building_area': float(request.form.get('building_area')),  # Utilise building_area directement
             'unit_count': int(request.form.get('total_units')),
         }
         
@@ -1829,6 +1740,103 @@ def edit_project(project_id):
         return redirect(url_for('projets'))
 
 
+@app.route('/api/projets/<project_id>')
+@require_admin
+def project_api_get(project_id):
+    """API pour récupérer les données d'un projet pour l'édition."""
+    try:
+        from src.application.services.project_service import ProjectService
+        project_service = ProjectService()
+        result = project_service.get_project_by_id(project_id)
+        
+        if result['success']:
+            project = result['project']
+            # Sérialiser le projet pour l'API avec le statut
+            project_data = {
+                'id': project.project_id,
+                'name': project.name,
+                'address': project.address,
+                'builder_name': project.constructor,  # Adapter le nom du champ
+                'construction_year': project.construction_year,
+                'land_area': project.land_area,
+                'building_area': project.building_area,
+                'total_units': project.unit_count,
+                'status': project.status.value  # Convertir l'enum en string
+            }
+            
+            return jsonify({
+                'success': True,
+                'data': project_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Erreur API lors de la récupération du projet {project_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erreur serveur lors de la récupération du projet'
+        }), 500
+
+
+@app.route('/projets/update/<project_id>', methods=['POST'])
+@require_admin
+def update_project(project_id):
+    """Mettre à jour un projet existant."""
+    try:
+        from src.application.services.project_service import ProjectService
+        project_service = ProjectService()
+        
+        # Récupérer les données du formulaire
+        project_data = {
+            'name': request.form.get('name'),
+            'address': request.form.get('address'),
+            'constructor': request.form.get('builder_name'),
+            'construction_year': int(request.form.get('construction_year')),
+            'building_area': float(request.form.get('building_area')),
+            'land_area': float(request.form.get('land_area')),
+            'status': request.form.get('status', 'ACTIVE'),
+            # unit_count n'est pas modifiable selon le template
+        }
+        
+        # Récupérer le projet existant
+        result = project_service.get_project_by_id(project_id)
+        if not result['success']:
+            flash(f"Projet non trouvé: {result['error']}", 'error')
+            return redirect(url_for('projets'))
+        
+        project = result['project']
+        
+        # Mettre à jour les champs modifiables
+        from src.domain.entities.project import ProjectStatus
+        project.name = project_data['name']
+        project.address = project_data['address']
+        project.constructor = project_data['constructor']
+        project.construction_year = project_data['construction_year']
+        project.building_area = project_data['building_area']
+        project.land_area = project_data['land_area']
+        project.status = ProjectStatus(project_data['status'])
+        
+        # Sauvegarder les modifications
+        save_result = project_service.save_project(project)
+        if save_result:
+            flash(f"Projet '{project.name}' mis à jour avec succès!", 'success')
+            logger.info(f"Projet mis à jour: {project.name} (ID: {project_id})")
+        else:
+            flash("Erreur lors de la sauvegarde du projet", 'error')
+            
+    except ValueError as e:
+        flash(f"Données invalides: {str(e)}", 'error')
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du projet {project_id}: {e}")
+        flash('Erreur lors de la mise à jour du projet', 'error')
+    
+    return redirect(url_for('projets'))
+
+
 @app.route('/api/projets/<project_id>/statistics')
 @require_login
 def project_api_statistics(project_id):
@@ -1866,7 +1874,17 @@ def project_statistics(project_name):
     try:
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
-        result = project_service.get_project_statistics(project_name)
+        
+        # Obtenir le projet par nom en utilisant la méthode du service
+        result = project_service.get_project_by_name(project_name)
+        
+        if not result['success']:
+            flash(f"Projet '{project_name}' non trouvé", 'error')
+            return redirect(url_for('projects'))
+            
+        project = result['project']
+        # Utiliser la nouvelle méthode avec project_id
+        result = project_service.get_project_statistics(project.project_id)
         
         if result['success']:
             return render_template('project_statistics.html', 
@@ -1892,7 +1910,19 @@ def update_project_units(project_name):
         
         from src.application.services.project_service import ProjectService
         project_service = ProjectService()
-        result = project_service.update_project_units(project_name, new_unit_count)
+        
+        # Obtenir le projet par nom en utilisant la méthode du service
+        result = project_service.get_project_by_name(project_name)
+        
+        if not result['success']:
+            return jsonify({
+                'success': False,
+                'error': f'Projet "{project_name}" non trouvé'
+            }), 404
+            
+        project = result['project']
+        # Utiliser la nouvelle méthode avec project_id
+        result = project_service.update_project_units(project.project_id, new_unit_count)
         
         return jsonify(result)
         

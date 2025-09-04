@@ -24,17 +24,18 @@ from enum import Enum
 class UnitStatus(Enum):
     """Statut d'une unité."""
     AVAILABLE = "available"
-    SOLD = "sold"
     RESERVED = "reserved"
     MAINTENANCE = "maintenance"
+    INACTIVE = "inactive"
+    NONE = "none" # Utilisé principalement pour indiqué que c'est occupé par le propriétaire
 
 
 class UnitType(Enum):
     """Type d'unité selon la fonction."""
-    RESIDENTIAL = "residential"
-    COMMERCIAL = "commercial"
-    PARKING = "parking"
-    STORAGE = "storage"
+    RESIDENTIAL = "RESIDENTIAL"
+    COMMERCIAL = "COMMERCIAL"
+    PARKING = "PARKING"
+    STORAGE = "STORAGE"
 
 
 @dataclass
@@ -47,6 +48,7 @@ class Unit:
     de gestion spécifiques.
     
     Attributs:
+        id: ID de base de données SQLite (auto-incrémenté)
         unit_number: Numéro unique de l'unité (ex: 'A-101', 'P-001')
         project_id: ID du projet auquel appartient cette unité
         area: Superficie en pieds carrés
@@ -54,8 +56,6 @@ class Unit:
         status: Statut actuel (disponible, vendu, réservé, maintenance)
         estimated_price: Prix estimé de l'unité
         owner_name: Nom du propriétaire (None si disponible)
-        purchase_date: Date d'achat (None si pas vendue)
-        monthly_fees_base: Frais mensuels de base
         calculated_monthly_fees: Frais mensuels calculés (peut être JSON)
         created_at: Date de création
         updated_at: Date de dernière modification
@@ -69,10 +69,9 @@ class Unit:
     status: UnitStatus
     
     # Attributs optionnels
+    id: Optional[int] = None  # ID de base de données SQLite
     estimated_price: Optional[float] = None
     owner_name: Optional[str] = None
-    purchase_date: Optional[datetime] = None
-    monthly_fees_base: Optional[float] = None
     calculated_monthly_fees: Optional[str] = None
     created_at: datetime = None
     updated_at: datetime = None
@@ -113,9 +112,6 @@ class Unit:
         Returns:
             float: Frais mensuels calculés
         """
-        if self.monthly_fees_base:
-            return float(self.monthly_fees_base)
-        
         # Calcul par défaut basé sur le type et la superficie
         rate_per_sqft = {
             UnitType.RESIDENTIAL: 0.45,
@@ -130,11 +126,22 @@ class Unit:
     @property
     def monthly_fees(self) -> float:
         """
-        Propriété pour accéder aux frais mensuels calculés.
+        Propriété pour accéder aux frais mensuels.
+        Utilise la valeur stockée (calculated_monthly_fees) si disponible,
+        sinon utilise le calcul automatique.
         
         Returns:
             float: Frais mensuels pour cette unité
         """
+        # Priorité à la valeur stockée
+        if self.calculated_monthly_fees is not None:
+            try:
+                return float(self.calculated_monthly_fees)
+            except (ValueError, TypeError):
+                # Si conversion échoue, utiliser le calcul comme fallback
+                pass
+        
+        # Fallback sur le calcul automatique
         return self.calculate_monthly_fees()
     
     @property
@@ -173,67 +180,37 @@ class Unit:
         """
         icons = {
             UnitStatus.AVAILABLE: "✅",
-            UnitStatus.SOLD: "🔒",
             UnitStatus.RESERVED: "⏳",
-            UnitStatus.MAINTENANCE: "🔧"
+            UnitStatus.MAINTENANCE: "🔧",
+            UnitStatus.INACTIVE: "❌",           # AJOUT: Icône pour statut inactif
+            UnitStatus.NONE: "🏠"
         }
         return icons.get(self.status, "❓")
-    
-    @property
-    def building_name(self) -> Optional[str]:
-        """
-        Nom du bâtiment (pour compatibilité template).
-        
-        Returns:
-            Optional[str]: Nom du bâtiment s'il est défini
-        """
-        return getattr(self, '_building_name', None)
-    
-    @building_name.setter
-    def building_name(self, value: Optional[str]) -> None:
-        """
-        Setter pour le nom du bâtiment.
-        
-        Args:
-            value: Nom du bâtiment à assigner
-        """
-        self._building_name = value
     
     def is_available(self) -> bool:
         """Vérifie si l'unité est disponible."""
         return self.status == UnitStatus.AVAILABLE
-    
-    def is_sold(self) -> bool:
-        """Vérifie si l'unité est vendue."""
-        return self.status == UnitStatus.SOLD
-    
-    def sell_to(self, owner_name: str, purchase_date: datetime = None) -> None:
-        """
-        Vend l'unité à un propriétaire.
-        
-        Args:
-            owner_name: Nom du nouveau propriétaire
-            purchase_date: Date d'achat (par défaut maintenant)
-        """
-        if not owner_name or not owner_name.strip():
-            raise ValueError("Le nom du propriétaire ne peut pas être vide")
-        
-        self.owner_name = owner_name.strip()
-        self.status = UnitStatus.SOLD
-        self.purchase_date = purchase_date or datetime.now()
-        self.updated_at = datetime.now()
+
         
         logger.info(f"Unité {self.unit_number} vendue à {self.owner_name}")
     
     def transfer_ownership(self, owner_name: str, purchase_date: datetime = None) -> None:
         """
-        Transfère la propriété de l'unité (alias pour sell_to).
+        Transfère la propriété de l'unité.
         
         Args:
             owner_name: Nom du nouveau propriétaire
             purchase_date: Date d'achat (par défaut maintenant)
         """
-        self.sell_to(owner_name, purchase_date)
+        if purchase_date is None:
+            purchase_date = datetime.now()
+            
+        self.owner_name = owner_name
+        self.purchase_date = purchase_date
+        self.status = UnitStatus.AVAILABLE  # Status reste available
+        self.updated_at = datetime.now()
+        
+        logger.debug(f"Unité {self.unit_number} transférée à {owner_name}")
     
     def make_available(self) -> None:
         """Rend l'unité disponible."""
@@ -277,22 +254,6 @@ class Unit:
         
         logger.info(f"Superficie unité {self.unit_number} mise à jour: {old_area} -> {new_area} pi²")
     
-    def update_monthly_fees(self, new_fees: float) -> None:
-        """
-        Met à jour les frais mensuels de base.
-        
-        Args:
-            new_fees: Nouveaux frais mensuels
-        """
-        if new_fees < 0:
-            raise ValueError("Les frais mensuels ne peuvent pas être négatifs")
-        
-        old_fees = self.monthly_fees_base
-        self.monthly_fees_base = new_fees
-        self.updated_at = datetime.now()
-        
-        logger.info(f"Frais mensuels unité {self.unit_number} mis à jour: {old_fees} -> {new_fees}$")
-    
     def get_display_info(self) -> dict:
         """
         Retourne les informations d'affichage pour l'interface utilisateur.
@@ -307,8 +268,7 @@ class Unit:
             'status': self.status.value.title(),
             'owner': self.owner_name or "Disponible",
             'monthly_fees': f"${self.calculate_monthly_fees():.2f}",
-            'is_available': self.is_available(),
-            'is_sold': self.is_sold()
+            'is_available': self.is_available()
         }
     
     @classmethod
@@ -325,7 +285,7 @@ class Unit:
         # Conversion des types enum
         unit_type = data.get('unit_type')
         if isinstance(unit_type, str):
-            unit_type = UnitType(unit_type.lower())
+            unit_type = UnitType(unit_type.upper())
         
         status = data.get('status')
         if isinstance(status, str):
@@ -340,11 +300,8 @@ class Unit:
         if isinstance(updated_at, str):
             updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
         
-        purchase_date = data.get('purchase_date')
-        if isinstance(purchase_date, str):
-            purchase_date = datetime.fromisoformat(purchase_date.replace('Z', '+00:00'))
-        
         return cls(
+            id=data.get('id'),
             unit_number=data['unit_number'],
             project_id=data['project_id'],
             area=float(data['area']),
@@ -352,8 +309,6 @@ class Unit:
             status=status,
             estimated_price=data.get('estimated_price'),
             owner_name=data.get('owner_name'),
-            purchase_date=purchase_date,
-            monthly_fees_base=data.get('monthly_fees_base'),
             calculated_monthly_fees=data.get('calculated_monthly_fees'),
             created_at=created_at,
             updated_at=updated_at
@@ -367,6 +322,7 @@ class Unit:
             dict: Représentation en dictionnaire
         """
         return {
+            'id': self.id,
             'unit_number': self.unit_number,
             'project_id': self.project_id,
             'area': self.area,
@@ -374,8 +330,6 @@ class Unit:
             'status': self.status.value,
             'estimated_price': self.estimated_price,
             'owner_name': self.owner_name,
-            'purchase_date': self.purchase_date.isoformat() if self.purchase_date else None,
-            'monthly_fees_base': self.monthly_fees_base,
             'calculated_monthly_fees': self.calculated_monthly_fees,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

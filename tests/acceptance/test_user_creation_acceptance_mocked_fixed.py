@@ -19,7 +19,7 @@ from src.infrastructure.logger_manager import get_logger
 logger = get_logger(__name__)
 
 
-class TestUserCreationAcceptance:
+class TestUserCreationAcceptanceMocked:
     """Tests d'acceptance mockés pour la création d'utilisateur."""
     
     def setup_method(self):
@@ -286,8 +286,7 @@ class TestUserCreationAcceptance:
             password_hash="hashed_pass",
             full_name="Jean Résident",
             email="jean@resident.com",
-            role=UserRole.RESIDENT,
-            condo_unit="A-101"  # Requis pour les résidents
+            role=UserRole.RESIDENT
         )
         
         # Mock de vérification des permissions

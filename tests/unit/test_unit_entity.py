@@ -25,9 +25,7 @@ class TestUnitEntity(unittest.TestCase):
             'owner_name': 'Jean Dupont',
             'area': 850.0,
             'unit_type': UnitType.RESIDENTIAL,
-            'status': UnitStatus.SOLD,
-            'purchase_date': datetime(2020, 1, 15),
-            'monthly_fees_base': None
+            'status': UnitStatus.AVAILABLE
         }
     
     def test_creation_unit_valide(self):
@@ -40,8 +38,7 @@ class TestUnitEntity(unittest.TestCase):
         self.assertEqual(unit.owner_name, 'Jean Dupont')
         self.assertEqual(unit.area, 850.0)
         self.assertEqual(unit.unit_type, UnitType.RESIDENTIAL)
-        self.assertEqual(unit.status, UnitStatus.SOLD)
-        self.assertEqual(unit.purchase_date, datetime(2020, 1, 15))
+        self.assertEqual(unit.status, UnitStatus.AVAILABLE)
     
     def test_unit_number_obligatoire(self):
         """Le numéro d'unité est obligatoire"""
@@ -173,17 +170,8 @@ class TestUnitEntity(unittest.TestCase):
         self.assertEqual(frais, expected)
     
     def test_frais_base_personnalises(self):
-        """Utilisation des frais de base personnalisés"""
-        # Arrange
-        data = self.valid_unit_data.copy()
-        data['monthly_fees_base'] = Decimal('500.00')
-        unit = Unit(**data)
-        
-        # Act
-        frais = unit.calculate_monthly_fees()
-        
-        # Assert
-        self.assertEqual(frais, Decimal('500.00'))
+        """Test supprimé - functionality removed with monthly_fees_base"""
+        pass
     
     def test_calcul_frais_annuels(self):
         """Calcul des frais annuels"""
@@ -198,24 +186,6 @@ class TestUnitEntity(unittest.TestCase):
         expected = 382.5 * 12  # 4590.0
         self.assertEqual(frais_annuels, expected)
     
-    def test_is_sold_true(self):
-        """Vérification qu'une unité vendue est détectée"""
-        # Arrange
-        unit = Unit(**self.valid_unit_data)
-        
-        # Act & Assert
-        self.assertTrue(unit.is_sold())
-    
-    def test_is_sold_false(self):
-        """Vérification qu'une unité disponible n'est pas vendue"""
-        # Arrange
-        data = self.valid_unit_data.copy()
-        data['status'] = UnitStatus.AVAILABLE
-        unit = Unit(**data)
-        
-        # Act & Assert
-        self.assertFalse(unit.is_sold())
-    
     def test_to_dict(self):
         """Sérialisation vers dictionnaire"""
         # Arrange
@@ -228,8 +198,8 @@ class TestUnitEntity(unittest.TestCase):
         self.assertEqual(unit_dict['unit_number'], '101')
         self.assertEqual(unit_dict['owner_name'], 'Jean Dupont')
         self.assertEqual(unit_dict['area'], 850.0)
-        self.assertEqual(unit_dict['unit_type'], 'residential')
-        self.assertEqual(unit_dict['status'], 'sold')
+        self.assertEqual(unit_dict['unit_type'], 'RESIDENTIAL')
+        self.assertEqual(unit_dict['status'], 'available')
     
     def test_from_dict(self):
         """Désérialisation depuis dictionnaire"""
@@ -240,9 +210,7 @@ class TestUnitEntity(unittest.TestCase):
             'owner_name': 'Marie Martin',
             'area': 750.0,
             'unit_type': 'COMMERCIAL',
-            'status': 'AVAILABLE',
-            'purchase_date': '2021-03-01T00:00:00',
-            'monthly_fees_base': None
+            'status': 'AVAILABLE'
         }
         
         # Act

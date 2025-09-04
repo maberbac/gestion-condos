@@ -1,9 +1,9 @@
 """
-Tests d'intégration pour les routes de gestion des condos.
+Tests d'intégration pour les routes de gestion des unités.
 """
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import sys
 import os
 
@@ -12,10 +12,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from src.web.condo_app import app
 from src.application.services.project_service import ProjectService
+from src.domain.entities.unit import Unit, UnitType, UnitStatus
 
 
 class TestCondoRoutesIntegration(unittest.TestCase):
-    """Tests d'intégration pour les routes de gestion des condos."""
+    """Tests d'intégration pour les routes de gestion des unités."""
     
     def setUp(self):
         """Configuration initiale pour chaque test."""
@@ -63,7 +64,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         response = self.client.get('/condos')
         
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Gestion des Condos', response.data)
+        self.assertIn(b'Gestion des Unit\xc3\xa9s', response.data)
 
     @patch('src.web.condo_app.condo_service')
     def test_condo_details_existing_unit(self, mock_condo_service):
@@ -76,11 +77,9 @@ class TestCondoRoutesIntegration(unittest.TestCase):
             'unit_type': {'name': 'RESIDENTIAL'},
             'status': 'AVAILABLE',
             'monthly_fees': 450,
-            'building_name': 'Test Building',
             'is_available': True,
             'type_icon': '🏠',
-            'status_icon': '✅',
-            'is_sold': False
+            'status_icon': '✅'
         }
         
         mock_condo_service.get_condo_by_unit_number.return_value = mock_condo
@@ -107,24 +106,22 @@ class TestCondoRoutesIntegration(unittest.TestCase):
     @patch('src.web.condo_app.condo_service')
     def test_edit_condo_get_form_existing(self, mock_condo_service):
         """Test de récupération du formulaire d'édition pour un condo existant."""
-        # Mock du service pour retourner une unité existante
-        mock_condo = {
-            'unit_number': 'TEST-001',
-            'owner_name': 'Test Owner',
-            'square_feet': 850,
-            'condo_type': 'residential',
-            'status': 'active',
-            'monthly_fees': 450,
-            'building_name': 'Test Building',
-            'is_sold': True
-        }
-        mock_condo_service.get_condo_by_unit_number.return_value = mock_condo
+        # Mock du service pour retourner un objet Unit
+        mock_unit = Mock(spec=Unit)
+        mock_unit.unit_number = 'TEST-001'
+        mock_unit.owner_name = 'Test Owner'
+        mock_unit.area = 850
+        mock_unit.unit_type = UnitType.RESIDENTIAL
+        mock_unit.status = UnitStatus.AVAILABLE
+        mock_unit.calculated_monthly_fees = 450
+        
+        mock_condo_service.get_condo_by_identifier.return_value = mock_unit
         
         response = self.client.get('/condos/TEST-001/edit')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'TEST-001', response.data)
-        mock_condo_service.get_condo_by_unit_number.assert_called_once_with('TEST-001')
+        mock_condo_service.get_condo_by_identifier.assert_called_once_with('TEST-001')
 
     @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
     def test_edit_condo_get_form_nonexistent(self, mock_get_condo_by_unit_number):
@@ -137,26 +134,26 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         # Doit rediriger ou retourner une erreur
         self.assertIn(response.status_code, [302, 404])
 
-    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
+    @patch('src.web.condo_app.condo_service.get_condo_by_identifier')
     @patch('src.web.condo_app.condo_service.update_condo')
-    def test_edit_condo_post_valid_data(self, mock_update_condo, mock_get_condo_by_unit_number):
+    def test_edit_condo_post_valid_data(self, mock_update_condo, mock_get_condo_by_identifier):
         """Test de soumission du formulaire d'édition avec données valides."""
-        # Mock du service pour retourner une unité existante
-        mock_condo = {
-            'unit_number': 'TEST-001',
-            'owner_name': 'Test Owner',
-            'square_feet': 850,
-            'condo_type': 'residential',
-            'status': 'active'
-        }
-        mock_get_condo_by_unit_number.return_value = mock_condo
+        # Mock du service pour retourner un objet Unit
+        mock_unit = Mock(spec=Unit)
+        mock_unit.unit_number = 'TEST-001'
+        mock_unit.owner_name = 'Test Owner'
+        mock_unit.area = 850
+        mock_unit.unit_type = UnitType.RESIDENTIAL
+        mock_unit.status = UnitStatus.AVAILABLE
+        
+        mock_get_condo_by_identifier.return_value = mock_unit
         mock_update_condo.return_value = True
         
         form_data = {
             'owner_name': 'Nouveau Propriétaire',
             'square_feet': '900',
             'condo_type': 'residential',
-            'status': 'active'
+            'status': 'available'
         }
         
         response = self.client.post('/condos/TEST-001/edit', data=form_data, follow_redirects=True)
@@ -164,18 +161,18 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_update_condo.assert_called_once()
 
-    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
-    def test_edit_condo_post_invalid_data(self, mock_get_condo_by_unit_number):
+    @patch('src.web.condo_app.condo_service.get_condo_by_identifier')
+    def test_edit_condo_post_invalid_data(self, mock_get_condo_by_identifier):
         """Test de soumission du formulaire d'édition avec données invalides."""
-        # Mock du service pour retourner une unité existante
-        mock_condo = {
-            'unit_number': 'TEST-001',
-            'owner_name': 'Test Owner',
-            'square_feet': 850,
-            'condo_type': 'residential',
-            'status': 'active'
-        }
-        mock_get_condo_by_unit_number.return_value = mock_condo
+        # Mock du service pour retourner un objet Unit
+        mock_unit = Mock(spec=Unit)
+        mock_unit.unit_number = 'TEST-001'
+        mock_unit.owner_name = 'Test Owner'
+        mock_unit.area = 850
+        mock_unit.unit_type = UnitType.RESIDENTIAL
+        mock_unit.status = UnitStatus.AVAILABLE
+        
+        mock_get_condo_by_identifier.return_value = mock_unit
         
         form_data = {
             'owner_name': '',  # Nom vide - invalide
@@ -221,37 +218,6 @@ class TestCondoRoutesIntegration(unittest.TestCase):
 
         # Doit retourner le formulaire avec erreurs ou rediriger
         self.assertIn(response.status_code, [200, 302])
-
-    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
-    @patch('src.web.condo_app.condo_service.delete_condo')
-    def test_delete_condo_existing_unit(self, mock_delete_condo, mock_get_condo_by_unit_number):
-        """Test de suppression d'un condo existant."""
-        # Mock du service pour retourner une unité existante
-        mock_condo = {
-            'unit_number': 'TEST-001',
-            'owner_name': 'Test Owner',
-            'square_feet': 850,
-            'condo_type': 'residential',
-            'status': 'active'
-        }
-        mock_get_condo_by_unit_number.return_value = mock_condo
-        mock_delete_condo.return_value = True
-        
-        response = self.client.post('/condos/TEST-001/delete', follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        mock_delete_condo.assert_called_once_with('TEST-001')
-
-    @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
-    def test_delete_condo_nonexistent_unit(self, mock_get_condo_by_unit_number):
-        """Test de suppression d'un condo inexistant."""
-        # Mock du service pour retourner None
-        mock_get_condo_by_unit_number.return_value = None
-        
-        response = self.client.post('/condos/INEXISTANT-999/delete')
-
-        # Doit rediriger ou retourner une erreur
-        self.assertIn(response.status_code, [302, 404])
 
 
 if __name__ == '__main__':

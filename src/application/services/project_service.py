@@ -154,6 +154,43 @@ class ProjectService:
                 'success': False,
                 'error': f'Erreur système: {str(e)}'
             }
+
+    def get_project_by_name(self, project_name: str) -> Dict[str, Any]:
+        """
+        Récupère un projet par son nom.
+        ATTENTION: Utilise la recherche par nom qui peut être ambiguë.
+        Préférer get_project_by_id() quand possible.
+        
+        Args:
+            project_name: Nom du projet
+            
+        Returns:
+            Dict contenant le projet ou une erreur
+        """
+        try:
+            # Recharger les projets depuis la base pour avoir les dernières données
+            all_projects = self.project_repository.get_all_projects()
+            project = next((p for p in all_projects if p.name == project_name), None)
+            
+            if project:
+                logger.debug(f"Projet trouvé par nom: {project.name} (ID: {project.project_id})")
+                return {
+                    'success': True,
+                    'project': project
+                }
+            else:
+                logger.warning(f"Projet non trouvé avec le nom: {project_name}")
+                return {
+                    'success': False,
+                    'error': f'Aucun projet trouvé avec le nom "{project_name}"'
+                }
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du projet {project_name}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur système: {str(e)}'
+            }
     
     def update_project(self, project: Project) -> Dict[str, Any]:
         """
@@ -166,12 +203,15 @@ class ProjectService:
             Dict contenant le résultat de l'opération
         """
         try:
-            # Trouver l'index du projet
+            # Trouver l'index du projet dans la liste en mémoire
             project_index = next((i for i, p in enumerate(self._projects) if p.project_id == project.project_id), None)
             
             if project_index is not None:
+                # Mettre à jour la liste en mémoire
                 self._projects[project_index] = project
-                self._save_projects()
+                
+                # Sauvegarder en base de données SQLite
+                self.project_repository.save_project(project)
                 
                 logger.info(f"Projet mis à jour: {project.name} (ID: {project.project_id})")
                 return {
@@ -272,15 +312,22 @@ class ProjectService:
         adapted['name'] = project_data.get('name', '')
         adapted['address'] = project_data.get('address', '')
         adapted['construction_year'] = int(project_data.get('construction_year', 0))
-        # Supprimé: status n'existe pas dans l'entité Project
+        
+        # Adaptation du statut
+        from src.domain.entities.project import ProjectStatus
+        status_str = project_data.get('status', 'PLANNING')
+        adapted['status'] = ProjectStatus(status_str) if isinstance(status_str, str) else status_str
         
         # Adaptation des superficies
         if 'total_area' in project_data:
-            # Ancien format : total_area uniquement
-            adapted['total_area'] = float(project_data['total_area'])
+            # Ancien format : total_area (migration vers building_area)
+            adapted['building_area'] = float(project_data['total_area'])
+        elif 'building_area' in project_data:
+            # Nouveau format : building_area
+            adapted['building_area'] = float(project_data['building_area'])
         else:
-            # Nouveau format
-            adapted['total_area'] = float(project_data.get('total_area', 0))
+            # Valeur par défaut
+            adapted['building_area'] = float(project_data.get('building_area', 0))
         
         # Adaptation du nombre d'unités
         if 'unit_count' in project_data:
@@ -296,30 +343,30 @@ class ProjectService:
         
         return adapted
     
-    def get_project_statistics(self, project_name: str) -> Dict[str, Any]:
+    def get_project_statistics(self, project_id: str) -> Dict[str, Any]:
         """
         Calcule les statistiques d'un projet existant
         
         Args:
-            project_name: Nom du projet à analyser
+            project_id: ID du projet à analyser
             
         Returns:
             Dict contenant les statistiques du projet
         """
         try:
-            logger.debug(f"Calcul des statistiques pour le projet: {project_name}")
-            logger.debug(f"Projets disponibles: {[p.name for p in self._projects]}")
+            logger.debug(f"Calcul des statistiques pour le projet ID: {project_id}")
             
-            # Récupérer le DERNIER projet avec ce nom (le plus récent) pour éviter les doublons de tests
-            matching_projects = [p for p in self._projects if p.name == project_name]
-            project = matching_projects[-1] if matching_projects else None
+            # Recharger les projets depuis la base pour avoir les dernières données
+            self._load_projects()
+            logger.debug(f"Projets disponibles: {[p.project_id for p in self._projects]}")
             
-            logger.debug(f"Projets correspondants trouvés: {len(matching_projects)}")
+            # Trouver le projet par ID
+            project = next((p for p in self._projects if p.project_id == project_id), None)
             
             if not project:
                 return {
                     'success': False,
-                    'error': f"Projet '{project_name}' non trouvé"
+                    'error': f"Projet avec l'ID '{project_id}' non trouvé"
                 }
             
             logger.debug(f"Projet sélectionné: {project.name} avec {len(project.units)} unités")
@@ -327,17 +374,17 @@ class ProjectService:
             # Calcul des statistiques basé sur les unités EXISTANTES du projet
             stats = project.get_project_statistics()
             
-            logger.info(f"Statistiques calculées pour {project_name}: {stats['sold_units']}/{stats['total_units']} unités vendues")
+            logger.info(f"Statistiques calculées pour {project.name}: {stats['occupied_units']}/{stats['total_units']} unités occupées")
             
             # Sauvegarder le projet pour s'assurer que les modifications d'unités sont persistées
-            if hasattr(project, 'project_id') and project.project_id:
-                self.project_repository.save_project(project)
-                logger.debug(f"Projet {project_name} resauvegardé avec les modifications d'unités")
+            self.project_repository.save_project(project)
+            logger.debug(f"Projet {project.name} resauvegardé avec les modifications d'unités")
             
             return {
                 'success': True,
                 'statistics': stats,
-                'project_name': project_name
+                'project_name': project.name,
+                'project_id': project_id
             }
             
         except Exception as e:
@@ -347,12 +394,12 @@ class ProjectService:
                 'error': f"Impossible de calculer les statistiques: {str(e)}"
             }
     
-    def update_project_units(self, project_name: str, new_unit_count: int, project_instance: Project = None) -> Dict[str, Any]:
+    def update_project_units(self, project_id: str, new_unit_count: int, project_instance: Project = None) -> Dict[str, Any]:
         """
         Met à jour le nombre d'unités d'un projet existant
         
         Args:
-            project_name: Nom du projet à modifier
+            project_id: ID du projet à modifier
             new_unit_count: Nouveau nombre d'unités souhaité
             project_instance: Instance du projet à utiliser (optionnel)
             
@@ -360,16 +407,16 @@ class ProjectService:
             Dict contenant le résultat de l'opération
         """
         try:
-            logger.info(f"Mise à jour du nombre d'unités pour {project_name}: {new_unit_count}")
+            logger.info(f"Mise à jour du nombre d'unités pour le projet ID {project_id}: {new_unit_count}")
             
             # Toujours recharger le projet depuis la base de données pour avoir l'état le plus récent
             all_projects = self.project_repository.get_all_projects()
-            project = next((p for p in all_projects if p.name == project_name), None)
+            project = next((p for p in all_projects if p.project_id == project_id), None)
             
             if not project:
                 return {
                     'success': False,
-                    'error': f'Projet non trouvé: {project_name}'
+                    'error': f'Projet non trouvé avec l\'ID: {project_id}'
                 }
             
             # Validation du nouveau nombre d'unités
@@ -386,7 +433,7 @@ class ProjectService:
             # Sauvegarde réelle dans la base de données
             self.project_repository.save_project(project)
             
-            logger.info(f"Unités mises à jour pour {project_name}: {old_count} → {new_unit_count}")
+            logger.info(f"Unités mises à jour pour {project.name}: {old_count} → {new_unit_count}")
             return {
                 'success': True,
                 'project': project,
@@ -411,13 +458,13 @@ class ProjectService:
         Returns:
             Dict avec validation result et message d'erreur si applicable
         """
-        required_fields = ['name', 'address', 'total_area', 'construction_year', 'unit_count', 'constructor']
+        required_fields = ['name', 'address', 'building_area', 'construction_year', 'unit_count', 'constructor']
         
         # Vérification des champs requis
         field_translations = {
             'name': 'nom du projet',
             'address': 'adresse',
-            'total_area': 'superficie totale',
+            'building_area': 'superficie du bâtiment',
             'construction_year': 'année de construction',
             'unit_count': 'nombre d\'unités',
             'constructor': 'constructeur'
@@ -445,16 +492,16 @@ class ProjectService:
             }
         
         try:
-            total_area = float(data['total_area'])
-            if total_area <= 0 or total_area > 100000:
+            building_area = float(data.get('building_area', data.get('total_area', 0)))
+            if building_area <= 0 or building_area > 100000:
                 return {
                     'valid': False,
-                    'error': "La superficie totale doit être entre 1 et 100,000 pieds carrés"
+                    'error': "La superficie du bâtiment doit être entre 1 et 100,000 pieds carrés"
                 }
         except ValueError:
             return {
                 'valid': False,
-                'error': "La superficie totale doit être un nombre valide"
+                'error': "La superficie du bâtiment doit être un nombre valide"
             }
         
         try:
@@ -513,35 +560,6 @@ class ProjectService:
         # Dans un vrai contexte, ceci ferait appel à la base de données
         return True
     
-    async def _simulate_get_project(self, project_name: str) -> Optional[Project]:
-        """
-        Simule la récupération d'un projet depuis la base de données
-        
-        Args:
-            project_name: Nom du projet à récupérer
-            
-        Returns:
-            Projet simulé ou None si non trouvé
-        """
-        # Simulation d'une opération asynchrone
-        await asyncio.sleep(0.05)
-        
-        # Pour les tests, créer un projet simulé dynamiquement
-        # basé sur le nom fourni
-        if project_name:
-            # Créer un projet de base simulé
-            project = Project(
-                name=project_name,
-                address=f"123 Rue Simulée, Montréal, QC H1A 1A1",
-                total_area=5000.0,
-                construction_year=2020,
-                unit_count=15,
-                constructor="Constructeur Simulé Inc."
-            )
-            project.create_units()
-            return project
-        
-        return None  # Projet non trouvé
     
     def get_all_projects_summary(self) -> Dict[str, Any]:
         """
@@ -558,31 +576,31 @@ class ProjectService:
                 {
                     'name': 'Résidence du Parc',
                     'total_units': 15,
-                    'sold_units': 8,
+                    'occupied_units': 8,
                     'available_units': 7,
                     'occupancy_rate': 53.3
                 },
                 {
                     'name': 'Les Jardins de Ville',
                     'total_units': 24,
-                    'sold_units': 18,
+                    'occupied_units': 18,
                     'available_units': 6,
                     'occupancy_rate': 75.0
                 }
             ]
             
             total_units = sum(p['total_units'] for p in projects_summary)
-            total_sold = sum(p['sold_units'] for p in projects_summary)
+            total_occupied = sum(p['occupied_units'] for p in projects_summary)
             
-            logger.info(f"Résumé calculé: {len(projects_summary)} projets, {total_sold}/{total_units} unités vendues")
+            logger.info(f"Résumé calculé: {len(projects_summary)} projets, {total_occupied}/{total_units} unités occupées")
             
             return {
                 'success': True,
                 'projects': projects_summary,
                 'total_projects': len(projects_summary),
                 'total_units': total_units,
-                'total_sold': total_sold,
-                'overall_occupancy': (total_sold / total_units * 100) if total_units > 0 else 0
+                'total_occupied': total_occupied,
+                'overall_occupancy': (total_occupied / total_units * 100) if total_units > 0 else 0
             }
             
         except Exception as e:
@@ -749,7 +767,7 @@ class ProjectService:
             # Calculer les statistiques
             stats = project.get_project_statistics()
             
-            logger.info(f"Statistiques calculées pour {project.name}: {stats['sold_units']}/{stats['total_units']} unités vendues")
+            logger.info(f"Statistiques calculées pour {project.name}: {stats['occupied_units']}/{stats['total_units']} unités occupées")
             
             return {
                 'success': True,
@@ -768,7 +786,8 @@ class ProjectService:
 
     def delete_project(self, project_name: str) -> Dict[str, Any]:
         """
-        Supprime un projet et toutes ses unités associées.
+        Supprime un projet et toutes ses unités associées par nom.
+        Cette méthode est maintenue pour compatibilité - utilise delete_project_by_id en interne.
         
         Args:
             project_name: Nom du projet à supprimer
@@ -777,30 +796,67 @@ class ProjectService:
             Dict: Résultat de l'opération de suppression
         """
         try:
+            # Utiliser la méthode standardisée pour récupérer le projet par nom
+            result = self.get_project_by_name(project_name)
+            
+            if not result['success']:
+                return result
+            
+            project = result['project']
+            
+            # Déléguer à delete_project_by_id qui est la méthode standardisée
+            return self.delete_project_by_id(project.project_id)
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la suppression du projet {project_name}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur inattendue lors de la suppression: {str(e)}'
+            }
+
+    def delete_project_by_id(self, project_id: str) -> Dict[str, Any]:
+        """
+        Supprime un projet par son ID et toutes ses unités associées.
+        
+        Args:
+            project_id: ID du projet à supprimer
+            
+        Returns:
+            Dict: Résultat de l'opération de suppression
+        """
+        try:
+            logger.info(f"Début suppression projet par ID: {project_id}")
+            
             # Recharger les projets depuis la base pour avoir les dernières données
             self._load_projects()
+            logger.debug(f"Projets chargés: {len(self._projects)} projets disponibles")
+            logger.debug(f"IDs des projets disponibles: {[p.project_id for p in self._projects]}")
             
-            # Trouver le projet par nom
-            project = next((p for p in self._projects if p.name == project_name), None)
+            # Trouver le projet par ID
+            project = next((p for p in self._projects if p.project_id == project_id), None)
             
             if not project:
+                logger.error(f"Projet avec l'ID '{project_id}' non trouvé dans la liste des {len(self._projects)} projets")
+                logger.debug(f"IDs disponibles: {[p.project_id for p in self._projects]}")
                 return {
                     'success': False,
-                    'error': f'Projet "{project_name}" non trouvé'
+                    'error': f'Projet avec l\'ID "{project_id}" non trouvé'
                 }
             
             # Sauvegarder les informations avant suppression pour les logs
-            project_id = project.project_id
+            project_name = project.name
             total_units = len(project.units) if project.units else 0
+            logger.info(f"Projet trouvé pour suppression: {project_name} avec {total_units} unités")
             
             # Supprimer le projet de la base de données
             success = self.project_repository.delete_project(project_id)
+            logger.info(f"Résultat suppression base de données: {success}")
             
             if success:
                 # Retirer le projet de la liste en mémoire
                 self._projects = [p for p in self._projects if p.project_id != project_id]
                 
-                logger.info(f"Projet supprimé avec succès: {project_name} (ID: {project_id}, {total_units} unités)")
+                logger.info(f"Projet supprimé avec succès par ID: {project_name} (ID: {project_id}, {total_units} unités)")
                 
                 return {
                     'success': True,
@@ -809,14 +865,98 @@ class ProjectService:
                     'total_units_deleted': total_units
                 }
             else:
+                logger.error(f"Échec de la suppression en base de données pour le projet {project_id}")
                 return {
                     'success': False,
                     'error': f'Erreur lors de la suppression du projet en base de données'
                 }
                 
         except Exception as e:
-            logger.error(f"Erreur lors de la suppression du projet {project_name}: {e}")
+            logger.error(f"Erreur lors de la suppression du projet par ID {project_id}: {e}")
             return {
                 'success': False,
                 'error': f'Erreur inattendue lors de la suppression: {str(e)}'
+            }
+    
+    def get_unit_by_db_id(self, unit_db_id: int) -> Dict[str, Any]:
+        """
+        Récupère une unité par son ID de base de données.
+        
+        Args:
+            unit_db_id: ID de l'unité dans la base de données
+            
+        Returns:
+            Dict contenant l'unité et le projet, ou une erreur
+        """
+        try:
+            # Convertir en entier si c'est une chaîne
+            if isinstance(unit_db_id, str):
+                unit_db_id = int(unit_db_id)
+            
+            # Récupérer l'unité depuis le repository
+            result = self.project_repository.get_unit_by_db_id(unit_db_id)
+            
+            if result:
+                unit, project = result
+                logger.debug(f"Unité trouvée: {unit.unit_number} dans le projet {project.name}")
+                return {
+                    'success': True,
+                    'unit': unit,
+                    'project': project
+                }
+            else:
+                logger.warning(f"Aucune unité trouvée avec l'ID de base de données: {unit_db_id}")
+                return {
+                    'success': False,
+                    'error': f'Aucune unité trouvée avec l\'ID {unit_db_id}'
+                }
+                
+        except ValueError as e:
+            logger.error(f"ID invalide pour recherche d'unité: {unit_db_id}")
+            return {
+                'success': False,
+                'error': f'ID invalide: {unit_db_id}'
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération de l'unité ID {unit_db_id}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur système: {str(e)}'
+            }
+
+    def update_unit_by_id(self, unit_id: int, unit_data: dict) -> Dict[str, Any]:
+        """
+        Met à jour une unité spécifique par son ID de base de données.
+        
+        Args:
+            unit_id: ID de base de données de l'unité
+            unit_data: Dictionnaire avec les données à mettre à jour
+            
+        Returns:
+            Dict contenant le résultat de l'opération
+        """
+        try:
+            # Mettre à jour directement dans la base de données
+            success = self.project_repository.update_unit(unit_id, unit_data)
+            
+            if success:
+                # Recharger les projets pour synchroniser la mémoire
+                self._load_projects()
+                
+                logger.info(f"Unité {unit_id} mise à jour avec succès")
+                return {
+                    'success': True,
+                    'message': f'Unité {unit_id} mise à jour avec succès'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Échec de la mise à jour de l\'unité {unit_id}'
+                }
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de l'unité {unit_id}: {e}")
+            return {
+                'success': False,
+                'error': f'Erreur système: {str(e)}'
             }

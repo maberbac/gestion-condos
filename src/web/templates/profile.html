@@ -173,6 +173,48 @@
     </div>
 </div>
 
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier mon profil</h3>
+            <button class="modal-close" onclick="hideEditProfileModal()">&times;</button>
+        </div>
+        
+        <form id="editProfileForm" onsubmit="updateProfile(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_full_name">Nom complet</label>
+                    <input type="text" id="edit_full_name" name="full_name" value="{{ full_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_email">Adresse email</label>
+                    <input type="email" id="edit_email" name="email" value="{{ email }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_username">Nom d'utilisateur</label>
+                    <input type="text" id="edit_username" name="username" value="{{ username }}" readonly>
+                    <small>Le nom d'utilisateur ne peut pas être modifié</small>
+                </div>
+                
+                {% if condo_unit %}
+                <div class="form-group" style="display: none;">
+                    <label for="edit_condo_unit">Unité de condo</label>
+                    <input type="text" id="edit_condo_unit" name="condo_unit" value="{{ condo_unit }}" placeholder="ex: 101 (optionnel)">
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="modal-btn secondary" onclick="hideEditProfileModal()">Annuler</button>
+                <button type="submit" class="modal-btn primary">Mettre à jour</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
     .profile-container {
         max-width: 1200px;
@@ -516,6 +558,148 @@
         font-size: 0.9rem;
     }
 
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 25px 30px;
+        border-bottom: 1px solid #dee2e6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: white;
+        font-size: 1.5rem;
+        border: none;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.8);
+        transition: color 0.3s ease;
+    }
+
+    .modal-close:hover {
+        color: white;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        padding: 30px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input[readonly] {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .form-group small {
+        color: #666;
+        font-size: 0.8rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        padding: 20px 30px;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+        border-radius: 0 0 20px 20px;
+    }
+
+    .modal-btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .modal-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .modal-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .modal-btn.secondary {
+        background: #f8f9fa;
+        color: #495057;
+        border: 1px solid #dee2e6;
+    }
+
+    .modal-btn.secondary:hover {
+        background: #e9ecef;
+        transform: translateY(-1px);
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .profile-header {
@@ -568,15 +752,100 @@
 
 <script>
     function editProfile() {
-        // Fonction pour éditer le profil - redirect vers une page d'édition si elle existe
-        // Pour l'instant, affichage d'un message informatif
-        alert('Fonctionnalité de modification du profil en cours de développement');
+        // Ouvrir la popup d'édition du profil
+        document.getElementById('editProfileModal').style.display = 'block';
+    }
+
+    function hideEditProfileModal() {
+        document.getElementById('editProfileModal').style.display = 'none';
+        document.getElementById('editProfileForm').reset();
+        // Restaurer les valeurs originales
+        document.getElementById('edit_full_name').value = "{{ full_name }}";
+        document.getElementById('edit_email').value = "{{ email }}";
+        document.getElementById('edit_username').value = "{{ username }}";
+        const condoUnitField = document.getElementById('edit_condo_unit');
+        if (condoUnitField) {
+            condoUnitField.value = "{{ condo_unit or '' }}";
+        }
+    }
+
+    function updateProfile(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const profileData = Object.fromEntries(formData.entries());
+        
+        // Validation basique
+        if (!profileData.full_name || !profileData.email) {
+            alert('Veuillez remplir tous les champs obligatoires.');
+            return;
+        }
+        
+        // Validation email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(profileData.email)) {
+            alert('Veuillez entrer une adresse email valide.');
+            return;
+        }
+        
+        // Afficher un indicateur de chargement
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Mise à jour...';
+        submitBtn.disabled = true;
+        
+        // Envoi vers le serveur
+        fetch('/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(profileData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Profil mis à jour avec succès!');
+                hideEditProfileModal();
+                // Recharger la page pour afficher les modifications
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la mise à jour: ' + (data.error || 'Erreur inconnue'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la mise à jour:', error);
+            alert('Erreur réseau lors de la mise à jour du profil');
+        })
+        .finally(() => {
+            // Restaurer le bouton
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
     }
 
     function changePassword() {
         // Redirection vers la page de changement de mot de passe
         window.location.href = "{{ url_for('change_password') }}";
     }
+
+    // Fermer la modal en cliquant à l'extérieur
+    window.onclick = function(event) {
+        const modal = document.getElementById('editProfileModal');
+        if (event.target === modal) {
+            hideEditProfileModal();
+        }
+    }
+
+    // Fermer la modal avec la touche Échap
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('editProfileModal');
+            if (modal.style.display === 'block') {
+                hideEditProfileModal();
+            }
+        }
+    });
 
     // Animation au chargement
     document.addEventListener('DOMContentLoaded', function() {

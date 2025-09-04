@@ -41,7 +41,7 @@ class TestProjectIntegration(unittest.TestCase):
         self.test_project_data = {
             'name': 'Résidence Test Intégration',
             'address': '456 Rue Test, Montréal, QC H2X 2X2',
-            'total_area': 3000.0,
+            'building_area': 3000.0,
             'construction_year': 2023,
             'unit_count': 10,
             'constructor': 'Constructeur Test Inc.'
@@ -51,7 +51,7 @@ class TestProjectIntegration(unittest.TestCase):
         self.mock_project = Project(
             name='Résidence Test Intégration',
             address='456 Rue Test, Montréal, QC H2X 2X2',
-            total_area=3000.0,
+            building_area=3000.0,
             construction_year=2023,
             unit_count=10,
             constructor='Constructeur Test Inc.'
@@ -73,8 +73,7 @@ class TestProjectIntegration(unittest.TestCase):
                 area=150.0,
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
-                estimated_price=250000.0,
-                monthly_fees_base=500.0
+                estimated_price=250000.0
             )
             created_units.append(unit)
         
@@ -122,7 +121,7 @@ class TestProjectIntegration(unittest.TestCase):
         mock_stats = {
             'total_projects': 1,
             'total_units': 10,
-            'sold_units': 3,
+            'occupied_units': 3,
             'available_units': 7,
             'total_revenue': 450000.0,
             'average_price': 150000.0
@@ -130,14 +129,14 @@ class TestProjectIntegration(unittest.TestCase):
         
         # Mock de la méthode get_project_statistics
         with patch.object(self.project_service, 'get_project_statistics', return_value=mock_stats):
-            # Act - Obtenir les statistiques via le service mocké
-            stats = self.project_service.get_project_statistics()
+            # Act - Obtenir les statistiques via le service mocké avec un project_id exemple
+            stats = self.project_service.get_project_statistics('project_123')
         
         # Assert - Vérifier les statistiques mockées
         self.assertIsInstance(stats, dict)
         self.assertEqual(stats['total_projects'], 1)
         self.assertEqual(stats['total_units'], 10)
-        self.assertEqual(stats['sold_units'], 3)
+        self.assertEqual(stats['occupied_units'], 3)
         self.assertEqual(stats['available_units'], 7)
         self.assertEqual(stats['total_revenue'], 450000.0)
         self.assertEqual(stats['average_price'], 150000.0)
@@ -148,7 +147,7 @@ class TestProjectIntegration(unittest.TestCase):
         updated_project = Project(
             name=self.test_project_data['name'],
             address=self.test_project_data['address'],
-            total_area=self.test_project_data['total_area'],
+            building_area=self.test_project_data['building_area'],
             construction_year=self.test_project_data['construction_year'],
             unit_count=15,  # Nouvelle valeur
             constructor=self.test_project_data['constructor']
@@ -190,7 +189,7 @@ class TestProjectIntegration(unittest.TestCase):
             Project(
                 name='Projet A',
                 address='100 Rue A, Ville A',
-                total_area=2000.0,
+                building_area=2000.0,
                 construction_year=2022,
                 unit_count=8,
                 constructor='Constructeur A'
@@ -198,7 +197,7 @@ class TestProjectIntegration(unittest.TestCase):
             Project(
                 name='Projet B',
                 address='200 Rue B, Ville B',
-                total_area=4000.0,
+                building_area=4000.0,
                 construction_year=2023,
                 unit_count=16,
                 constructor='Constructeur B'
@@ -228,8 +227,7 @@ class TestProjectIntegration(unittest.TestCase):
                 area=150.0 + (i * 10),  # Superficies variables
                 unit_type=UnitType.RESIDENTIAL,
                 status=UnitStatus.AVAILABLE,
-                estimated_price=250000.0 + (i * 10000),  # Prix variables
-                monthly_fees_base=500.0 + (i * 50)  # Frais variables
+                estimated_price=250000.0 + (i * 10000)  # Prix variables
             )
             mock_units.append(unit)
         
@@ -273,7 +271,7 @@ class TestProjectIntegration(unittest.TestCase):
             'project': Project(
                 name='Grand Projet Performance',
                 address=large_project_data['address'],
-                total_area=15000.0,
+                building_area=15000.0,
                 construction_year=large_project_data['construction_year'],
                 unit_count=100,
                 constructor=large_project_data['constructor']
@@ -300,7 +298,7 @@ class TestProjectIntegration(unittest.TestCase):
                 'project': Project(
                     name=f'Projet Concurrent {i}',
                     address=f'{100+i} Rue Concurrent, Ville',
-                    total_area=1000.0 + (i * 100),
+                    building_area=1000.0 + (i * 100),
                     construction_year=2023,
                     unit_count=5 + i,
                     constructor=f'Constructeur {i}'

@@ -94,19 +94,20 @@ class ProjectRepositorySQLite:
                 # Insérer ou mettre à jour le projet
                 conn.execute("""
                     INSERT OR REPLACE INTO projects 
-                    (project_id, name, address, total_area, construction_year, 
+                    (project_id, name, address, building_area, land_area, construction_year, 
                      unit_count, constructor, creation_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     project.project_id,
                     project.name,
                     project.address,
-                    project.total_area,
+                    project.building_area,
+                    project.land_area,
                     project.construction_year,
                     project.unit_count,
                     project.constructor,
                     project.creation_date.isoformat(),
-                    'active'
+                    project.status.value  # Utiliser la valeur du statut du projet
                 ))
                 
                 # Supprimer les anciennes unités
@@ -134,8 +135,7 @@ class ProjectRepositorySQLite:
             condo_type = unit.get('condo_type', 'residential')
             status = unit.get('status', 'active')
             owner_name = unit.get('owner_name', 'Disponible')
-            purchase_date = unit.get('purchase_date')
-            monthly_fees = unit.get('calculated_monthly_fees', unit.get('monthly_fees_base'))
+            monthly_fees = unit.get('calculated_monthly_fees')
         else:
             # Objet Unit ou Condo - gérer les différents attributs
             unit_number = unit.unit_number
@@ -162,14 +162,13 @@ class ProjectRepositorySQLite:
                 status = 'active'
                 
             owner_name = getattr(unit, 'owner_name', 'Disponible')
-            purchase_date = getattr(unit, 'purchase_date', None)
-            monthly_fees = getattr(unit, 'calculated_monthly_fees', getattr(unit, 'monthly_fees_base', None))
+            monthly_fees = getattr(unit, 'calculated_monthly_fees', None)
         
         conn.execute("""
             INSERT INTO units 
             (unit_number, project_id, area, condo_type, status, 
-             owner_name, purchase_date, calculated_monthly_fees)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             owner_name, calculated_monthly_fees)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             unit_number,
             project_id,
@@ -177,7 +176,6 @@ class ProjectRepositorySQLite:
             condo_type,
             status,
             owner_name,
-            purchase_date,
             str(monthly_fees) if monthly_fees else None
         ))
     
@@ -194,7 +192,7 @@ class ProjectRepositorySQLite:
                 
                 # Récupérer tous les projets
                 cursor = conn.execute("""
-                    SELECT project_id, name, address, total_area, construction_year,
+                    SELECT project_id, name, address, building_area, land_area, construction_year,
                            unit_count, constructor, creation_date, status
                     FROM projects 
                     ORDER BY creation_date DESC
@@ -206,7 +204,7 @@ class ProjectRepositorySQLite:
                     project = Project(
                         name=row['name'],
                         address=row['address'],
-                        total_area=row['total_area'],
+                        building_area=row['building_area'],
                         construction_year=row['construction_year'],
                         unit_count=row['unit_count'],
                         constructor=row['constructor'],
@@ -216,10 +214,23 @@ class ProjectRepositorySQLite:
                     # Ajouter le project_id
                     project.project_id = row['project_id']
                     
+                    # Restaurer le statut depuis la base de données
+                    from src.domain.entities.project import ProjectStatus
+                    if row['status']:
+                        try:
+                            project.status = ProjectStatus(row['status'])
+                        except ValueError:
+                            # Si le statut en DB n'est pas valide, utiliser PLANNING par défaut
+                            project.status = ProjectStatus.PLANNING
+                    
+                    # Restaurer land_area si présent
+                    if row['land_area'] is not None:
+                        project.land_area = row['land_area']
+                    
                     # Récupérer les unités du projet
                     unit_cursor = conn.execute("""
-                        SELECT unit_number, area, condo_type, status,
-                               owner_name, purchase_date, calculated_monthly_fees
+                        SELECT id, unit_number, area, condo_type, status,
+                               owner_name, calculated_monthly_fees
                         FROM units 
                         WHERE project_id = ?
                         ORDER BY unit_number
@@ -242,9 +253,13 @@ class ProjectRepositorySQLite:
                             if old_status == 'active':
                                 status = UnitStatus.AVAILABLE
                             elif old_status == 'inactive':
-                                status = UnitStatus.AVAILABLE  # Inactif devient disponible
+                                status = UnitStatus.INACTIVE  # CORRECTION: inactive reste inactive !
+                            elif old_status == 'available':
+                                status = UnitStatus.AVAILABLE
+                            elif old_status == 'reserved':
+                                status = UnitStatus.RESERVED
                             elif old_status == 'sold':
-                                status = UnitStatus.SOLD
+                                status = UnitStatus.AVAILABLE  # Les anciens "sold" deviennent disponibles
                             elif old_status == 'maintenance':
                                 status = UnitStatus.MAINTENANCE
                             else:
@@ -253,23 +268,16 @@ class ProjectRepositorySQLite:
                         except (ValueError, KeyError):
                             status = UnitStatus.AVAILABLE  # Valeur par défaut
                         
-                        # Conversion date d'achat
-                        purchase_date = None
-                        if unit_row['purchase_date']:
-                            try:
-                                purchase_date = datetime.fromisoformat(unit_row['purchase_date'])
-                            except (ValueError, TypeError):
-                                purchase_date = None
-                        
                         unit = Unit(
                             unit_number=unit_row['unit_number'],
-                            area=float(unit_row['area']),
+                            area=float(unit_row['area'] or 0),  # Protection contre None
                             unit_type=unit_type,
                             status=status,
                             owner_name=unit_row['owner_name'] or "Disponible",
-                            purchase_date=purchase_date,
-                            estimated_price=float(unit_row['price'] if 'price' in unit_row.keys() else 0),  # Si pas de colonne price, défaut à 0
-                            project_id=row['project_id']          # Ajouter l'ID du projet
+                            estimated_price=float(unit_row['price'] if 'price' in unit_row.keys() and unit_row['price'] is not None else 0),  # Protection contre None
+                            project_id=row['project_id'],          # Ajouter l'ID du projet
+                            id=unit_row['id'],  # Utiliser l'attribut id directement
+                            calculated_monthly_fees=unit_row['calculated_monthly_fees']  # AJOUT: Récupérer les frais stockés
                         )
                         units.append(unit)
                     
@@ -304,6 +312,94 @@ class ProjectRepositorySQLite:
             logger.error(f"Erreur lors de la récupération du projet {project_id}: {e}")
             return None
     
+    def get_unit_by_db_id(self, unit_db_id: int) -> Optional[tuple]:
+        """
+        Récupère une unité par son ID de base de données.
+        
+        Args:
+            unit_db_id: ID de l'unité dans la base de données
+            
+        Returns:
+            Optional[tuple]: (unit, project) si trouvée, None sinon
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                # Récupérer l'unité et le projet associé
+                cursor = conn.execute("""
+                    SELECT u.id, u.unit_number, u.area, u.condo_type, u.status,
+                           u.owner_name, u.calculated_monthly_fees,
+                           p.project_id, p.name as project_name
+                    FROM units u
+                    JOIN projects p ON u.project_id = p.project_id
+                    WHERE u.id = ?
+                """, (unit_db_id,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                # Créer l'objet Unit
+                from src.domain.entities.unit import Unit, UnitType, UnitStatus
+                
+                # Conversion du type et statut
+                try:
+                    unit_type = UnitType(row['condo_type'])
+                except (ValueError, KeyError):
+                    unit_type = UnitType.RESIDENTIAL
+                    
+                try:
+                    old_status = row['status']
+                    if old_status == 'active':
+                        status = UnitStatus.AVAILABLE
+                    elif old_status == 'inactive':
+                        status = UnitStatus.INACTIVE  # CORRECTION: inactive reste inactive !
+                    elif old_status == 'available':
+                        status = UnitStatus.AVAILABLE
+                    elif old_status == 'reserved':
+                        status = UnitStatus.RESERVED
+                    elif old_status == 'sold':
+                        status = UnitStatus.AVAILABLE  # Les anciens "sold" deviennent disponibles
+                    elif old_status == 'maintenance':
+                        status = UnitStatus.MAINTENANCE
+                    else:
+                        status = UnitStatus(old_status)
+                except (ValueError, KeyError):
+                    status = UnitStatus.AVAILABLE
+                
+                # Conversion date d'achat - supprimée
+                
+                unit = Unit(
+                    unit_number=row['unit_number'],
+                    area=float(row['area'] or 0),  # Protection contre None
+                    unit_type=unit_type,
+                    status=status,
+                    owner_name=row['owner_name'] or "Disponible",
+                    estimated_price=0.0,  # À récupérer depuis estimated_price si nécessaire
+                    project_id=row['project_id'],
+                    id=row['id'],  # Utiliser l'attribut id directement
+                    calculated_monthly_fees=row['calculated_monthly_fees']  # AJOUT: Récupérer les frais stockés
+                )
+                
+                # Récupérer le projet minimal pour le contexte
+                from src.domain.entities.project import Project
+                project = Project(
+                    name=row['project_name'],
+                    project_id=row['project_id'],
+                    address="Adresse temporaire",
+                    building_area=100.0,  # Superficie positive requise par la validation
+                    construction_year=2000,
+                    unit_count=1,  # Nombre d'unités positif requis
+                    constructor="Constructeur temporaire"
+                )
+                
+                return (unit, project)
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération de l'unité ID {unit_db_id}: {e}")
+            return None
+    
     def delete_project(self, project_id: str) -> bool:
         """
         Supprime un projet et ses unités.
@@ -315,20 +411,34 @@ class ProjectRepositorySQLite:
             bool: True si supprimé avec succès
         """
         try:
+            logger.info(f"Tentative de suppression du projet ID: {project_id}")
+            
             with sqlite3.connect(self.db_path) as conn:
+                # Vérifier d'abord si le projet existe
+                cursor = conn.execute("SELECT project_id, name FROM projects WHERE project_id = ?", (project_id,))
+                existing_project = cursor.fetchone()
+                
+                if not existing_project:
+                    logger.warning(f"Projet non trouvé en base de données: {project_id}")
+                    return False
+                
+                logger.info(f"Projet trouvé en base: {existing_project[1]} (ID: {existing_project[0]})")
+                
                 # Supprimer les unités d'abord (FK cascade)
-                conn.execute("DELETE FROM units WHERE project_id = ?", (project_id,))
+                units_cursor = conn.execute("DELETE FROM units WHERE project_id = ?", (project_id,))
+                units_deleted = units_cursor.rowcount
+                logger.info(f"Unités supprimées: {units_deleted}")
                 
                 # Supprimer le projet
-                cursor = conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+                project_cursor = conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
                 
                 conn.commit()
                 
-                if cursor.rowcount > 0:
-                    logger.info(f"Projet supprimé: {project_id}")
+                if project_cursor.rowcount > 0:
+                    logger.info(f"Projet supprimé avec succès: {project_id} ({units_deleted} unités)")
                     return True
                 else:
-                    logger.warning(f"Aucun projet trouvé avec l'ID: {project_id}")
+                    logger.error(f"Échec de la suppression du projet: {project_id}")
                     return False
                     
         except Exception as e:
@@ -374,4 +484,62 @@ class ProjectRepositorySQLite:
             
         except Exception as e:
             logger.error(f"Erreur lors de la migration depuis {json_file_path}: {e}")
+            return False
+
+    def update_unit(self, unit_id: int, unit_data: dict) -> bool:
+        """
+        Met à jour une unité spécifique sans affecter les autres unités du projet.
+        
+        Args:
+            unit_id: ID de l'unité à mettre à jour
+            unit_data: Dictionnaire avec les données à mettre à jour
+            
+        Returns:
+            bool: True si mise à jour réussie
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Construire la requête de mise à jour dynamiquement
+                set_clauses = []
+                values = []
+                
+                # Mapper les champs de condo_data aux colonnes de la base
+                field_mapping = {
+                    'unit_number': 'unit_number',                    # AJOUT: Mapping pour le numéro d'unité
+                    'owner_name': 'owner_name',
+                    'square_feet': 'area',
+                    'area': 'area',
+                    'monthly_fees': 'calculated_monthly_fees',
+                    'condo_type': 'condo_type',
+                    'unit_type': 'condo_type',
+                    'status': 'status'
+                }
+                
+                for field, db_column in field_mapping.items():
+                    if field in unit_data:
+                        set_clauses.append(f"{db_column} = ?")
+                        values.append(unit_data[field])
+                
+                if not set_clauses:
+                    logger.warning(f"Aucune donnée à mettre à jour pour l'unité {unit_id}")
+                    return True
+                
+                # Ajouter l'ID à la fin pour la clause WHERE
+                values.append(unit_id)
+                
+                # Construire et exécuter la requête
+                query = f"UPDATE units SET {', '.join(set_clauses)} WHERE id = ?"
+                
+                cursor = conn.execute(query, values)
+                
+                if cursor.rowcount == 0:
+                    logger.error(f"Aucune unité trouvée avec l'ID {unit_id}")
+                    return False
+                
+                conn.commit()
+                logger.info(f"Unité {unit_id} mise à jour avec succès")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour de l'unité {unit_id}: {e}")
             return False

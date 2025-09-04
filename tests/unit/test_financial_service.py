@@ -32,8 +32,7 @@ class TestFinancialService(unittest.TestCase):
                 owner_name='Jean Dupont',
                 area=850.0,
                 unit_type=UnitType.RESIDENTIAL,
-                status=UnitStatus.SOLD,
-                monthly_fees_base=350.0,
+                status=UnitStatus.AVAILABLE,
                 project_id='project_123'
             ),
             Unit(
@@ -41,8 +40,7 @@ class TestFinancialService(unittest.TestCase):
                 owner_name='Marie Martin',
                 area=1200.0,
                 unit_type=UnitType.COMMERCIAL,
-                status=UnitStatus.SOLD,
-                monthly_fees_base=500.0,
+                status=UnitStatus.AVAILABLE,
                 project_id='project_123'
             ),
             Unit(
@@ -50,8 +48,7 @@ class TestFinancialService(unittest.TestCase):
                 owner_name='Pierre Dubois',
                 area=200.0,
                 unit_type=UnitType.PARKING,
-                status=UnitStatus.SOLD,
-                monthly_fees_base=50.0,
+                status=UnitStatus.AVAILABLE,
                 project_id='project_123'
             )
         ]
@@ -231,7 +228,6 @@ class TestFinancialService(unittest.TestCase):
             area=800.0,
             unit_type=UnitType.RESIDENTIAL,
             status=UnitStatus.MAINTENANCE,  # Unité inactive
-            monthly_fees_base=300.0,
             project_id='project_123'
         ))
         

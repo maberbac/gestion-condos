@@ -28,7 +28,19 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - Ne pas assumer la nature du projet
 - **DÉVELOPPEMENT TDD OBLIGATOIRE** : Toujours écrire les tests AVANT le code (Red-Green-Refactor)
 
-### 4. INTERDICTION STRICTE DES EMOJIS
+### 4. INTERDICTION ABSOLUE DE MODIFICATION DES MONTANTS FINANCIERS
+- **JAMAIS** modifier, ajuster ou corriger des frais, montants ou valeurs monétaires sans autorisation explicite de l'utilisateur
+- **JAMAIS** changer des calculs de frais, tarifs, prix ou montants de façon autonome
+- **JAMAIS** "corriger" des valeurs financières qui semblent incorrectes sans demander confirmation
+- **JAMAIS** appliquer des "améliorations" aux calculs financiers sans instruction directe
+- **JAMAIS** modifier les algorithmes de calcul de frais sans accord explicite
+- **TOUJOURS** demander l'autorisation avant toute modification touchant aux aspects financiers
+- **TOUJOURS** préserver les valeurs monétaires existantes sauf instruction contraire explicite
+- **PRINCIPE** : Les données financières sont critiques et ne doivent JAMAIS être modifiées sans accord
+- **EXCEPTION UNIQUE** : Correction de bugs évidents avec autorisation explicite de l'utilisateur
+- **VALIDATION OBLIGATOIRE** : Toute modification financière doit être approuvée avant implémentation
+
+### 5. INTERDICTION STRICTE DES EMOJIS
 - **JAMAIS** utiliser d'emojis dans les réponses, commentaires, ou documentation
 - **JAMAIS** inclure d'emojis dans les noms de fichiers, variables, ou fonctions
 - **JAMAIS** ajouter d'emojis dans les commits, README, ou fichiers markdown
@@ -46,6 +58,54 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 - **RESTRICTION** : Cette exception s'applique UNIQUEMENT aux fichiers `.html` dans `src/web/templates/`
 - **MAINTIEN INTERDICTION** : Tous autres contextes restent strictement interdits (Python, tests, documentation, etc.)
 
+### INTERDICTION STRICTE DES MENTIONS TEMPORELLES
+- **JAMAIS** ajouter de mentions "NOUVEAU", "RÉCENT", "MIS À JOUR" dans la documentation
+- **JAMAIS** utiliser des marqueurs temporels comme "⭐ NOUVEAU", "📝 RÉCENT", "🔄 MIS À JOUR"
+- **JAMAIS** inclure des dates ou des indications de nouveauté dans les titres ou descriptions
+- **JAMAIS** créer de sections "Nouveautés" ou "Dernières modifications"
+- **TOUJOURS** maintenir une documentation intemporelle et professionnelle
+- **OBLIGATION** : La documentation doit être neutre et ne pas référencer quand les éléments ont été ajoutés
+- **PRINCIPE** : Les mentions de nouveauté deviennent rapidement obsolètes et polluent la documentation
+- **STANDARD** : Documentation factuelle sans références temporelles
+
+## PURETÉ DE LA DOCUMENTATION TECHNIQUE OBLIGATOIRE
+
+### INTERDICTION STRICTE DES MENTIONS D'OPTIMISATIONS DANS LA DOCUMENTATION TECHNIQUE
+- **JAMAIS** inclure de sections sur les "améliorations", "optimisations", ou "résolutions de problèmes" dans `docs/documentation-technique.md`
+- **JAMAIS** documenter les changements récents, les corrections ou les évolutions dans la documentation technique
+- **JAMAIS** mentionner "problème résolu", "solutions implémentées", "impact", "avant/après" dans la documentation technique
+- **JAMAIS** inclure l'historique des modifications ou des évolutions du système
+- **TOUJOURS** maintenir la documentation technique pure et factuelle sur l'état actuel du système
+- **OBLIGATION** : La documentation technique doit décrire UNIQUEMENT comment le système fonctionne actuellement
+- **PRINCIPE** : La documentation technique est intemporelle et décrit l'architecture, les composants, les APIs, les technologies
+- **STANDARD** : Documentation technique neutre sans références aux évolutions passées
+
+### Contenu Autorisé dans la Documentation Technique
+- **Architecture du système** : Diagrammes, patterns, structure des composants
+- **Technologies utilisées** : Stack technique, frameworks, librairies
+- **APIs et interfaces** : Endpoints, paramètres, réponses, exemples d'utilisation
+- **Base de données** : Schémas, tables, relations, requêtes
+- **Configuration** : Paramètres, variables d'environnement, fichiers de config
+- **Installation** : Procédures, prérequis, étapes de déploiement
+- **Sécurité** : Mécanismes, authentification, autorisation
+- **Performance** : Métriques actuelles, optimisations en place
+- **Tests** : Stratégie, types de tests, couverture
+- **Dépannage** : Procédures de diagnostic, solutions aux problèmes courants
+
+### Contenu Strictement Interdit dans la Documentation Technique
+- **Sections d'améliorations** : "Améliorations Critiques Récentes", "Résolution du Problème"
+- **Historique des changements** : "Solutions implémentées", "Impact", "Avant/Après"
+- **Mentions temporelles** : Dates de modifications, références aux versions
+- **Descriptions d'évolutions** : "Nouvelle méthode", "Modification de", "Performance améliorée"
+- **Comparaisons temporelles** : États antérieurs vs actuels
+- **Statuts de résolution** : "Problème résolu", "Correction appliquée"
+
+### Redirection Obligatoire du Contenu Non-Technique
+- **Journal officiel** : Toutes les évolutions, améliorations et résolutions dans `docs/journal-developpement.md`
+- **Documentation des fonctionnalités** : Descriptions des capacités actuelles dans des fichiers dédiés
+- **Guides utilisateur** : Instructions d'utilisation dans des fichiers spécialisés
+- **Notes de version** : INTERDITES - Aucun changelog ou versioning autorisé
+
 ### 5. INTERDICTION STRICTE DES PRINT() - SYSTÈME DE LOGGING OBLIGATOIRE
 - **JAMAIS** utiliser `print()` dans le code pour afficher des messages
 - **JAMAIS** créer de nouvelles fonctions utilisant `print()` pour l'affichage
@@ -58,9 +118,7 @@ Vous êtes un assistant de développement expert travaillant sur ce projet. Votr
 from src.infrastructure.logger_manager import get_logger
 logger = get_logger(__name__)
 ```
-jectif|démontre|concept|technique|description (**/src/web/templates/*.html), no results
 
-Excellent ! Vérifions aussi s'il n'y a pas de titres de page ou de navigation qui contiennent des informations de projet :
 #### Niveaux de Logging Appropriés
 - **`logger.debug()`** : Messages de débogage détaillés (variables, étapes d'exécution)
 - **`logger.info()`** : Messages informatifs normaux (opérations terminées, état du système)
@@ -229,6 +287,14 @@ Toujours consulter et intégrer automatiquement le contenu de ces fichiers :
 - **JAMAIS** créer de fichiers `.md` temporaires pour documenter les actions accomplies
 - **INTERDICTION TOTALE** de créer des fichiers markdown de synthèse d'intervention
 
+### INTERDICTION STRICTE DE JOURNALISATION EN DEHORS DU JOURNAL OFFICIEL
+- **JAMAIS** tenir de journalisation des travaux dans d'autres fichiers que `docs/journal-developpement.md`
+- **JAMAIS** créer de fichiers de type "journal-*.md", "log-*.md", "historique-*.md"
+- **JAMAIS** documenter l'historique des modifications dans la documentation technique
+- **JAMAIS** ajouter des sections "Historique", "Changelog", "Modifications récentes" dans d'autres fichiers
+- **UNIQUE SOURCE DE VÉRITÉ** : Seul `docs/journal-developpement.md` peut contenir l'historique des travaux
+- **OBLIGATION** : Toute journalisation doit être ajoutée exclusivement dans le journal officiel du projet
+
 ### Distinction Importante
 - **AUTORISÉ** : Mettre à jour la documentation existante du projet (README.md, docs/*.md)
 - **AUTORISÉ** : Modifier ou améliorer les fichiers de documentation technique/utilisateur
@@ -370,6 +436,37 @@ config/
 - **MÉCANISME DE PROTECTION** : Utiliser `_execute_migration_with_tracking()` pour éviter les duplications
 - **IDEMPOTENCE OBLIGATOIRE** : Les migrations ne doivent jamais s'exécuter deux fois
 - **CONSÉQUENCE** : Cette centralisation empêche la corruption des données lors des redémarrages multiples
+
+## Standards d'API et Routes Obligatoires
+
+### UTILISATION OBLIGATOIRE DES ID DANS LES ROUTES
+- **TOUJOURS** utiliser des identifiants uniques (ID) dans les paramètres de routes plutôt que des champs textuels
+- **JAMAIS** utiliser `unit_number`, `username`, `project_name` ou autres champs textuels comme paramètres de route
+- **JAMAIS** créer des routes comme `/unites/<unit_number>/edit` qui peuvent générer des URLs malformées
+- **TOUJOURS** préférer des routes comme `/unites/<unit_id>/edit` avec des UUID ou identifiants numériques
+- **RÈGLE CARDINALE** : Les identifiants de route doivent être immuables et uniques
+
+### Architecture de Routes Recommandée
+- **Entités principales** : Utiliser des UUID comme `/projects/<project_id>`, `/units/<unit_id>`, `/users/<user_id>`
+- **Actions CRUD** : Structure REST standard avec ID comme paramètre principal
+  - `GET /api/units/<unit_id>` - Récupération d'une unité
+  - `PUT /api/units/<unit_id>` - Modification d'une unité  
+  - `DELETE /api/units/<unit_id>` - Suppression d'une unité
+- **Paramètres de requête** : Utiliser query parameters pour les filtres (`?unit_number=A-101`)
+- **Validation d'ID** : Vérifier la validité de l'ID avant traitement (format UUID, existence en base)
+
+### Problèmes à Éviter
+- **URLs malformées** : `/unites//edit` causées par des champs vides
+- **Caractères spéciaux** : Problèmes d'encodage avec noms contenant espaces, accents, symboles
+- **Ambiguïté** : Conflits quand plusieurs entités ont le même nom/numéro
+- **Changements** : Rupture des liens quand un nom ou numéro change
+- **Sécurité** : Exposition d'informations sensibles dans les URLs
+
+### Migration Progressive
+- **Maintenir compatibilité** : Garder les anciennes routes en redirection temporaire
+- **Ajouter nouvelles routes** : Implémenter d'abord les routes avec ID
+- **Mettre à jour frontend** : Modifier progressivement les liens et formulaires
+- **Déprécier anciennes routes** : Documenter et planifier la suppression des routes obsolètes
 
 ## Standards de Séparation HTML/Python Obligatoires
 
@@ -612,6 +709,9 @@ tests/
 
 Avant toute implémentation de code, vérifier :
 - [ ] **ÉCRIRE LES TESTS EN PREMIER** (méthodologie Red-Green-Refactor obligatoire mais transparente)
+- [ ] **VÉRIFIER ABSOLUMENT qu'AUCUNE valeur financière, frais ou montant n'est modifié sans autorisation explicite**
+- [ ] **DEMANDER CONFIRMATION avant toute modification touchant aux calculs financiers, tarifs ou prix**
+- [ ] **PRÉSERVER STRICTEMENT toutes les valeurs monétaires existantes sauf instruction contraire**
 - [ ] Créer les tests unitaires pour la nouvelle fonctionnalité
 - [ ] Créer les tests d'intégration si nécessaire
 - [ ] Créer les tests d'acceptance pour les fonctionnalités utilisateur
@@ -644,16 +744,26 @@ Avant toute implémentation de code, vérifier :
 - [ ] **UTILISER les pages de référence comme modèles : profile, dashboard, success**
 - [ ] **RESPECTER les standards de design : border-radius, shadows, responsive**
 - [ ] **VÉRIFIER qu'AUCUNE démo ou simulation n'est créée pour l'utilisateur**
+- [ ] **VÉRIFIER que l'application N'A PAS été démarrée inutilement pour validation**
+- [ ] **PRIVILÉGIER les tests automatisés plutôt que le démarrage d'application**
 - [ ] **INTERDICTION ABSOLUE: Aucun fichier .md de résumé de travail créé**
 - [ ] **VALIDATION ANTI-RÉSUMÉ: SE POSER LES 3 QUESTIONS AVANT TOUT NOUVEAU .md**
 - [ ] **VÉRIFIER: Le fichier documente-t-il une fonctionnalité permanente ?**
 - [ ] **VÉRIFIER: Le fichier sera-t-il utile à long terme ?**
 - [ ] **VÉRIFIER: Le fichier contient-il de la documentation technique réutilisable ?**
 - [ ] **SI NON à une question → INTERDICTION ABSOLUE de créer le fichier .md**
+- [ ] **VALIDATION JOURNALISATION: Aucune journalisation en dehors de docs/journal-developpement.md**
+- [ ] **INTERDICTION: Pas de sections "Historique" ou "Changelog" dans d'autres fichiers**
+- [ ] **UNIQUE JOURNAL: Seul docs/journal-developpement.md peut contenir l'historique des travaux**
+- [ ] **VALIDATION PURETÉ DOCUMENTATION TECHNIQUE: docs/documentation-technique.md ne contient QUE de la documentation technique**
+- [ ] **INTERDICTION OPTIMISATIONS: Aucune section améliorations/optimisations/résolutions dans documentation-technique.md**
+- [ ] **CONTENU TECHNIQUE PUR: Architecture, APIs, technologies, configuration, installation uniquement**
 - [ ] **SI fichiers pour IA interne nécessaires, les placer OBLIGATOIREMENT dans tmp/**
 
 Après toute implémentation de code, s'assurer que :
 - [ ] **TOUS LES TESTS PASSENT** (unitaires, intégration, acceptance)
+- [ ] **VALIDATION CRITIQUE** : Aucune modification de valeurs financières sans autorisation explicite
+- [ ] **VÉRIFICATION MONTANTS** : Tous les frais, tarifs et prix sont préservés intacts
 - [ ] Les nouveaux tests sont ajoutés aux scripts run_all_*_tests.py appropriés
 - [ ] La couverture de tests est maintenue ou améliorée
 - [ ] Le cycle méthodologique Red-Green-Refactor a été respecté (sans traces dans le code)
@@ -691,6 +801,12 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **VALIDATION FINALE ANTI-RÉSUMÉ: Vérifier qu'aucun .md de synthèse d'intervention n'a été créé**
 - [ ] **AUTO-VÉRIFICATION: Relire TOUS les nouveaux .md pour détecter du contenu de résumé**
 - [ ] **SUPPRIMER IMMÉDIATEMENT tout fichier .md qui résume des actions accomplies**
+- [ ] **VALIDATION FINALE JOURNALISATION: Aucune journalisation en dehors de docs/journal-developpement.md**
+- [ ] **AUTO-VÉRIFICATION JOURNAL: Vérifier qu'aucune section historique n'a été ajoutée dans d'autres fichiers**
+- [ ] **MAINTENIR UNICITÉ JOURNAL: Confirmer que seul journal-developpement.md contient l'historique**
+- [ ] **VALIDATION PURETÉ DOCUMENTATION TECHNIQUE: Vérifier que docs/documentation-technique.md reste technique pur**
+- [ ] **INTERDICTION OPTIMISATIONS DOC TECH: Aucune mention d'améliorations/optimisations ajoutée à documentation-technique.md**
+- [ ] **CONTENU TECHNIQUE EXCLUSIF: Seules architecture, APIs, technologies, configuration autorisées dans documentation-technique.md**
 - [ ] **SI fichiers IA internes créés, vérifier qu'ils sont dans tmp/ avec noms explicites**
 - [ ] **VALIDATION NON-DÉMARRAGE: Application non démarrée sauf besoins débogage critiques**
 - [ ] **PRIVILÉGIER tests automatisés pour validation plutôt que démarrage application**

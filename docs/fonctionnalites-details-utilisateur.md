@@ -285,7 +285,7 @@ def test_user_details_modal_displays_real_data()
 
 ### Résultats de Tests
 
-**État actuel** : ✅ Tous les tests passent (291/291)
+**État actuel** :  Tous les tests passent (291/291)
 - **Tests unitaires** : 139 tests (dont 4 nouveaux)
 - **Tests d'intégration** : 74 tests (dont 4 nouveaux)  
 - **Tests d'acceptance** : 78 tests (dont 5 nouveaux)

@@ -40,7 +40,7 @@ class Project:
     # Attributs de base du projet
     name: str
     address: str
-    total_area: float
+    building_area: float  # Renommé de total_area pour cohérence
     construction_year: int
     unit_count: int
     constructor: str
@@ -50,6 +50,7 @@ class Project:
     status: ProjectStatus = field(default=ProjectStatus.PLANNING)
     creation_date: datetime = field(default_factory=datetime.now)
     units: List[Unit] = field(default_factory=list)
+    land_area: float = field(default=0.0)  # Superficie du terrain séparée
     
     def __post_init__(self):
         """Validation des données après création de l'instance."""
@@ -64,8 +65,8 @@ class Project:
         if not self.address or not self.address.strip():
             raise ValueError("L'adresse du projet ne peut pas être vide")
         
-        if self.total_area <= 0:
-            raise ValueError("La superficie totale doit être positive")
+        if self.building_area <= 0:
+            raise ValueError("La superficie du bâtiment doit être positive")
         
         if self.construction_year < 1900 or self.construction_year > datetime.now().year + 10:
             raise ValueError("L'année de construction doit être réaliste")
@@ -98,7 +99,8 @@ class Project:
             'project_id': self.project_id,
             'name': self.name,
             'address': self.address,
-            'total_area': self.total_area,
+            'building_area': self.building_area,
+            'land_area': self.land_area,  # Inclure la superficie du terrain
             'construction_year': self.construction_year,
             'unit_count': self.unit_count,
             'constructor': self.constructor,
@@ -121,8 +123,8 @@ class Project:
         name = data.get('name', '')
         address = data.get('address', '')
         
-        # total_area peut venir de building_area ou land_area selon les données
-        total_area = data.get('total_area', data.get('building_area', data.get('land_area', 1000.0)))
+        # building_area peut venir de total_area pour la rétrocompatibilité
+        building_area = data.get('building_area', data.get('total_area', data.get('land_area', 1000.0)))
         
         construction_year = data.get('construction_year', 2020)
         
@@ -135,15 +137,19 @@ class Project:
         # project_id depuis les données ou généré
         project_id = data.get('project_id', '')
         
+        # land_area depuis les données
+        land_area = data.get('land_area', 0.0)
+        
         project = cls(
             name=name,
             address=address,
-            total_area=total_area,
+            building_area=building_area,
             construction_year=construction_year,
             unit_count=unit_count,
             constructor=constructor,
             project_id=project_id,
-            creation_date=datetime.fromisoformat(data['creation_date']) if data.get('creation_date') else datetime.now()
+            creation_date=datetime.fromisoformat(data['creation_date']) if data.get('creation_date') else datetime.now(),
+            land_area=land_area
         )
         
         # Restaurer les unités si présentes
@@ -168,7 +174,7 @@ class Project:
         if total_units == 0:
             return {
                 'total_units': 0,
-                'sold_units': 0,
+                'occupied_units': 0,
                 'available_units': 0,
                 'reserved_units': 0,
                 'completion_percentage': 0.0,
@@ -178,14 +184,14 @@ class Project:
                 'revenue': 0.0
             }
         
-        # Compter par statut
-        sold_count = sum(1 for unit in self.units if unit.status == UnitStatus.SOLD)
-        available_count = sum(1 for unit in self.units if unit.status == UnitStatus.AVAILABLE)
+        # Compter par statut (les unités occupées sont celles avec un propriétaire)
+        occupied_count = sum(1 for unit in self.units if unit.owner_name and unit.owner_name != "Disponible")
+        available_count = sum(1 for unit in self.units if (not unit.owner_name or unit.owner_name == "Disponible") and unit.status == UnitStatus.AVAILABLE)
         reserved_count = sum(1 for unit in self.units if unit.status == UnitStatus.RESERVED)
         
         # Calculs financiers
         total_value = sum(unit.estimated_price for unit in self.units if unit.estimated_price)
-        revenue = sum(unit.estimated_price for unit in self.units if unit.status == UnitStatus.SOLD and unit.estimated_price)
+        revenue = sum(unit.estimated_price for unit in self.units if unit.owner_name and unit.owner_name != "Disponible" and unit.estimated_price)
         average_price = total_value / total_units if total_units > 0 else 0.0
         
         # Répartition par type
@@ -194,12 +200,12 @@ class Project:
             unit_type = unit.unit_type.value if hasattr(unit.unit_type, 'value') else str(unit.unit_type)
             units_by_type[unit_type] = units_by_type.get(unit_type, 0) + 1
         
-        # Pourcentage de completion (unités vendues)
-        completion_percentage = (sold_count / total_units * 100) if total_units > 0 else 0.0
+        # Pourcentage de completion (unités occupées)
+        completion_percentage = (occupied_count / total_units * 100) if total_units > 0 else 0.0
         
         return {
             'total_units': total_units,
-            'sold_units': sold_count,
+            'occupied_units': occupied_count,
             'available_units': available_count,
             'reserved_units': reserved_count,
             'completion_percentage': completion_percentage,
@@ -236,7 +242,6 @@ class Project:
                     unit_type=UnitType.RESIDENTIAL,  # Type par défaut
                     status=UnitStatus.AVAILABLE,  # Statut disponible
                     estimated_price=0,  # Prix à définir
-                    monthly_fees_base=0,  # Frais à définir
                     owner_name="Disponible"  # Pas d'attribution automatique
                 )
                 units.append(unit)
@@ -290,7 +295,7 @@ class Project:
             
             # Superficie basée sur la répartition du total
             # Calculer la superficie moyenne cible
-            target_avg_area = self.total_area / unit_count
+            target_avg_area = self.building_area / unit_count
             
             # Ajuster selon le type d'unité avec des variations plus modérées
             type_multipliers = {
@@ -323,8 +328,7 @@ class Project:
                 area=square_feet,
                 unit_type=selected_type,
                 status=status,
-                estimated_price=price,
-                monthly_fees_base=square_feet * 0.45  # Frais de base
+                estimated_price=price
             )
             
             units.append(unit)
@@ -389,8 +393,7 @@ class Project:
                 area=square_feet,
                 unit_type=selected_type,
                 status=status,
-                estimated_price=price,
-                monthly_fees_base=square_feet * 0.45
+                estimated_price=price
             )
             
             added_units.append(unit)
@@ -401,16 +404,11 @@ class Project:
         logger.info(f"Ajouté {count} unités au projet {self.name}. Total: {len(self.units)} unités")
         return added_units
 
-    def get_average_unit_area(self) -> float:
-        """
-        Calcule la superficie moyenne par unité.
-        
-        Returns:
-            float: Superficie moyenne en pieds carrés
-        """
-        if not self.units:
+    def average_unit_area(self) -> float:
+        """Calcule la superficie moyenne par unité."""
+        if not self.units or len(self.units) == 0:
             return 0.0
         
-        total_area = sum(unit.area for unit in self.units)
-        return total_area / len(self.units)
+        units_area = sum(unit.area for unit in self.units)
+        return units_area / len(self.units)
 
