@@ -23,6 +23,9 @@ docs/
 
 ## Documentation par Catégorie
 
+### Migration et Base de Données
+- **[Scripts de Migration](../data/migrations/README.md)** - Scripts automatisés de migration SQLite avec documentation complète
+
 ### Fonctionnalités Critiques
 - **[Fonctionnalités Critiques Unités](ameliorations-critiques-unites.md)** - Fonctionnalités stabilité IDs et optimisations
 

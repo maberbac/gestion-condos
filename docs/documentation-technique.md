@@ -848,6 +848,99 @@ class UserRepositorySQLite(UserRepositoryPort):
 - **Traçabilité** : Historique complet des migrations via schema_migrations
 - **Performance** : Évite les opérations redondantes au démarrage
 
+### Scripts de Migration Automatisés
+
+Le système inclut des scripts automatisés pour la migration complète de bases de données existantes, permettant la sauvegarde, la recréation et le déploiement de structures et données.
+
+#### Architecture des Scripts de Migration
+
+##### 1. Script de Recréation des Schémas (`scripts/recreate_schemas.py`)
+**Fonctionnalité** : Extraction et recréation automatique de la structure complète d'une base de données SQLite.
+
+**Capacités** :
+- Analyse automatique de la structure (tables, colonnes, types, contraintes)
+- Extraction des index et clés étrangères
+- Génération de scripts SQL standards SQLite 3
+- Support des déclencheurs (triggers) et vues
+- Validation et exécution directe optionnelle
+
+**Utilisation** :
+```bash
+# Génération du script de schémas
+python scripts/recreate_schemas.py --source-db data/condos1.db --output-dir data/migrations/
+
+# Exécution directe sur nouvelle base
+python scripts/recreate_schemas.py --source-db data/condos1.db --execute --target-db data/condos_new.db
+```
+
+##### 2. Script de Recréation des Données (`scripts/recreate_inserts.py`)
+**Fonctionnalité** : Extraction et recréation automatique de toutes les données d'une base de données SQLite.
+
+**Capacités** :
+- Extraction de toutes les lignes avec respect des types de données
+- Ordre d'insertion optimal respectant les dépendances entre tables
+- Échappement SQL approprié pour tous types de données
+- Gestion des transactions avec rollback automatique
+- Exclusion configurable de tables système
+
+**Utilisation** :
+```bash
+# Génération du script de données
+python scripts/recreate_inserts.py --source-db data/condos1.db --with-report
+
+# Migration complète avec exclusions
+python scripts/recreate_inserts.py --exclude-tables "sqlite_sequence,schema_migrations" --execute --target-db data/condos_new.db
+```
+
+#### Scripts de Migration Disponibles
+
+Le répertoire `data/migrations/` contient les scripts générés pour condos1.db :
+
+```
+data/migrations/
+├── 001_recreate_schemas_condos1db.sql      # Structure complète de condos1.db
+├── 002_recreate_inserts_condos1db.sql      # Données complètes de condos1.db
+├── data_summary_condos1db.json             # Rapport détaillé des données
+└── README.md                               # Documentation des migrations
+```
+
+#### Caractéristiques Techniques des Migrations
+
+##### Sécurité et Intégrité
+- **Transactions complètes** : Rollback automatique en cas d'erreur
+- **Validation des dépendances** : Ordre d'insertion respectant les clés étrangères
+- **Échappement SQL** : Protection contre l'injection et corruption de données
+- **Sauvegarde automatique** : Option de backup avant migration
+
+##### Performance et Monitoring
+- **Logging centralisé** : Utilisation du système de logs du projet
+- **Progression en temps réel** : Affichage détaillé des étapes
+- **Rapports JSON** : Métadonnées complètes de la migration
+- **Optimisation des requêtes** : INSERT optimisés avec gestion de mémoire
+
+##### Cas d'Usage Principaux
+1. **Migration complète** : Transfert d'une base existante vers nouveau serveur
+2. **Sauvegarde scriptée** : Génération de scripts de sauvegarde pour archivage
+3. **Réplication de structure** : Création d'environnements de test identiques
+4. **Déploiement automatisé** : Scripts de déploiement pour production
+
+#### Exemple de Migration Complète
+
+```bash
+# 1. Analyser la structure source
+python scripts/recreate_schemas.py --source-db data/condos1.db --output-dir data/migrations/
+
+# 2. Extraire les données
+python scripts/recreate_inserts.py --source-db data/condos1.db --with-report --output-dir data/migrations/
+
+# 3. Déployer sur nouvelle base
+python scripts/recreate_schemas.py --execute --target-db data/condos_production.db
+python scripts/recreate_inserts.py --execute --target-db data/condos_production.db
+
+# 4. Validation post-migration
+python -c "import sqlite3; conn = sqlite3.connect('data/condos_production.db'); print('Tables:', [r[0] for r in conn.execute('SELECT name FROM sqlite_master WHERE type=\"table\"').fetchall()])"
+```
+
 #### Migrations Récentes
 - **009_feature_flags.sql** : Création du système de feature flags pour contrôle modulaire
   - Table `feature_flags` avec données initiales

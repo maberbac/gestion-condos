@@ -235,9 +235,18 @@ gestion-condos/
 │   ├── documentation-technique.md  #   - Documentation technique complète
 │   ├── guide-demarrage.md       #   - Guide de démarrage rapide
 │   ├── guide-logging.md         #   - Documentation système de logging
-│   ├── guide-logging.md         #   - Documentation système de logging
 │   ├── journal-developpement.md    #   - Journal de développement et roadmap
 │   └── methodologie.md          #   - TDD avec unittest
+├── scripts/                      # Scripts de Migration et Utilitaires
+│   ├── recreate_schemas.py      #   - Migration automatique des schémas SQLite
+│   └── recreate_inserts.py      #   - Migration automatique des données SQLite
+├── data/                         # Base de Données et Migrations
+│   ├── condos1.db              #   - Base de données SQLite principale
+│   └── migrations/              #   - Scripts de migration générés
+│       ├── 001_recreate_schemas_condos1db.sql  #   - Structure complète
+│       ├── 002_recreate_inserts_condos1db.sql  #   - Données complètes  
+│       ├── data_summary_condos1db.json         #   - Rapport de migration
+│       └── README.md            #   - Documentation des migrations
 ├── ai-guidelines/               # Instructions et Guidelines pour l'IA
 │   ├── checklist-concepts.md    #   - Checklist des concepts techniques
 │   ├── consignes-projet.md      #   - Exigences et contraintes du projet
@@ -318,6 +327,45 @@ L'interface sera accessible sur `http://127.0.0.1:5000`
 - Opérations CRUD complètes sur base SQLite 
 - Gestion des erreurs avec messages contextuels
 - API REST intégrée pour données utilisateur
+
+### Scripts de Migration de Base de Données
+
+Le système inclut des scripts automatisés pour la migration complète de bases de données SQLite. Ces scripts permettent la sauvegarde, la recréation et le déploiement de structures et données.
+
+#### Migration Complète d'une Base de Données
+
+```bash
+# 1. Générer les scripts de migration depuis une base existante
+python scripts/recreate_schemas.py --source-db data/condos1.db --output-dir data/migrations/
+python scripts/recreate_inserts.py --source-db data/condos1.db --with-report --output-dir data/migrations/
+
+# 2. Appliquer la migration sur une nouvelle base
+python scripts/recreate_schemas.py --source-db data/condos1.db --execute --target-db data/condos_new.db
+python scripts/recreate_inserts.py --source-db data/condos1.db --execute --target-db data/condos_new.db
+```
+
+#### Scripts Disponibles
+
+**Migration des Schémas** (`scripts/recreate_schemas.py`) :
+- Extraction automatique de la structure complète (tables, index, contraintes, triggers)
+- Génération de scripts SQL standards SQLite 3
+- Validation et exécution directe optionnelle
+
+**Migration des Données** (`scripts/recreate_inserts.py`) :
+- Extraction de toutes les données avec respect des types
+- Ordre d'insertion optimal respectant les dépendances
+- Gestion des transactions et échappement SQL approprié
+
+**Fichiers Générés** :
+- `data/migrations/001_recreate_schemas_condos1db.sql` - Structure complète
+- `data/migrations/002_recreate_inserts_condos1db.sql` - Données complètes (28 lignes)
+- `data/migrations/data_summary_condos1db.json` - Rapport détaillé de migration
+
+**Cas d'Usage** :
+- Migration vers nouveau serveur de production
+- Création d'environnements de test identiques  
+- Sauvegarde scriptée pour archivage
+- Déploiement automatisé avec intégrité garantie
 
 ### Interface Console (Alternative)
 

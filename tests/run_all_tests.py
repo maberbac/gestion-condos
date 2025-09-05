@@ -30,8 +30,30 @@ from typing import List, Tuple
 # Ajouter le répertoire racine au path pour imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.infrastructure.logger_manager import get_logger
-logger = get_logger(__name__)
+import logging
+
+def setup_test_logger():
+    """Configure un logger spécifique pour les tests, isolé du système principal."""
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    
+    # Supprimer tous les handlers existants pour éviter les doublons
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    
+    # Handler console uniquement (pas de fichier pour éviter les conflits)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    # Désactiver la propagation vers le logger parent
+    logger.propagate = False
+    
+    return logger
+
+logger = setup_test_logger()
 
 
 @dataclass

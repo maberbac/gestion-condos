@@ -74,18 +74,50 @@
             </div>
             
             <div class="stat-card stats-card occupied">
-                <div class="stat-icon">🏠</div>
+                <div class="stat-icon">❌</div>
                 <div class="stat-content">
-                    <div class="stat-number">{{ condos|selectattr('is_available', 'equalto', false)|list|length }}</div>
-                    <div class="stat-label">Occupés</div>
+                    <div class="stat-number">
+                        {% set ns = namespace(count=0) %}
+                        {% for condo in condos %}
+                            {% if condo.status and 'INACTIVE' in condo.status|string %}
+                                {% set ns.count = ns.count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ ns.count }}
+                    </div>
+                    <div class="stat-label">Inactifs</div>
                 </div>
             </div>
             
             <div class="stat-card stats-card vacant">
-                <div class="stat-icon">🆓</div>
+                <div class="stat-icon">✅</div>
                 <div class="stat-content">
-                    <div class="stat-number">{{ condos|selectattr('is_available', 'equalto', true)|list|length }}</div>
-                    <div class="stat-label">Disponibles / Vacant</div>
+                    <div class="stat-number">
+                        {% set ns = namespace(count=0) %}
+                        {% for condo in condos %}
+                            {% if condo.status and 'AVAILABLE' in condo.status|string %}
+                                {% set ns.count = ns.count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ ns.count }}
+                    </div>
+                    <div class="stat-label">Disponibles</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stats-card maintenance">
+                <div class="stat-icon">🔧</div>
+                <div class="stat-content">
+                    <div class="stat-number">
+                        {% set ns = namespace(count=0) %}
+                        {% for condo in condos %}
+                            {% if condo.status and 'MAINTENANCE' in condo.status|string %}
+                                {% set ns.count = ns.count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ ns.count }}
+                    </div>
+                    <div class="stat-label">Maintenance</div>
                 </div>
             </div>
             
@@ -146,18 +178,26 @@
                         
                         <div class="detail-item">
                             <span class="detail-icon">{{ condo.status_icon }}</span>
-                            <span class="detail-text">{{ condo.status.value|title if condo.status else 'Inconnu' }}</span>
+                            <span class="detail-text">
+                                <!-- Debug: {{ condo.status }} -->
+                                {% if condo.status %}
+                                    {% set status_str = condo.status|string|replace('UnitStatus.', '') %}
+                                    {% if status_str == 'NONE' %}
+                                        Aucun
+                                    {% elif status_str == 'AVAILABLE' %}
+                                        Disponible
+                                    {% elif status_str == 'INACTIVE' %}
+                                        Inactif
+                                    {% elif status_str == 'MAINTENANCE' %}
+                                        Maintenance
+                                    {% else %}
+                                        {{ status_str }}
+                                    {% endif %}
+                                {% else %}
+                                    Inconnu
+                                {% endif %}
+                            </span>
                         </div>
-                    </div>
-
-                    <div class="condo-availability">
-                        <span class="availability-badge {{ 'available' if condo.is_available else 'occupied' }}">
-                            {% if condo.is_available %}
-                                🆓 Disponible
-                            {% else %}
-                                🏠 Occupé
-                            {% endif %}
-                        </span>
                     </div>
                 </div>
 
@@ -365,8 +405,10 @@
     font-size: 0.9rem;
 }
 
-.stat-card.occupied { border-left: 4px solid #28a745; }
-.stat-card.vacant { border-left: 4px solid #17a2b8; }
+.stat-card.occupied { border-left: 4px solid #dc3545; }
+.stat-card.vacant { border-left: 4px solid #28a745; }
+.stat-card.maintenance { border-left: 4px solid #ffc107; }
+.stat-card.none { border-left: 4px solid #6c757d; }
 .stat-card.residential { border-left: 4px solid #007bff; }
 .stat-card.commercial { border-left: 4px solid #ffc107; }
 .stat-card.revenue { border-left: 4px solid #28a745; }
@@ -565,11 +607,20 @@
     color: white;
 }
 
-.availability-badge.available { 
+.availability-badge.status-available { 
     background: linear-gradient(135deg, #28a745, #1e7e34); 
 }
 
-.availability-badge.occupied { 
+.availability-badge.status-inactive { 
+    background: linear-gradient(135deg, #6c757d, #545b62); 
+}
+
+.availability-badge.status-maintenance { 
+    background: linear-gradient(135deg, #ffc107, #e0a800); 
+    color: #333;
+}
+
+.availability-badge.status-unknown { 
     background: linear-gradient(135deg, #dc3545, #bd2130); 
 }
 
@@ -1282,7 +1333,8 @@ function performSearch() {
         const ownerName = card.querySelector('.detail-text').textContent.toLowerCase();
         const cardType = card.querySelector('.type-badge').textContent.toLowerCase();
         const availabilityBadge = card.querySelector('.availability-badge');
-        const isAvailable = availabilityBadge.textContent.includes('Disponible');
+        const currentStatus = availabilityBadge.className.match(/status-(\w+)/);
+        const statusValue = currentStatus ? currentStatus[1] : 'unknown';
         
         let showCard = true;
         
@@ -1297,9 +1349,7 @@ function performSearch() {
         }
         
         // Filtrage par statut
-        if (statusFilter === 'available' && !isAvailable) {
-            showCard = false;
-        } else if (statusFilter === 'occupied' && isAvailable) {
+        if (statusFilter && statusFilter !== statusValue) {
             showCard = false;
         }
         

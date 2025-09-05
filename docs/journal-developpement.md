@@ -2,6 +2,29 @@
 
 ## Dernières Mises à Jour
 
+### 5 septembre 2025 - Création Scripts de Migration Automatisés
+**Travaux effectués** :
+- **Scripts de migration créés** : `scripts/recreate_schemas.py` et `scripts/recreate_inserts.py`
+- **Migration complète de condos1.db** : Structure (7 tables, 18 index, 4 triggers) et données (28 lignes)
+- **Documentation exhaustive** : README.md complet dans `data/migrations/` avec cas d'usage
+- **Validation fonctionnelle** : Tests réussis de migration complète vers base de test
+- **Organisation optimisée** : Suppression des doublons, noms explicites pour les fichiers finaux
+
+**Scripts Générés** :
+- `data/migrations/001_recreate_schemas_condos1db.sql` - Structure complète de la base
+- `data/migrations/002_recreate_inserts_condos1db.sql` - Données complètes (5 users, 2 projects, 16 units, 5 feature_flags)
+- `data/migrations/data_summary_condos1db.json` - Rapport détaillé de la migration
+
+**Caractéristiques Techniques** :
+- **Sécurité** : Transactions complètes, échappement SQL, validation des dépendances
+- **Performance** : Ordre optimal d'insertion, logging centralisé, monitoring en temps réel
+- **Flexibilité** : Options configurables (exclusions, sauvegarde, exécution directe)
+
+**Impact** :
+- **Déploiement automatisé** : Migration complète de base de données possible en une commande
+- **Sauvegarde scriptée** : Archivage fiable de la structure et des données
+- **Réplication facilitée** : Création d'environnements identiques pour test/production
+
 ### 4 septembre 2025 - Mise à Jour Documentation et Validation Suite Complète
 **Travaux effectués** :
 - **Validation couverture tests** : Confirmation 351/351 tests (100% succès)
