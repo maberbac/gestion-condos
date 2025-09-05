@@ -7,7 +7,11 @@ from typing import Optional
 from src.infrastructure.logger_manager import get_logger
 from src.domain.entities.user import User, UserRole, UserValidationError
 from src.ports.user_repository import UserRepositoryPort
-from src.domain.exceptions.business_exceptions import UserCreationError
+from src.domain.exceptions.business_exceptions import (
+    UserCreationError, 
+    DuplicateUserError, 
+    InvalidUserDataError
+)
 
 logger = get_logger(__name__)
 
@@ -81,7 +85,10 @@ class UserCreationService:
 
         except UserValidationError as e:
             logger.warning(f"Erreur de validation pour {username}: {e}")
-            raise UserCreationError(f"Données utilisateur invalides: {e}")
+            raise InvalidUserDataError('validation', str(e))
+        except (InvalidUserDataError, DuplicateUserError):
+            # Re-lancer les exceptions métier spécifiques
+            raise
         except UserCreationError:
             # Re-raise les erreurs de création
             raise
@@ -110,25 +117,25 @@ class UserCreationService:
             condo_unit: Unité de condo à valider
 
         Raises:
-            UserCreationError: Si les données sont invalides
+            InvalidUserDataError: Si les données sont invalides
         """
         if not username or not username.strip():
-            raise UserCreationError("Nom d'utilisateur requis")
+            raise InvalidUserDataError('username', 'Username requis')
 
         if len(username) < 3:
-            raise UserCreationError("Nom d'utilisateur doit contenir au moins 3 caractères")
+            raise InvalidUserDataError('username', 'doit contenir au moins 3 caractères')
 
         if not email or "@" not in email:
-            raise UserCreationError("Email invalide")
+            raise InvalidUserDataError('email', 'Email invalide')
 
         if not password:
-            raise UserCreationError("Mot de passe requis")
+            raise InvalidUserDataError('password', 'Mot de passe requis')
 
         if len(password) < 6:
-            raise UserCreationError("Mot de passe trop court (minimum 6 caractères)")
+            raise InvalidUserDataError('password', 'trop court (minimum 6 caractères)')
 
         if not full_name or len(full_name.strip()) < 2:
-            raise UserCreationError("Nom complet requis (minimum 2 caractères)")
+            raise InvalidUserDataError('full_name', 'Nom complet requis (minimum 2 caractères)')
 
     async def _check_duplicates(self, username: str, email: str) -> None:
         """
@@ -139,19 +146,19 @@ class UserCreationService:
             email: Email à vérifier
 
         Raises:
-            UserCreationError: Si un doublon est trouvé
+            DuplicateUserError: Si un doublon est trouvé
         """
         # Vérifier username
         existing_user_by_username = await self.user_repository.get_user_by_username(username)
         if existing_user_by_username:
             logger.warning(f"Tentative de création avec username existant: {username}")
-            raise UserCreationError("Nom d'utilisateur déjà utilisé")
+            raise DuplicateUserError('username', username)
 
         # Vérifier email
         existing_user_by_email = await self.user_repository.get_user_by_email(email)
         if existing_user_by_email:
             logger.warning(f"Tentative de création avec email existant: {email}")
-            raise UserCreationError("Adresse email déjà utilisée")
+            raise DuplicateUserError('email', email)
 
     def _create_user_entity(
         self,

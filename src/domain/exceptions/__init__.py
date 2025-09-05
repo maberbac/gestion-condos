@@ -7,7 +7,12 @@ from .business_exceptions import (
     UserCreationError,
     UserNotFoundError,
     DuplicateUserError,
-    InvalidUserDataError
+    InvalidUserDataError,
+    ProjectCreationError,
+    ProjectNotFoundError,
+    DuplicateProjectError,
+    InvalidProjectDataError,
+    ProjectStatusError
 )
 
 __all__ = [
@@ -15,5 +20,10 @@ __all__ = [
     'UserCreationError',
     'UserNotFoundError',
     'DuplicateUserError',
-    'InvalidUserDataError'
+    'InvalidUserDataError',
+    'ProjectCreationError',
+    'ProjectNotFoundError',
+    'DuplicateProjectError',
+    'InvalidProjectDataError',
+    'ProjectStatusError'
 ]

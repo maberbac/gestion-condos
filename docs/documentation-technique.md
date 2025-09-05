@@ -1,11 +1,5 @@
 # Documentation Technique - Projet Gestion Condos
 
-## État du Projet : PRODUCTION READY
-
-**Date de finalisation** : 4 septembre 2025  
-**Tests** : 351/351 passent (100% succès)  
-**Statut** : Production ready avec stabilité complète
-
 ## Table des Matières
 1. [Vue d'ensemble du projet](#vue-densemble-du-projet)
 2. [Architecture du système](#architecture-du-système)
@@ -17,39 +11,34 @@
 8. [Base de données et stockage](#base-de-données-et-stockage)
 9. [API et interfaces](#api-et-interfaces)
 10. [Sécurité](#sécurité)
-11. [Performance et optimisation](#performance-et-optimisation)
+11. [Performance](#performance)
 12. [Tests](#tests)
 13. [Déploiement](#déploiement)
 14. [Maintenance et monitoring](#maintenance-et-monitoring)
 15. [Dépannage](#dépannage)
-16. [Développement futur](#développement-futur)
 
 ---
 
 ## Vue d'ensemble du projet
 
-### Objectif Atteint avec Optimisation 
-Le système de gestion de condominiums est une **application web complète** développée pour faciliter la gestion administrative et financière des copropriétés. L'application permet de gérer les projets de condominiums, les unités individuelles, les finances et les utilisateurs du système avec une interface moderne et sécurisée. 
+Le système de gestion de condominiums est une application web complète développée pour faciliter la gestion administrative et financière des copropriétés. L'application permet de gérer les projets de condominiums, les unités individuelles, les finances et les utilisateurs du système avec une interface moderne et sécurisée.
 
-**Code optimisé** : 152 lignes de code mort supprimées pour une meilleure maintenabilité.
-
-### Portée fonctionnelle - RÉALISÉE ET OPTIMISÉE 
+### Portée fonctionnelle
 - Gestion des projets de condominiums avec création automatique d'unités
 - Gestion des unités individuelles avec calculs financiers par type
 - Système d'authentification utilisateurs complet avec rôles (admin, resident, guest)
 - Génération de rapports financiers et statistiques par projet en temps réel
 - Interface web moderne avec design responsive, gradients et animations
-- API REST intégrée pour intégration externe (routes inutilisées supprimées)
+- API REST intégrée pour intégration externe
 - Base de données SQLite avec système de migrations centralisé
 - Système de logging centralisé configurable
-- Code nettoyé et optimisé (suppression de 152 lignes de code inutilisé)
 
-### Architecture Unit-Only Optimisée 
-Le système utilise une **architecture Unit-Only** finalisée, testée et optimisée basée sur :
+### Architecture
+Le système utilise une architecture basée sur :
 - **Project** : Conteneur principal pour grouper les unités de condominiums
 - **Unit** : Unité individuelle avec calculs financiers spécifiques selon type et superficie
 - **User** : Utilisateur système avec authentification sécurisée et contrôle d'accès par rôles
-- **Code optimisé** : 351/351 tests passent, nettoyage de 152 lignes de code inutilisé
+- **Code** : 413/413 tests passent, nettoyage de code inutilisé
 
 ### Public cible
 - Gestionnaires de copropriété (accès complet)
@@ -116,14 +105,14 @@ L'application suit une architecture hexagonale moderne garantissant l'isolation 
 4. **Adapters** → Implémentation concrète des Ports (SQLite, Files)
 5. **Domaine** → Entités métier avec logique business encapsulée
 
-#### Flux Optimisé pour Modification d'Unités
+#### Flux pour Modification d'Unités
 1. **Interface web** → `POST /condos/{id}/edit` avec données formulaire
 2. **Controller** → `update_condo(identifier, condo_data)` dans SQLiteCondoService
-3. **Service** → `update_unit_by_id(unit_id, unit_data)` dans ProjectService (**NOUVEAU**)
-4. **Repository** → `update_unit(unit_id, unit_data)` dans ProjectRepositorySQLite (**NOUVEAU**)
-5. **Base de données** → SQL UPDATE ciblé sur une seule ligne (optimisé)
+3. **Service** → `update_unit_by_id(unit_id, unit_data)` dans ProjectService
+4. **Repository** → `update_unit(unit_id, unit_data)` dans ProjectRepositorySQLite
+5. **Base de données** → SQL UPDATE ciblé sur une seule ligne
 
-**Avantages du nouveau flux** :
+**Avantages du flux** :
 - **Performance 91% améliorée** : 1 requête SQL au lieu de 11
 - **Stabilité des IDs** : Aucune suppression/recréation d'unités
 - **Intégrité des données** : Contexte de filtrage préservé
@@ -157,46 +146,9 @@ L'application suit une architecture hexagonale moderne garantissant l'isolation 
 
 ---
 
-## Optimisation et Nettoyage de Code 
+## Concepts techniques implémentés
 
-### Opération de Nettoyage Effectuée (1er septembre 2025)
-
-**Objectif** : Supprimer tout le code mort et inutilisé pour améliorer la maintenabilité et les performances.
-
-#### Éléments Supprimés
-- **Variable obsolète** : `condo_modifications = {}` (simulation de persistance non utilisée)
-- **2 méthodes helper inutilisées** : `_get_type_icon()` et `_get_status_icon()` 
-- **8 routes API non utilisées** : `api_financial_*`, `api_condos` (aucune référence dans les templates)
-- **3 routes de redirection obsolètes** : Routes dupliquées vers les détails de condos
-- **3 tests obsolètes** : Tests correspondant aux fonctionnalités supprimées
-
-#### Impact de l'Optimisation
-- **Performance** : Réduction de 152 lignes de code (2107 → 1955 lignes)
-- **Maintenabilité** : Code plus propre sans éléments inutilisés
-- **Sécurité** : Moins de surface d'attaque avec suppression des API non utilisées
-- **Tests** : 351/351 tests passent (validation complète post-nettoyage)
-
-#### Validation Post-Optimisation
-```bash
-# Tests unitaires : 172/172 
-# Tests d'intégration : 115/115 
-# Tests d'acceptance : 64/64 
-# Total : 351/351 (100% succès)
-```
-
-## Statut Post-Optimisation
-
-Le système a été optimisé avec succès :
-- **Nettoyage complet** : 152 lignes de code inutilisé supprimées
-- **Performance** : Application plus rapide et maintenable  
-- **Validation** : Tous les tests passent (351/351)
-- **Stabilité** : Aucune régression fonctionnelle
-
----
-
-## Concepts techniques implémentés  4/4 CONCEPTS RÉUSSIS
-
-### 1. Lecture de fichiers  IMPLÉMENTÉ
+### 1. Lecture de fichiers
 **Réalisation complète** : Module robuste de gestion des fichiers JSON et configuration
 - Lecture de configuration depuis fichiers JSON (config/)
 - Gestion du logging centralisé avec configuration fichier
@@ -236,42 +188,426 @@ active_units = list(filter(lambda u: u.is_active, project.units))
 unit_values = list(map(lambda u: u.value, active_units))
 ```
 
-### 3. Gestion des erreurs par exceptions  ARCHITECTURE COMPLÈTE
-**Hiérarchie d'exceptions professionnelle** : Structure d'erreurs complète et cohérente
-- Classes d'exception spécialisées par domaine métier
-- Try/except avec gestion spécifique et recovery
-- Logging détaillé des erreurs avec niveaux appropriés
-- Messages d'erreur utilisateur traduits et contextuels
+### 3. Gestion des erreurs par exceptions
+**Architecture d'exceptions métier complète** : Structure d'erreurs professionnelle avec hiérarchie cohérente
+- Classes d'exception spécialisées par domaine métier avec logging automatique
+- Try/catch avec gestion spécifique et recovery approprié
+- Messages d'erreur contextuels avec détails techniques
+- Logging centralisé via LoggerManager pour traçabilité complète
 
-**Structure validée et testée** :
+**Types d'exceptions utilisées dans le projet** :
+
+#### Exceptions Métier (BusinessException)
+Le projet utilise une hiérarchie d'exceptions métier personnalisées pour gérer les erreurs fonctionnelles.
+
+**Classe de base** :
 ```python
-# Hiérarchie complète d'exceptions métier
-class GestionCondosError(Exception):
-    """Exception de base pour l'application gestion-condos"""
-    pass
-
-class ProjectError(GestionCondosError):
-    """Erreurs liées à la gestion des projets"""
-    pass
-
-class UnitError(GestionCondosError):
-    """Erreurs liées aux unités"""
-    pass
-
-class UserError(GestionCondosError):
-    """Erreurs liées aux utilisateurs"""
-    pass
-
-class DatabaseError(GestionCondosError):
-    """Erreurs liées à la persistance"""
+# src/core/exceptions.py
+class BusinessException(Exception):
+    """Exception de base pour toutes les erreurs métier du système."""
     pass
 ```
 
-### 4. Programmation asynchrone
+**Exceptions de domaine Condo** :
+- `CondoNotFoundException` : Condo spécifique non trouvé
+- `CondoAlreadyExistsException` : Tentative de création d'un condo existant
+- `CondoValidationException` : Erreurs de validation des données condo
+
+**Exceptions de domaine Unité** :
+- `UniteNotFoundException` : Unité spécifique non trouvée
+- `UniteAlreadyExistsException` : Tentative de création d'une unité existante
+- `UniteValidationException` : Erreurs de validation des données unité
+
+**Exceptions de domaine Utilisateur** :
+- `UserNotFoundException` : Utilisateur spécifique non trouvé
+- `UserAlreadyExistsException` : Tentative de création d'un utilisateur existant
+- `UserValidationException` : Erreurs de validation des données utilisateur
+
+#### Exceptions Python Génériques Utilisées
+
+**Exceptions de base de données (SQLite)** :
+- `sqlite3.Error` : Exception générale SQLite dans les adaptateurs
+- `sqlite3.IntegrityError` : Erreurs de contraintes d'intégrité
+
+**Exceptions système et fichiers** :
+- `FileNotFoundError` : Fichiers de configuration manquants
+- `PermissionError` : Erreurs de permissions sur fichiers
+- `OSError` : Erreurs système générales
+
+**Exceptions de sérialisation** :
+- `json.JSONDecodeError` : Erreurs de parsing JSON
+- `UnicodeDecodeError` : Erreurs d'encodage de fichiers
+
+**Exceptions de validation Python** :
+- `ValueError` : Validation de paramètres et conversion de types
+- `TypeError` : Erreurs de types de données inattendus
+- `KeyError` : Clés manquantes dans dictionnaires
+
+**Exception générale** :
+- `Exception` : Capture générale dans les contrôleurs web comme filet de sécurité
+
+#### Gestion des Erreurs HTTP dans les Routes Flask
+
+**Pattern Standard** : Toutes les routes API utilisent des codes de statut HTTP appropriés avec gestion d'exceptions structurée et templates d'erreur standardisés.
+
+**Codes de statut utilisés** :
+- `200` : Succès avec données
+- `400` : Erreur de validation ou données invalides → Template `errors/400.html`
+- `401` : Authentification requise ou échec d'authentification → Redirection vers login
+- `403` : Accès refusé (permissions insuffisantes) → Template `errors/403.html`
+- `404` : Ressource non trouvée → Template `errors/404.html`
+- `405` : Méthode HTTP non autorisée → Template `errors/405.html`
+- `500` : Erreur serveur interne → Template `errors/500.html`
+- `503` : Fonctionnalité désactivée par feature flag → Template `errors/feature_disabled.html`
+
+#### Gestionnaires d'Erreurs HTTP Centralisés
+
+**Architecture de gestion d'erreurs** : Le système utilise des gestionnaires d'erreurs Flask centralisés avec templates standardisés.
+
+**Gestionnaires disponibles** :
+```python
+@app.errorhandler(400)
+def bad_request(error):
+    """Gestionnaire pour les erreurs 400 - Requête invalide."""
+    logger.warning(f"Requête invalide: {request.url} - Erreur: {error}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Requête invalide',
+            'code': 400
+        }), 400
+    
+    return render_template('errors/400.html'), 400
+
+@app.errorhandler(403)
+def access_forbidden(error):
+    """Gestionnaire pour les erreurs 403 - Accès interdit."""
+    logger.warning(f"Accès interdit: {request.url} - Utilisateur: {session.get('user_id', 'anonyme')}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Accès interdit',
+            'code': 403
+        }), 403
+    
+    return render_template('errors/403.html'), 403
+
+@app.errorhandler(404)
+def page_not_found(error):
+    """Gestionnaire pour les erreurs 404 - Page non trouvée."""
+    logger.warning(f"Page non trouvée: {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Ressource non trouvée',
+            'code': 404
+        }), 404
+    
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Gestionnaire pour les erreurs 405 - Méthode non autorisée."""
+    logger.warning(f"Méthode non autorisée: {request.method} {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Méthode HTTP non autorisée',
+            'code': 405,
+            'allowed_methods': error.description if hasattr(error, 'description') else None
+        }), 405
+    
+    return render_template('errors/405.html'), 405
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Gestionnaire pour les erreurs 500 - Erreur serveur interne."""
+    logger.error(f"Erreur serveur interne: {error}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Erreur serveur interne',
+            'code': 500
+        }), 500
+    
+    return render_template('errors/500.html'), 500
+```
+
+#### Templates d'Erreur Standardisés
+
+**Architecture des templates** : Tous les templates d'erreur utilisent un design moderne cohérent avec gradients, animations et responsive design.
+
+**Templates disponibles** :
+- `src/web/templates/errors/400.html` - Requêtes invalides (orange)
+- `src/web/templates/errors/403.html` - Accès interdit (rouge)
+- `src/web/templates/errors/404.html` - Pages non trouvées (bleu)
+- `src/web/templates/errors/405.html` - Méthodes non autorisées (jaune)
+- `src/web/templates/errors/500.html` - Erreurs serveur (rouge foncé)
+- `src/web/templates/errors/feature_disabled.html` - Fonctionnalités désactivées (spécialisé)
+
+**Caractéristiques des templates** :
+- Design moderne avec gradients et animations
+- Responsive design (768px et 480px breakpoints)
+- Messages explicatifs et guides utilisateur
+- Actions disponibles (retour, accueil, login)
+- Couleurs thématiques par type d'erreur
+- Cohérence avec le système de design global
+
+#### Routes de Test d'Erreurs
+
+**Routes de développement** : Le système inclut des routes de test pour valider la gestion d'erreurs.
+
+```python
+@app.route('/test-errors/<int:error_code>')
+def test_error(error_code):
+    """Route de test pour forcer différents codes d'erreur HTTP."""
+    supported_errors = [400, 401, 403, 404, 405, 500]
+    
+    if error_code not in supported_errors:
+        abort(404)
+    
+    logger.info(f"Test d'erreur {error_code} demandé depuis {request.url}")
+    
+    if error_code == 500:
+        raise Exception(f"Erreur 500 forcée pour test depuis {request.url}")
+    else:
+        abort(error_code)
+```
+
+**URLs de test disponibles** :
+- `/test-errors/400` - Test erreur Bad Request
+- `/test-errors/401` - Test erreur Unauthorized
+- `/test-errors/403` - Test erreur Forbidden
+- `/test-errors/404` - Test erreur Not Found
+- `/test-errors/405` - Test erreur Method Not Allowed
+- `/test-errors/500` - Test erreur Internal Server Error
+
+**Exemples d'implémentation dans les routes API** :
+
+**Route avec gestion complète d'erreurs** :
+```python
+@app.route('/api/user/<username>', methods=['DELETE'])
+@require_login
+def api_delete_user(username):
+    try:
+        # Validation autorisation
+        if username == session.get('user_id'):
+            return jsonify({'success': False, 'error': 'Impossible de supprimer votre propre compte'}), 400
+
+        # Opération métier
+        result = user_service.delete_user_by_username(username)
+
+        if result:
+            return jsonify({'success': True, 'message': f"Utilisateur '{username}' supprimé avec succès"})
+        else:
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
+
+    except Exception as e:
+        logger.error(f"Erreur suppression utilisateur {username}: {e}")
+        return jsonify({'success': False, 'error': 'Erreur système lors de la suppression'}), 500
+```
+
+**Route avec contrôle d'accès** :
+```python
+@app.route('/api/condo/<unit_number>')
+@require_login
+def api_condo_details(unit_number):
+    try:
+        user_role = session.get('user_role', 'guest')
+
+        # Contrôle d'accès par rôle
+        if user_role not in ['admin', 'resident']:
+            return jsonify({'error': 'Accès non autorisé'}), 403
+
+        condo = condo_service.get_condo_by_unit_number(unit_number)
+
+        if not condo:
+            return jsonify({'error': 'Condo non trouvé'}), 404
+
+        return jsonify(condo)
+
+    except Exception as e:
+        logger.error(f"Erreur API condo {unit_number}: {e}")
+        return jsonify({'error': 'Erreur serveur'}), 500
+```
+
+**Route d'authentification** :
+```python
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '')
+
+    if not username or not password:
+        return render_template('login.html', error_message='Veuillez saisir vos identifiants'), 401
+
+    try:
+        authenticated_user = asyncio.run(authenticate_user())
+
+        if authenticated_user:
+            # Succès authentification
+            session['user_id'] = authenticated_user.username
+            return redirect(url_for('dashboard'))
+        else:
+            # Échec authentification
+            return render_template('login.html', error_message='Identifiants invalides'), 401
+
+    except Exception as e:
+        logger.error(f"Erreur lors de l'authentification de {username}: {e}")
+        return render_template('login.html', error_message='Erreur système. Veuillez réessayer.'), 401
+```
+
+**Structure de réponse JSON standardisée** :
+```python
+# Succès
+return jsonify({'success': True, 'data': result})
+
+# Erreur métier
+return jsonify({'success': False, 'error': 'Message d\'erreur utilisateur'}), 400
+
+# Erreur système
+return jsonify({'success': False, 'error': 'Erreur système'}), 500
+```
+
+#### Stratégie de Gestion par Couche
+
+**Couche Domaine (Core)** :
+- Utilise exclusivement les exceptions métier personnalisées
+- Validation des règles métier et contraintes fonctionnelles
+- Exceptions spécifiques au contexte applicatif
+
+**Couche Infrastructure** :
+- Capture les exceptions système Python (SQLite, fichiers, JSON)
+- Transformation en exceptions métier appropriées
+- Gestion des erreurs techniques et de configuration
+
+**Couche Web** :
+- Capture toutes les exceptions (métier et système)
+- Transformation en réponses HTTP appropriées
+- Utilisation d'`Exception` comme filet de sécurité final
+
+#### Exemples d'Utilisation
+
+**Dans les services métier** :
+```python
+def get_condo_by_id(self, condo_id):
+    condo = self.repository.find_by_id(condo_id)
+    if not condo:
+        raise CondoNotFoundException(f"Condo avec ID {condo_id} non trouvé")
+    return condo
+```
+
+**Dans les adaptateurs infrastructure** :
+```python
+def connect(self):
+    try:
+        return sqlite3.connect(self.db_path)
+    except sqlite3.OperationalError as e:
+        raise ConfigurationException(f"Impossible de se connecter: {e}")
+    except FileNotFoundError:
+        raise ConfigurationException(f"Base de données non trouvée: {self.db_path}")
+```
+
+**Dans les contrôleurs web** :
+```python
+@app.route('/api/condos/<condo_id>')
+def get_condo(condo_id):
+    try:
+        condo = condo_service.get_condo_by_id(condo_id)
+        return jsonify(condo.to_dict())
+    except CondoNotFoundException as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Erreur inattendue: {e}")
+        return jsonify({'error': 'Erreur interne'}), 500
+```
+
+### 4. Exceptions Personnalisées dans les Repositories
+
+Le projet définit des exceptions personnalisées spécialisées pour chaque repository afin de gérer les erreurs techniques spécifiques à la couche d'infrastructure.
+
+#### UserRepositorySQLiteError
+**Localisation** : `src/adapters/user_repository_sqlite.py`
+```python
+class UserRepositorySQLiteError(Exception):
+    """Exception spécialisée pour les erreurs du repository SQLite utilisateur."""
+    pass
+```
+**Usage** : Erreurs techniques dans les opérations utilisateur (connexion DB, contraintes, sauvegardes)
+
+#### SystemConfigRepositorySQLiteError  
+**Localisation** : `src/adapters/system_config_repository_sqlite.py`
+```python
+class SystemConfigRepositorySQLiteError(Exception):
+    """Exception spécialisée pour les erreurs du repository SQLite."""
+    pass
+```
+**Usage** : Erreurs de configuration système (fichiers manquants, JSON invalide, paramètres incorrects)
+
+#### Stratégie d'Utilisation des Exceptions Repository
+
+**Transformation d'exceptions** : Les repositories capturent les exceptions Python génériques et les transforment en exceptions métier ou repository-spécifiques.
+
+**Exemples pratiques** :
+
+**UserRepositorySQLite** :
+```python
+async def save_user(self, user: User) -> User:
+    try:
+        # Opération SQLite
+        pass
+    except sqlite3.IntegrityError as e:
+        raise UserRepositorySQLiteError(f"Utilisateur ou email déjà existant: {e}")
+    except Exception as e:
+        raise UserRepositorySQLiteError(f"Erreur de sauvegarde: {e}")
+
+async def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    try:
+        # Logique d'authentification
+        pass
+    except Exception as e:
+        raise UserRepositorySQLiteError(f"Erreur d'authentification: {e}")
+```
+
+**SystemConfigRepositorySQLite** :
+```python
+def _load_database_config(self, config_path: str) -> Dict[str, Any]:
+    try:
+        # Chargement configuration
+        pass
+    except FileNotFoundError:
+        raise SystemConfigRepositorySQLiteError(f"Configuration introuvable: {config_path}")
+    except json.JSONDecodeError as e:
+        raise SystemConfigRepositorySQLiteError(f"Configuration JSON invalide: {e}")
+```
+
+#### Pattern de Gestion des Erreurs Repository
+
+**Couche Repository** :
+- Capture les exceptions techniques (SQLite, fichiers, JSON)
+- Les transforme en exceptions repository-spécifiques
+- Préserve le contexte d'erreur avec messages détaillés
+
+**Propagation vers Service** :
+- Les services reçoivent les exceptions repository
+- Les transforment en exceptions métier (`BusinessException`)
+- Ajoutent le contexte fonctionnel approprié
+
+**Gestion finale dans Web** :
+- Capture toutes les exceptions (métier et repository)  
+- Convertit en réponses HTTP avec codes d'erreur appropriés
+- Utilise `Exception` comme filet de sécurité final
+
+### 5. Programmation asynchrone
 **Implémentation** : Opérations non-bloquantes avec asyncio intégrées dans l'architecture hexagonale
 
 **Réalisations actuelles** :
-### 4. Programmation asynchrone  MAÎTRISÉE AVEC EXCELLENCE
+**Réalisation complète et performante** : Architecture asynchrone robuste intégrée dans tout le système
 **Réalisation complète et performante** : Architecture asynchrone robuste intégrée dans tout le système
 - Services asynchrones pour toutes les opérations critiques
 - Gestion intelligente des event loops avec fallback synchrone
@@ -291,12 +627,12 @@ class DatabaseError(GestionCondosError):
 # Service Layer avec async/await maîtrisé
 class UserService:
     async def get_users_for_web_display(self):
-        """Récupération async optimisée pour l'affichage web"""
+        """Récupération async pour l'affichage web"""
         return await self.user_repository.get_all()
     
     async def create_user_async(self, username, password, role):
         """Création utilisateur avec validation async"""
-        # Validation non-bloquante + insertion optimisée
+        # Validation non-bloquante + insertion
 
 # Repository async avec event loop management intelligent
 class UserRepositorySQLite:
@@ -339,8 +675,8 @@ import concurrent.futures
 ```
 gestion-condos/                   PROJET COMPLÉTÉ AVEC SUCCÈS
 ├── README.md                    # Documentation principale avec résultats finaux
-├── requirements.txt             # Dépendances Python de base
-├── requirements-web.txt         # Dépendances web Flask
+├── requirements.txt             # Dépendances Python
+├── requirements-web.txt         # Dépendances web
 ├── run_app.py                   # Point d'entrée application web
 ├── configure_logging.py         # Configuration du système de logging
 ├── .gitignore                   # Fichiers exclus du versioning
@@ -372,16 +708,12 @@ gestion-condos/                   PROJET COMPLÉTÉ AVEC SUCCÈS
 │
 ├── docs/                        # Documentation technique complète
 │   ├── README.md               # Index de la documentation
-│   ├── architecture.md         # Architecture hexagonale finalisée
+│   ├── architecture.md         # Architecture hexagonale
 │   ├── documentation-technique.md   # Documentation technique avec succès final
 │   ├── guide-demarrage.md      # Guide de démarrage
 │   ├── guide-logging.md        # Documentation logging
 │   ├── guide-tests-mocking.md  # Guide tests avec mocking
 │   └── methodologie.md         # Méthodologie TDD
-│
-├── logs/                        # Fichiers de logs
-│   ├── application.log         # Logs application principale
-│   └── errors.log              # Logs d'erreurs
 │
 ├── src/                         # Code source principal
 │   ├── adapters/               # Adapters (couche infrastructure)
@@ -399,16 +731,14 @@ gestion-condos/                   PROJET COMPLÉTÉ AVEC SUCCÈS
 │   │       └── templates/      # Templates HTML avec composants réutilisables
 │   │
 ├── tests/                       # Suite de tests COMPLÈTE : 351/351  100% SUCCÈS
-│   ├── run_all_unit_tests.py   # Runner tests unitaires (168 tests )
-│   ├── run_all_integration_tests.py # Runner tests intégration (107 tests )
-│   ├── run_all_acceptance_tests.py  # Runner tests acceptance (101 tests )
+│   ├── run_all_unit_tests.py   # Runner tests unitaires (217 tests )
+│   ├── run_all_integration_tests.py # Runner tests intégration (124 tests )
+│   ├── run_all_acceptance_tests.py  # Runner tests acceptance (72 tests )
 │   ├── run_all_tests.py        # Runner complet TOUS TESTS (333 tests )
 │   ├── fixtures/               # Données et utilitaires de test mockés
 │   ├── unit/                   # Tests unitaires isolation complète
 │   ├── integration/            # Tests intégration composants ensemble
 │   └── acceptance/             # Tests acceptance end-to-end workflows
-│
-└── tmp/                         # Fichiers temporaires et utilitaires IA
 ```
 
 ---
@@ -466,7 +796,7 @@ gestion-condos/                   PROJET COMPLÉTÉ AVEC SUCCÈS
 
 5. **Validation installation**  :
    ```bash
-   python tests/run_all_tests.py  # Doit afficher 351/351 tests 
+   python tests/run_all_tests.py  # Doit afficher 413/413 tests 
    ```
 
 ### Configuration JSON  SYSTÈME COMPLET
@@ -476,7 +806,7 @@ Fichier `config/app.json`  VALIDÉ :
 {
   "debug": true,
   "host": "127.0.0.1",
-  "port": 5000,
+  "port": 8080,
   "secret_key": "your-secret-key",
   "data_path": "./data/",
   "log_level": "INFO"
@@ -505,7 +835,7 @@ Fichier `config/logging.json`  CONFIGURÉ :
 
 ---
 
-## Composants principaux  ARCHITECTURE FINALISÉE
+## Composants principaux
 
 ### Couche Application - Services  ORCHESTRATION COMPLÈTE
 
@@ -570,7 +900,7 @@ class UserService:
         self.user_repository = user_repository
     
     async def get_users_for_web_display(self):
-        """Récupération async optimisée pour affichage web"""
+        """Récupération async pour affichage web"""
         
     def get_user_statistics(self, users):
         """Calculs statistiques avec programmation fonctionnelle"""
@@ -652,7 +982,7 @@ CREATE TABLE feature_flags (
 - `mark_admin_password_changed()` : Marquage du setup administrateur comme terminé
 - `get_system_setup_status()` : État complet du setup du système
 - `validate_system_security()` : Rapport de sécurité avec recommandations
-- `reset_admin_password_status()` : Remise à zéro pour nouveau setup
+- `reset_admin_password_status()` : Remise à zéro pour setup
 - Gestion des configurations booléennes et string avec types explicites
 - Fallback sécurisé en cas d'erreur (assume setup non terminé)
 
@@ -715,7 +1045,7 @@ CREATE TABLE system_config (
 
 ### Couche Domaine - Entités et Ports  MODÈLE MÉTIER COMPLET
 
-#### Entités Métier Finalisées 
+#### Entités Métier 
 **User**  : Entité utilisateur avec rôles, validation et authentification sécurisée
 **Project**  : Entité projet condominiums avec métadonnées et calculs globaux
 **Unit**  : Entité unité individuelle avec calculs financiers et statut
@@ -729,7 +1059,7 @@ CREATE TABLE system_config (
 #### UserRepositorySQLite
 **Responsabilité** : Implémentation concrète de l'accès aux données utilisateur via SQLite
 - Opérations CRUD asynchrones
-- Requêtes SQL optimisées
+- Requêtes SQL
 - Gestion des connexions database
 
 #### SystemConfigRepositorySQLite
@@ -787,79 +1117,6 @@ class SystemConfigRepositorySQLite:
 - Validation des formats
 - Gestion d'erreurs I/O
 
-### Améliorations Critiques de Gestion des Unités 
-
-#### Problème Résolu : Stabilité des IDs lors des Modifications
-**Contexte** : Avant les améliorations, modifier une seule unité dans un projet causait la suppression et recréation de toutes les unités du projet, entraînant une incrémentation massive des IDs.
-
-**Impact du problème** :
-- Modifier l'unité ID 416 dans un projet de 10 unités → suppression des IDs 416-425 → recréation avec IDs 426-435
-- Problème d'intégrité des données et de performance
-- Perte du contexte de filtrage par projet lors des modifications
-
-#### Solutions Implémentées 
-
-##### 1. Nouvelle Méthode `update_unit()` dans ProjectRepositorySQLite
-```python
-def update_unit(self, unit_id: int, unit_data: dict) -> bool:
-    """Met à jour une unité spécifique sans affecter les autres."""
-    # SQL UPDATE ciblé au lieu de DELETE + INSERT
-    # Mapping correct des champs vers colonnes DB
-    # Gestion des conversions de types
-```
-
-**Avantages** :
-- SQL UPDATE ciblé sur une seule unité
-- Préservation des IDs de toutes les unités du projet
-- Performance optimisée (une requête au lieu de N suppressions + N insertions)
-- Mapping correct des champs (`monthly_fees` → `calculated_monthly_fees`)
-
-##### 2. Nouvelle Méthode `update_unit_by_id()` dans ProjectService
-```python
-def update_unit_by_id(self, unit_id: int, unit_data: dict) -> dict:
-    """Service de mise à jour d'unité individuelle."""
-    # Appel direct à repository.update_unit()
-    # Rafraîchissement des projets en mémoire
-    # Retour structuré avec gestion d'erreurs
-```
-
-**Avantages** :
-- Évite complètement la méthode problématique `update_project()`
-- Gestion d'erreurs structurée avec messages clairs
-- Rafraîchissement intelligent des données en mémoire
-
-##### 3. Modification de `update_condo()` dans l'Interface Web
-```python
-def update_condo(self, identifier, condo_data):
-    """Met à jour un condo par son ID ou unit_number."""
-    # Support des IDs numériques ET unit_numbers
-    # Utilise update_unit_by_id() au lieu d'update_project()
-    # Préservation du contexte de filtrage par projet
-```
-
-**Améliorations** :
-- Support flexible : ID numérique (méthode préférée) ou unit_number (fallback)
-- Préservation du `project_id` dans les redirections
-- Messages de logging détaillés pour le débogage
-
-#### Validation des Améliorations 
-
-**Tests de stabilité** :
-```bash
-# Test de modification d'une unité dans un projet de 10 unités
-Avant : IDs 436-445 → modification → IDs 446-455 ( tous changés)
-Après : IDs 436-445 → modification → IDs 436-445 ( tous stables)
-```
-
-**Performance mesurée** :
-- Avant : 1 DELETE + 10 INSERT = 11 requêtes SQL
-- Après : 1 UPDATE = 1 requête SQL (amélioration 91%)
-
-**Intégrité des données** :
-- Contexte de filtrage par projet préservé
-- Navigation cohérente entre les pages
-- Références externes aux unités maintenues
-
 ### Interface utilisateur
 **Responsabilité** : Présentation et interaction
 - Pages HTML responsives avec thème moderne (gradients, animations)
@@ -868,13 +1125,13 @@ Après : IDs 436-445 → modification → IDs 436-445 ( tous stables)
 - Communication avec l'API Flask
 
 ### Gestionnaire de résidents
-**Responsabilité** : Gestion CRUD des informations des résidents (legacy - remplacé par UserService)
+**Responsabilité** : Gestion CRUD des informations des résidents
 - Création, lecture, mise à jour, suppression
 - Validation des données
 - Recherche et filtrage
 
 **Fichiers principaux** :
-- `src/application/services/user_service.py` (nouveau)
+- `src/application/services/user_service.py`
 - `src/domain/entities/user.py`
 - `src/adapters/sqlite/user_repository_sqlite.py`
 
@@ -900,7 +1157,7 @@ Le système utilise SQLite comme base de données principale avec une architectu
 }
 ```
 
-### Centralisation des Migrations - Architecture Critique
+### Centralisation des Migrations
 
 #### Principe de Centralisation
 **TOUTES les migrations de base de données sont centralisées dans `SQLiteAdapter`** pour garantir l'intégrité des données et éviter les corruptions lors des redémarrages multiples.
@@ -1413,7 +1670,7 @@ Le projet suit une méthodologie de développement TDD stricte avec le cycle Red
 2. **GREEN** : Écrire le minimum de code pour faire passer le test 
 3. **REFACTOR** : Améliorer le code sans changer les fonctionnalités 
 
-### Suite de Tests : 193/199 tests passent (97% succès) ⚠️
+### Suite de Tests : 193/199 tests passent (97% succès)
 
 **Résultats actuels** (après améliorations de gestion des unités) :
 ```
@@ -1436,14 +1693,14 @@ AMÉLIORATIONS VALIDÉES :
 - Aucune régression introduite par les nouvelles méthodes
 - Tests existants continuent de passer
 - Validation manuelle de la stabilité des IDs effectuée
-- ⚠️ Échecs préexistants non liés aux modifications récentes
+- Échecs préexistants non liés aux modifications récentes
 
 **Structure organisée par niveaux** :
 ```
 tests/
-├── unit/                    # 168 tests unitaires (logique métier isolée)
-├── integration/             # 107 tests d'intégration (composants ensemble)
-├── acceptance/              # 101 tests d'acceptance (scénarios end-to-end)
+├── unit/                    # 217 tests unitaires (logique métier isolée)
+├── integration/             # 124 tests d'intégration (composants ensemble)
+├── acceptance/              # 72 tests d'acceptance (scénarios end-to-end)
 ├── fixtures/                # Données et utilitaires de test
 ├── run_all_unit_tests.py    # Runner tests unitaires
 ├── run_all_integration_tests.py  # Runner tests d'intégration
@@ -1451,7 +1708,7 @@ tests/
 └── run_all_tests.py         # Runner complet (333 tests)
 ```
 
-#### Tests Unitaires (168 tests)  100% SUCCÈS
+#### Tests Unitaires (217 tests)  100% SUCCÈS
 **Objectif** : Valider la logique métier de chaque composant de manière isolée
 **Répertoire** : `tests/unit/`
 **Couverture** : Entités, services domaine, adapters, configuration
@@ -1475,7 +1732,7 @@ tests/
 - Tests de stabilité des IDs lors des modifications d'unités
 - Tests d'intégration avec l'interface web `update_condo()`
 
-#### Tests d'Intégration (107 tests)  100% SUCCÈS
+#### Tests d'Intégration (124 tests)  100% SUCCÈS
 **Objectif** : Valider l'interaction entre composants du système
 **Répertoire** : `tests/integration/`
 **Couverture** : Services + Adapters, Database + Web, Configuration + Logging
@@ -1495,7 +1752,7 @@ tests/
 - `test_user_deletion_integration.py` - Suppression utilisateurs
 - `test_web_integration.py` - Interface web complète
 
-#### Tests d'Acceptance (101 tests)
+#### Tests d'Acceptance (72 tests)
 **Objectif** : Valider les scénarios utilisateur complets
 **Répertoire** : `tests/acceptance/`
 **Couverture** : Workflows métier, Interface utilisateur, Sécurité
@@ -1525,10 +1782,10 @@ tests/
 # Tests unitaires uniquement (184 tests - logique métier)
 python tests/run_all_unit_tests.py
 
-# Tests d'intégration uniquement (107 tests - composants)
+# Tests d'intégration uniquement (124 tests - composants)
 python tests/run_all_integration_tests.py
 
-# Tests d'acceptance uniquement (101 tests - scénarios)
+# Tests d'acceptance uniquement (72 tests - scénarios)
 python tests/run_all_acceptance_tests.py
 
 # Suite complète avec rapport consolidé (333 tests)

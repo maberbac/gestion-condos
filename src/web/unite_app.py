@@ -13,7 +13,7 @@ Architecture :
 - Templates HTML pour l'interface utilisateur
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
 import asyncio
 import functools
 import logging
@@ -31,6 +31,7 @@ from src.infrastructure.config_manager import ConfigurationManager
 
 # Configuration de l'application
 app = Flask(__name__,
+           template_folder='templates',
            static_folder='static',
            static_url_path='/static')
 
@@ -39,8 +40,16 @@ try:
     config_manager = ConfigurationManager()
     app_config = config_manager.get_app_config()
     app.secret_key = app_config.secret_key
+    
+    # Configuration Flask pour éviter les erreurs de contexte
+    app.config['SERVER_NAME'] = None  # Permettre les URLs flexibles
+    app.config['APPLICATION_ROOT'] = '/'
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
 except Exception as e:
     app.secret_key = 'fallback-dev-key'
+    app.config['SERVER_NAME'] = None
+    app.config['APPLICATION_ROOT'] = '/'
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
     logging.error(f"Erreur chargement configuration: {e}")
 
 # Services globaux - initialisation différée
@@ -48,12 +57,144 @@ auth_service = None
 repository = None
 user_repository = None
 unite_service = None
+condo_service = None
 project_service = None
 user_service = None
 logger = logging.getLogger(__name__)
 
 # Stockage temporaire pour simuler la persistance des modifications
 unite_modifications = {}
+
+# Gestionnaires d'erreurs HTTP centralisés
+@app.errorhandler(400)
+def bad_request(error):
+    """Gestionnaire d'erreur 400 - Bad Request."""
+    logger.warning(f"Requête invalide: {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Données de requête invalides',
+            'code': 400
+        }), 400
+    
+    return render_template('errors/400.html'), 400
+
+@app.errorhandler(401)
+def unauthorized(error):
+    """Gestionnaire d'erreur 401 - Unauthorized."""
+    logger.warning(f"Accès non autorisé: {request.url}")
+    return redirect(url_for('login'))
+
+@app.errorhandler(403)
+def forbidden(error):
+    """Gestionnaire d'erreur 403 - Forbidden."""
+    logger.warning(f"Accès interdit: {request.url} - Utilisateur: {session.get('username', 'Anonyme')}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Accès interdit - Permissions insuffisantes',
+            'code': 403
+        }), 403
+    
+    return render_template('errors/403.html'), 403
+
+@app.errorhandler(404)
+def not_found(error):
+    """Gestionnaire d'erreur 404 - Not Found."""
+    logger.warning(f"Page non trouvée: {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Ressource non trouvée',
+            'code': 404
+        }), 404
+    
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Gestionnaire d'erreur 405 - Method Not Allowed."""
+    logger.warning(f"Méthode non autorisée: {request.method} {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Méthode HTTP non autorisée pour cette ressource',
+            'code': 405
+        }), 405
+    
+    return render_template('errors/405.html'), 405
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Gestionnaire d'erreur 500 - Internal Server Error."""
+    # Log détaillé de l'erreur
+    import traceback
+    error_details = traceback.format_exc()
+    logger.error(f"Erreur serveur interne: {error}")
+    logger.error(f"Détails de l'erreur: {error_details}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Erreur serveur interne',
+            'code': 500
+        }), 500
+    
+    return render_template('errors/500.html'), 500
+
+@app.errorhandler(503)
+def feature_disabled(error):
+    """Gestionnaire d'erreur 503 - Service Unavailable (Feature Flags)."""
+    logger.warning(f"Fonctionnalité désactivée: {request.url}")
+    
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Fonctionnalité temporairement indisponible',
+            'code': 503
+        }), 503
+    
+    return render_template('errors/feature_disabled.html'), 503
+
+def require_feature_flag(feature_name):
+    """Décorateur pour vérifier qu'un feature flag est activé."""
+    def decorator(f):
+        @functools.wraps(f)
+        def decorated_function(*args, **kwargs):
+            try:
+                config_manager = ConfigurationManager()
+                feature_flags = config_manager.get_feature_flags()
+                
+                if not feature_flags.get(feature_name, False):
+                    logger.warning(f"Feature flag '{feature_name}' désactivé pour {request.url}")
+                    abort(503)
+                
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Erreur vérification feature flag '{feature_name}': {e}")
+                abort(503)
+        return decorated_function
+    return decorator
+
+# Routes de test pour les erreurs HTTP
+@app.route('/test-errors/<int:error_code>')
+def test_error(error_code):
+    """Route de test pour forcer différents codes d'erreur HTTP."""
+    supported_errors = [400, 401, 403, 404, 405, 500]
+    
+    if error_code not in supported_errors:
+        abort(404)
+    
+    logger.info(f"Test d'erreur {error_code} demandé depuis {request.url}")
+    
+    if error_code == 500:
+        raise Exception(f"Erreur 500 forcée pour test depuis {request.url}")
+    else:
+        abort(error_code)
 
 def calculate_relative_time(dt):
     """Calcule le temps relatif par rapport à maintenant."""
@@ -96,7 +237,7 @@ def calculate_relative_time(dt):
 
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
-    global auth_service, repository, user_repository, unite_service, project_service, user_service
+    global auth_service, repository, user_repository, unite_service, condo_service, project_service, user_service
     try:
         repository = SQLiteAdapter('data/condos.db')
         user_repository = UserRepositorySQLite()
@@ -225,22 +366,32 @@ def init_services():
                 """Crée un nouveau condo dans SQLite."""
                 try:
                     from src.domain.entities.unit import Unit, UnitType, UnitStatus
+                    from src.domain.exceptions.business_exceptions import (
+                        UnitCreationError,
+                        DuplicateUnitError,
+                        InvalidUnitDataError
+                    )
 
                     # Validation de base
                     if not condo_data.get('unit_number'):
-                        logger.error("Numéro d'unité requis")
-                        return False
+                        raise InvalidUnitDataError("unit_number", "requis")
 
                     # Vérifier l'unicité
                     if self.get_condo_by_unit_number(condo_data['unit_number']):
-                        logger.error(f"Unité {condo_data['unit_number']} existe déjà")
-                        return False
+                        raise DuplicateUnitError("unit_number", condo_data['unit_number'])
+
+                    # Validation des données numériques
+                    try:
+                        square_feet = int(condo_data.get('square_feet', 800))
+                        if square_feet < 0:
+                            raise InvalidUnitDataError("square_feet", "ne peut pas être négative")
+                    except (ValueError, TypeError):
+                        raise InvalidUnitDataError("square_feet", "doit être un nombre valide")
 
                     # Récupérer tous les projets pour trouver où ajouter le condo
                     projects_result = self.project_service.get_all_projects()
                     if not projects_result['success']:
-                        logger.error("Erreur récupération projets pour création condo")
-                        return False
+                        raise UnitCreationError("Erreur récupération projets pour création condo")
 
                     # Prendre le premier projet actif (ou créer un projet par défaut)
                     target_project = None
@@ -253,14 +404,13 @@ def init_services():
                         target_project = projects_result['projects'][0]
 
                     if not target_project:
-                        logger.error("Aucun projet disponible pour créer le condo")
-                        return False
+                        raise UnitCreationError("Aucun projet disponible pour créer le condo")
 
                     # Créer le nouveau condo
                     new_condo = Unit(
                         unit_number=condo_data['unit_number'],
                         owner_name=condo_data.get('owner_name', 'Disponible'),
-                        square_feet=int(condo_data.get('square_feet', 800)),
+                        square_feet=square_feet,
                         unit_type=UnitType(condo_data.get('condo_type', 'residential')),
                         status=UnitStatus(condo_data.get('status', 'active'))
                     )
@@ -277,24 +427,45 @@ def init_services():
                         logger.info(f"Condo créé avec succès: {new_condo.unit_number} dans projet {target_project.name}")
                         return True
                     else:
-                        logger.error(f"Erreur sauvegarde condo: {update_result.get('error', 'Erreur inconnue')}")
-                        return False
+                        raise UnitCreationError(f"Erreur sauvegarde condo: {update_result.get('error', 'Erreur inconnue')}")
 
+                except (UnitCreationError, DuplicateUnitError, InvalidUnitDataError):
+                    raise
                 except Exception as e:
                     logger.error(f"Erreur lors de la création du condo: {e}")
-                    return False
+                    raise UnitCreationError(f"Erreur système lors de la création: {str(e)}")
 
             def update_condo(self, unit_number, update_data):
                 """Met à jour un condo existant dans SQLite."""
                 logger.info(f"Mise à jour du condo {unit_number} avec données: {update_data}")
                 try:
                     from src.domain.entities.unit import UnitType, UnitStatus
+                    from src.domain.exceptions.business_exceptions import (
+                        UnitNotFoundError,
+                        InvalidUnitDataError
+                    )
+
+                    # Validation des données numériques
+                    if 'area' in update_data and update_data['area']:
+                        try:
+                            area = float(update_data['area'])
+                            if area < 0:
+                                raise InvalidUnitDataError("area", "ne peut pas être négative")
+                        except (ValueError, TypeError):
+                            raise InvalidUnitDataError("area", "doit être un nombre valide")
+                    
+                    if 'square_feet' in update_data and update_data['square_feet']:
+                        try:
+                            square_feet = float(update_data['square_feet'])
+                            if square_feet < 0:
+                                raise InvalidUnitDataError("square_feet", "ne peut pas être négative")
+                        except (ValueError, TypeError):
+                            raise InvalidUnitDataError("square_feet", "doit être un nombre valide")
 
                     # Trouver le condo dans les projets
                     projects_result = self.project_service.get_all_projects()
                     if not projects_result['success']:
-                        logger.error("Erreur récupération projets pour modification condo")
-                        return False
+                        raise InvalidUnitDataError("projects", "erreur récupération projets pour modification condo")
 
                     for project in projects_result['projects']:
                         if project.units:
@@ -318,23 +489,26 @@ def init_services():
                                         try:
                                             unit.unit_type = UnitType(update_data['unit_type'])
                                         except (ValueError, AttributeError):
-                                            logger.warning(f"Type d'unité invalide: {update_data['unit_type']}")
+                                            raise InvalidUnitDataError("unit_type", f"invalide: {update_data['unit_type']}")
                                     elif 'condo_type' in update_data and update_data['condo_type']:
                                         try:
                                             unit.unit_type = UnitType(update_data['condo_type'])
                                         except (ValueError, AttributeError):
-                                            logger.warning(f"Type de condo invalide: {update_data['condo_type']}")
+                                            raise InvalidUnitDataError("condo_type", f"invalide: {update_data['condo_type']}")
 
                                     # Mettre à jour le statut si fourni
                                     if 'status' in update_data and update_data['status']:
                                         try:
                                             unit.status = UnitStatus(update_data['status'].lower())
                                         except (ValueError, AttributeError):
-                                            logger.warning(f"Statut invalide: {update_data['status']}")
+                                            raise InvalidUnitDataError("status", f"invalide: {update_data['status']}")
 
                                     # Mettre à jour les frais mensuels si fournis
                                     if 'monthly_fees' in update_data and update_data['monthly_fees']:
-                                        unit.monthly_fees_base = float(update_data['monthly_fees'])
+                                        try:
+                                            unit.monthly_fees_base = float(update_data['monthly_fees'])
+                                        except (ValueError, TypeError):
+                                            raise InvalidUnitDataError("monthly_fees", "doit être un nombre valide")
 
                                     # Marquer la mise à jour
                                     from datetime import datetime
@@ -347,17 +521,18 @@ def init_services():
                                         logger.info(f"Condo modifié avec succès: {unit_number}")
                                         return True
                                     else:
-                                        logger.error(f"Erreur sauvegarde condo modifié: {update_result.get('error', 'Erreur inconnue')}")
-                                        return False
+                                        raise InvalidUnitDataError("save", f"erreur sauvegarde condo modifié: {update_result.get('error', 'Erreur inconnue')}")
 
-                    logger.error(f"Condo {unit_number} non trouvé pour modification")
-                    return False
+                    raise UnitNotFoundError(f"Condo {unit_number} non trouvé pour modification")
 
+                except (UnitNotFoundError, InvalidUnitDataError):
+                    raise
                 except Exception as e:
                     logger.error(f"Erreur lors de la modification du condo: {e}")
-                    return False
+                    raise InvalidUnitDataError("system", f"erreur système lors de la modification: {str(e)}")
 
         unite_service = SQLiteUniteService()
+        condo_service = unite_service  # Alias pour compatibilité
 
         # Initialiser le service utilisateur
         from src.application.services.user_service import UserService
@@ -371,14 +546,21 @@ def init_services():
 def ensure_services_initialized():
     """S'assure que les services sont initialisés, notamment pour les tests."""
     global condo_service, user_service
-    if condo_service is None:
-        try:
+    try:
+        if condo_service is None or user_service is None:
             init_services()
-        except Exception as e:
-            logger.warning(f"Échec d'initialisation complète des services, utilisation du service de condos de base: {e}")
-            # En cas d'échec, initialiser user_service quand même
-            from src.application.services.user_service import UserService
-            user_service = UserService()
+    except Exception as e:
+        logger.error(f"Erreur critique lors de l'initialisation des services: {e}")
+        # Essayer une initialisation minimale
+        try:
+            if user_service is None:
+                from src.application.services.user_service import UserService
+                user_service = UserService()
+            logger.warning("Initialisation minimale des services réussie")
+        except Exception as fallback_error:
+            logger.critical(f"Impossible d'initialiser les services: {fallback_error}")
+            # Lever une exception pour déclencher le gestionnaire 500
+            raise Exception("Services indisponibles") from e
 
 def require_admin(f):
     """Décorateur pour vérifier que l'utilisateur est un administrateur."""
@@ -396,7 +578,7 @@ def require_admin(f):
         user_role_value = session.get('user_role') or session.get('role')
         if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
             return f(*args, **kwargs)
-        return render_template('errors/access_denied.html'), 403
+        abort(403)
     return decorated_function
 
 def require_login(f):
@@ -614,18 +796,18 @@ def api_condo_details(unit_number):
 
         # Contrôle d'accès
         if user_role not in ['admin', 'resident']:
-            return jsonify({'error': 'Accès non autorisé'}), 403
+            abort(403)
 
         condo = condo_service.get_condo_by_unit_number(unit_number)
 
         if not condo:
-            return jsonify({'error': 'Condo non trouvé'}), 404
+            abort(404)
 
         return jsonify(condo)
 
     except Exception as e:
         logger.error(f"Erreur API condo {unit_number}: {e}")
-        return jsonify({'error': 'Erreur serveur'}), 500
+        abort(500)
 
 @app.route('/condos/create', methods=['GET', 'POST'])
 @require_admin
@@ -635,6 +817,12 @@ def create_condo():
         return render_template('condo_form.html', action='create')
 
     try:
+        from src.domain.exceptions.business_exceptions import (
+            UnitCreationError,
+            DuplicateUnitError,
+            InvalidUnitDataError
+        )
+        
         ensure_services_initialized()
         # Récupérer les données du formulaire
         condo_data = {
@@ -647,13 +835,23 @@ def create_condo():
         }
 
         # Créer le condo
-        if condo_service.create_condo(condo_data):
+        try:
+            condo_service.create_condo(condo_data)
             flash(f"Condo {condo_data['unit_number']} créé avec succès", "success")
             return redirect(url_for('condos'))
-        else:
-            flash("Erreur lors de la création du condo", "error")
+        except DuplicateUnitError as e:
+            flash(f"Unité déjà existante: {e.message}", "error")
+            return render_template('condo_form.html', action='create', form_data=condo_data)
+        except InvalidUnitDataError as e:
+            flash(f"Données invalides: {e.message}", "error")
+            return render_template('condo_form.html', action='create', form_data=condo_data)
+        except UnitCreationError as e:
+            flash(f"Erreur de création: {e.message}", "error")
             return render_template('condo_form.html', action='create', form_data=condo_data)
 
+    except (UnitCreationError, DuplicateUnitError, InvalidUnitDataError):
+        # Ces exceptions sont déjà gérées dans le bloc try interne
+        pass
     except Exception as e:
         logger.error(f"Erreur lors de la création du condo: {e}")
         flash("Erreur technique lors de la création", "error")
@@ -664,6 +862,11 @@ def create_condo():
 def edit_condo(unit_number):
     """Modification d'un condo existant."""
     try:
+        from src.domain.exceptions.business_exceptions import (
+            UnitNotFoundError,
+            InvalidUnitDataError
+        )
+        
         ensure_services_initialized()
         condo = condo_service.get_condo_by_unit_number(unit_number)
 
@@ -686,13 +889,20 @@ def edit_condo(unit_number):
             'monthly_fees': request.form.get('monthly_fees')
         }
 
-        if condo_service.update_condo(unit_number, condo_data):
+        try:
+            condo_service.update_condo(unit_number, condo_data)
             flash(f"Condo {unit_number} modifié avec succès", "success")
             return redirect(url_for('condos'))
-        else:
-            flash("Erreur lors de la modification", "error")
+        except UnitNotFoundError as e:
+            flash(f"Unité non trouvée: {e.message}", "error")
+            return redirect(url_for('condos'))
+        except InvalidUnitDataError as e:
+            flash(f"Données invalides: {e.message}", "error")
             return render_template('condo_form.html', action='edit', condo=condo)
 
+    except (UnitNotFoundError, InvalidUnitDataError):
+        # Ces exceptions sont déjà gérées dans le bloc try interne
+        pass
     except Exception as e:
         logger.error(f"Erreur lors de la modification du condo {unit_number}: {e}")
         flash("Erreur technique lors de la modification", "error")
@@ -831,6 +1041,11 @@ async def create_user_async(username, email, password, full_name, role, condo_un
             init_services()
 
         from src.domain.services.user_creation_service import UserCreationService
+        from src.domain.exceptions.business_exceptions import (
+            UserCreationError, 
+            DuplicateUserError, 
+            InvalidUserDataError
+        )
         user_creation_service = UserCreationService(user_repository)
 
         # Créer l'utilisateur
@@ -843,8 +1058,17 @@ async def create_user_async(username, email, password, full_name, role, condo_un
             condo_unit=condo_unit if condo_unit else None
         )
 
+    except DuplicateUserError as e:
+        logger.warning(f"Tentative de doublon: {e.message}")
+        raise  # Re-lancer pour gestion spécifique côté appelant
+    except InvalidUserDataError as e:
+        logger.warning(f"Données invalides: {e.message}")
+        raise  # Re-lancer pour gestion spécifique côté appelant
+    except UserCreationError as e:
+        logger.warning(f"Erreur métier création utilisateur: {e.message}")
+        raise  # Re-lancer l'exception métier pour gestion spécifique
     except Exception as e:
-        logger.error(f"Erreur dans create_user_async: {e}")
+        logger.error(f"Erreur technique dans create_user_async: {e}")
         raise
 
 @app.route('/api/user/<username>')
@@ -866,11 +1090,11 @@ def api_user(username):
             # Les résidents ne peuvent voir que leurs propres détails
             if current_username != username:
                 logger.warning(f"Tentative d'accès non autorisé: {current_username} -> {username}")
-                return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+                abort(403)
         else:
             # Les invités ne peuvent pas voir de détails d'utilisateur
             logger.warning(f"Tentative d'accès invité non autorisé: {current_username} -> {username}")
-            return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+            abort(403)
 
         # Initialiser le service utilisateur
         global user_service
@@ -881,7 +1105,7 @@ def api_user(username):
 
         if not user_data.get('found', False):
             logger.debug(f"Utilisateur '{username}' non trouvé via API")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
+            abort(404)
 
         logger.info(f"Détails utilisateur '{username}' récupérés via API par {current_username}")
         # Retourner une structure cohérente avec success: true et les données utilisateur
@@ -898,7 +1122,7 @@ def api_user(username):
 
     except Exception as e:
         logger.error(f"Erreur API utilisateur {username}: {e}")
-        return jsonify({'success': False, 'error': 'Erreur système'}), 500
+        abort(500)
 
 @app.route('/api/user/<username>', methods=['DELETE'])
 @require_login
@@ -913,7 +1137,7 @@ def api_delete_user(username):
 
         if current_user_role not in ['admin', 'ADMIN']:
             logger.warning(f"Tentative de suppression non autorisée par {current_username} (rôle: {current_user_role})")
-            return jsonify({'success': False, 'error': 'Accès non autorisé - Seuls les administrateurs peuvent supprimer des utilisateurs'}), 403
+            abort(403)
 
         # Initialiser le service utilisateur
         global user_service
@@ -922,7 +1146,7 @@ def api_delete_user(username):
         # Vérifier l'auto-suppression
         if not user_service.can_delete_user(username, current_username):
             logger.warning(f"Tentative d'auto-suppression refusée: {current_username}")
-            return jsonify({'success': False, 'error': 'Impossible de supprimer votre propre compte'}), 400
+            abort(400)
 
         # Supprimer l'utilisateur
         result = user_service.delete_user_by_username(username)
@@ -935,11 +1159,11 @@ def api_delete_user(username):
             })
         else:
             logger.warning(f"Utilisateur '{username}' non trouvé pour suppression")
-            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
+            abort(404)
 
     except Exception as e:
         logger.error(f"Erreur suppression utilisateur {username}: {e}")
-        return jsonify({'success': False, 'error': 'Erreur système lors de la suppression'}), 500
+        abort(500)
 
 @app.route('/api/user/<username>', methods=['PUT'])
 @require_login
@@ -1284,66 +1508,6 @@ def admin_resident_detail(username):
     if username == 'new_resident':
         return render_template('resident_form.html')
 
-# === ROUTES RÉSIDENTS ===
-@app.route('/resident/my-condo')
-@require_login
-def resident_my_condo():
-    """Page condo du résident connecté."""
-    user_role_value = session.get('user_role') or session.get('role')
-    if user_role_value not in ['resident', UserRole.RESIDENT.value]:
-        return render_template('errors/access_denied.html',
-                             message="Seuls les résidents peuvent accéder à cette page"), 403
-
-    # Données du condo du résident
-    condo_data = {
-        'user_name': session.get('user_name', 'Résident'),
-        'condo_unit': session.get('condo_unit', 'A-101'),
-        'condo_area': 85,
-        'condo_type': 'Appartement',
-        'monthly_fees': 425,
-        'current_balance': 0  # 0 = à jour
-    }
-
-    return render_template('resident/my_condo.html', **condo_data)
-
-@app.route('/resident/my-fees')
-def resident_my_fees():
-    """Page des frais pour les résidents."""
-    user_role_value = session.get('user_role', 'GUEST')
-    if user_role_value not in ['resident', UserRole.RESIDENT.value]:
-        return render_template('errors/access_denied.html',
-                             message="Seuls les résidents peuvent accéder à cette page"), 403
-
-    # Données des frais du résident
-    fees_data = {
-        'user_name': session.get('user_name', 'Résident'),
-        'monthly_fees': 450,
-        'current_balance': 0,  # À jour
-        'yearly_total': 5400,  # 450 * 12
-        'payment_history': [
-            {
-                'date': '2024-12-01',
-                'description': 'Frais mensuels décembre',
-                'amount': 450,
-                'status': 'paid'
-            },
-            {
-                'date': '2024-11-01',
-                'description': 'Frais mensuels novembre',
-                'amount': 450,
-                'status': 'paid'
-            },
-            {
-                'date': '2024-10-01',
-                'description': 'Frais mensuels octobre',
-                'amount': 450,
-                'status': 'paid'
-            }
-        ]
-    }
-
-    return render_template('resident/my_fees.html', **fees_data)
-
 # === ROUTES FINANCIÈRES ADMIN ===
 @app.route('/admin/financial/monthly-report')
 @require_admin
@@ -1633,16 +1797,23 @@ def projets():
 @require_admin
 def create_project():
     """Création d'un nouveau projet avec unités vierges automatiques."""
+    # Importer les exceptions au début pour qu'elles soient accessibles dans les blocs except
+    from src.application.services.project_service import ProjectService
+    from src.domain.exceptions.business_exceptions import (
+        ProjectCreationError,
+        DuplicateProjectError,
+        InvalidProjectDataError
+    )
+    
     try:
-        from src.application.services.project_service import ProjectService
-
         # Récupération des données du formulaire
         project_data = {
             'name': request.form.get('name'),
             'address': request.form.get('address'),
             'constructor': request.form.get('builder_name'),
             'construction_year': int(request.form.get('construction_year')),
-            'building_area': float(request.form.get('building_area')),  # Utilise building_area directement
+            'building_area': float(request.form.get('building_area')),
+            'land_area': float(request.form.get('land_area')),
             'unit_count': int(request.form.get('total_units')),
         }
 
@@ -1665,6 +1836,15 @@ def create_project():
         else:
             flash(f"Erreur lors de la création: {result['error']}", 'error')
 
+    except DuplicateProjectError as e:
+        flash(f"Projet déjà existant: {e.message}", 'error')
+        logger.warning(f"Tentative de création d'un projet en doublon: {e.message}")
+    except InvalidProjectDataError as e:
+        flash(f"Données invalides: {e.message}", 'error')
+        logger.warning(f"Données de projet invalides: {e.message}")
+    except ProjectCreationError as e:
+        flash(f"Erreur de création: {e.message}", 'error')
+        logger.error(f"Erreur de création de projet: {e.message}")
     except ValueError as e:
         flash(f"Données invalides: {str(e)}", 'error')
     except Exception as e:
@@ -1949,6 +2129,40 @@ def delete_project_api(project_name):
 # Application Flask pour export
 flask_app = app
 
-if __name__ == '__main__':
+# Initialisation automatique des services au chargement du module
+try:
     init_services()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info("Services initialisés automatiquement au chargement du module")
+except Exception as e:
+    logger.warning(f"Échec de l'initialisation automatique des services: {e}")
+    logger.info("Les services seront initialisés à la première requête")
+
+# Fonctions de template
+@app.template_global()
+def is_feature_enabled(feature_name):
+    """Fonction de template pour vérifier si un feature flag est activé."""
+    try:
+        config_manager = ConfigurationManager()
+        feature_flags = config_manager.get_feature_flags()
+        return feature_flags.get(feature_name, False)
+    except Exception:
+        return False
+
+@app.template_global()
+def get_current_user():
+    """Fonction de template pour obtenir l'utilisateur actuel."""
+    from flask import session
+    return {
+        'username': session.get('user_name') or session.get('user_id'),
+        'role': session.get('user_role'),
+        'logged_in': session.get('logged_in', False)
+    }
+
+if __name__ == '__main__':
+    # S'assurer que les services sont initialisés avant de démarrer
+    try:
+        ensure_services_initialized()
+    except Exception as e:
+        logger.error(f"Impossible d'initialiser les services avant le démarrage: {e}")
+    
+    app.run(debug=True, host='0.0.0.0', port=8080)

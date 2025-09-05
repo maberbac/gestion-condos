@@ -9,6 +9,13 @@ from src.infrastructure.logger_manager import get_logger
 from src.domain.entities.project import Project
 from src.domain.entities.unit import Unit, UnitType, UnitStatus
 from src.adapters.project_repository_sqlite import ProjectRepositorySQLite
+from src.domain.exceptions.business_exceptions import (
+    ProjectCreationError,
+    ProjectNotFoundError,
+    DuplicateProjectError,
+    InvalidProjectDataError,
+    ProjectStatusError
+)
 
 logger = get_logger(__name__)
 
@@ -60,23 +67,25 @@ class ProjectService:
 
         Returns:
             Dict contenant le résultat de l'opération
+
+        Raises:
+            DuplicateProjectError: Si un projet avec le même nom existe déjà
+            InvalidProjectDataError: Si les données du projet sont invalides
+            ProjectCreationError: En cas d'erreur de création
         """
         try:
+            # Validation des données du projet
+            self._validate_project_data(project)
+
             # Vérifier que l'ID du projet est unique (si déjà défini)
             if hasattr(project, 'project_id') and project.project_id:
                 existing = self.project_repository.get_project_by_id(project.project_id)
                 if existing:
-                    return {
-                        'success': False,
-                        'error': f'Un projet avec l\'ID {project.project_id} existe déjà'
-                    }
+                    raise DuplicateProjectError('project_id', str(project.project_id))
 
             # Vérifier que le nom du projet est unique
             if any(p.name.lower() == project.name.lower() for p in self._projects):
-                return {
-                    'success': False,
-                    'error': f'Un projet avec le nom "{project.name}" existe déjà'
-                }
+                raise DuplicateProjectError('name', project.name)
 
             # Sauvegarder le projet en base de données
             project_id = self.project_repository.save_project(project)
@@ -92,12 +101,75 @@ class ProjectService:
                 'message': f'Projet "{project.name}" créé avec succès'
             }
 
+        except (DuplicateProjectError, InvalidProjectDataError):
+            raise  # Re-lancer les exceptions métier
         except Exception as e:
             logger.error(f"Erreur lors de la création du projet: {e}")
-            return {
-                'success': False,
-                'error': f'Erreur système lors de la création: {str(e)}'
-            }
+            raise ProjectCreationError(f"Erreur système lors de la création: {str(e)}")
+
+    def _validate_project_data(self, project: Project) -> None:
+        """
+        Valide les données d'un projet.
+
+        Args:
+            project: Projet à valider
+
+        Raises:
+            InvalidProjectDataError: Si les données sont invalides
+        """
+        if not project.name or not project.name.strip():
+            raise InvalidProjectDataError('name', 'Nom de projet requis')
+        
+        if len(project.name.strip()) < 3:
+            raise InvalidProjectDataError('name', 'doit contenir au moins 3 caractères')
+        
+        if not project.address or not project.address.strip():
+            raise InvalidProjectDataError('address', 'Adresse requise')
+        
+        if project.unit_count is not None and project.unit_count <= 0:
+            raise InvalidProjectDataError('unit_count', 'doit être supérieur à 0')
+        
+        if project.construction_year and (project.construction_year < 1800 or project.construction_year > 2030):
+            raise InvalidProjectDataError('construction_year', 'doit être entre 1800 et 2030')
+
+    def _validate_project_data_dict(self, project_data: Dict[str, Any]) -> None:
+        """
+        Valide les données d'un projet sous forme de dictionnaire.
+
+        Args:
+            project_data: Dictionnaire de données du projet
+
+        Raises:
+            InvalidProjectDataError: Si les données sont invalides
+        """
+        name = project_data.get('name', '').strip()
+        if not name:
+            raise InvalidProjectDataError('name', 'Nom de projet requis')
+        
+        if len(name) < 3:
+            raise InvalidProjectDataError('name', 'doit contenir au moins 3 caractères')
+        
+        address = project_data.get('address', '').strip()
+        if not address:
+            raise InvalidProjectDataError('address', 'Adresse requise')
+        
+        unit_count = project_data.get('unit_count') or project_data.get('total_units')
+        if unit_count is not None:
+            try:
+                unit_count_int = int(unit_count)
+                if unit_count_int <= 0:
+                    raise InvalidProjectDataError('unit_count', 'doit être supérieur à 0')
+            except (ValueError, TypeError):
+                raise InvalidProjectDataError('unit_count', 'doit être un nombre entier')
+        
+        construction_year = project_data.get('construction_year')
+        if construction_year is not None:
+            try:
+                year_int = int(construction_year)
+                if year_int < 1800 or year_int > 2030:
+                    raise InvalidProjectDataError('construction_year', 'doit être entre 1800 et 2030')
+            except (ValueError, TypeError):
+                raise InvalidProjectDataError('construction_year', 'doit être un nombre entier')
 
     def get_all_projects(self) -> Dict[str, Any]:
         """
@@ -206,6 +278,36 @@ class ProjectService:
                 'error': f'Erreur système: {str(e)}'
             }
 
+    def get_project_by_name_required(self, project_name: str) -> Project:
+        """
+        Récupère un projet par son nom (requis - lève exception si non trouvé).
+
+        Args:
+            project_name: Nom du projet
+
+        Returns:
+            Projet trouvé
+
+        Raises:
+            ProjectNotFoundError: Si le projet n'est pas trouvé
+        """
+        try:
+            # Recharger les projets depuis la base pour avoir les dernières données
+            all_projects = self.project_repository.get_all_projects()
+            project = next((p for p in all_projects if p.name == project_name), None)
+
+            if not project:
+                raise ProjectNotFoundError(project_name)
+
+            logger.debug(f"Projet trouvé par nom: {project.name} (ID: {project.project_id})")
+            return project
+
+        except ProjectNotFoundError:
+            raise  # Re-lancer l'exception métier
+        except Exception as e:
+            logger.error(f"Erreur technique lors de la récupération du projet {project_name}: {e}")
+            raise ProjectNotFoundError(project_name, f"Erreur technique: {e}")
+
     def update_project(self, project: Project) -> Dict[str, Any]:
         """
         Met à jour un projet existant.
@@ -256,18 +358,17 @@ class ProjectService:
 
         Returns:
             Dict contenant le résultat de l'opération avec projet et unités créées
+
+        Raises:
+            InvalidProjectDataError: Si les données du projet sont invalides
+            DuplicateProjectError: Si un projet avec le même nom existe
+            ProjectCreationError: En cas d'erreur de création
         """
         try:
             logger.info(f"Création d'un nouveau projet: {project_data.get('name', 'Sans nom')}")
 
-            # Validation des données d'entrée
-            validation_result = self._validate_project_data(project_data)
-            if not validation_result['valid']:
-                logger.warning(f"Données de projet invalides: {validation_result['error']}")
-                return {
-                    'success': False,
-                    'error': validation_result['error']
-                }
+            # Validation des données d'entrée avec exceptions métier
+            self._validate_project_data_dict(project_data)
 
             # Adapter les données pour la nouvelle structure
             import uuid
@@ -275,6 +376,13 @@ class ProjectService:
 
             # Création du projet avec la nouvelle structure
             project = Project(**adapted_data)
+
+            # Le projet est déjà validé lors de sa création via __post_init__
+            # Pas besoin de validation supplémentaire ici
+
+            # Vérifier l'unicité du nom
+            if any(p.name.lower() == project.name.lower() for p in self._projects):
+                raise DuplicateProjectError('name', project.name)
 
             # Générer automatiquement les unités pour le projet
             # Créer des unités vierges sans attribution automatique
@@ -300,12 +408,32 @@ class ProjectService:
                 'message': f'Projet "{project.name}" créé avec succès avec {len(saved_project.units)} unités'
             }
 
-        except Exception as e:
-            logger.error(f"Erreur inattendue lors de la création du projet: {e}")
+        except InvalidProjectDataError as e:
             return {
                 'success': False,
-                'error': f'Erreur système: {str(e)}'
+                'error': str(e)
             }
+        except DuplicateProjectError as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        except ValueError as e:
+            # Erreurs de validation de l'entité Project
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"Erreur inattendue lors de la création du projet: {e}")
+            # Pour les erreurs de repository (save_project), retourner une réponse d'erreur
+            if "base de données" in str(e).lower() or "database" in str(e).lower():
+                return {
+                    'success': False,
+                    'error': f'Erreur système: {str(e)}'
+                }
+            # Pour les autres erreurs système critiques, lever l'exception métier
+            raise ProjectCreationError(f"Erreur système: {str(e)}")
 
     def _adapt_project_data(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -343,17 +471,24 @@ class ProjectService:
             # Valeur par défaut
             adapted['building_area'] = float(project_data.get('building_area', 0))
 
+        # Adaptation de la superficie du terrain
+        adapted['land_area'] = float(project_data.get('land_area', 0))
+
         # Adaptation du nombre d'unités
         if 'unit_count' in project_data:
             adapted['unit_count'] = int(project_data['unit_count'])
+        elif 'total_units' in project_data:
+            adapted['unit_count'] = int(project_data['total_units'])
         else:
-            adapted['unit_count'] = int(project_data.get('unit_count', 0))
+            adapted['unit_count'] = int(project_data.get('unit_count', project_data.get('total_units', 0)))
 
         # Adaptation du constructeur
         if 'constructor' in project_data:
             adapted['constructor'] = project_data['constructor']
+        elif 'builder_name' in project_data:
+            adapted['constructor'] = project_data['builder_name']
         else:
-            adapted['constructor'] = project_data.get('constructor', '')
+            adapted['constructor'] = project_data.get('constructor', project_data.get('builder_name', ''))
 
         return adapted
 
@@ -428,17 +563,14 @@ class ProjectService:
             project = next((p for p in all_projects if p.project_id == project_id), None)
 
             if not project:
-                return {
-                    'success': False,
-                    'error': f'Projet non trouvé avec l\'ID: {project_id}'
-                }
+                from src.domain.exceptions.business_exceptions import UnitNotFoundError
+                raise UnitNotFoundError(f'Projet non trouvé avec l\'ID: {project_id}')
 
             # Validation du nouveau nombre d'unités
+            from src.domain.exceptions.business_exceptions import InvalidUnitDataError
+            
             if new_unit_count <= 0 or new_unit_count > 500:
-                return {
-                    'success': False,
-                    'error': "Le nombre d'unités doit être entre 1 et 500"
-                }
+                raise InvalidUnitDataError("unit_count", "doit être entre 1 et 500")
 
             # Mise à jour des unités
             old_count = len(project.units)  # Utiliser le nombre d'unités actuelles
@@ -947,8 +1079,30 @@ class ProjectService:
 
         Returns:
             Dict contenant le résultat de l'opération
+            
+        Raises:
+            UnitNotFoundError: Si l'unité n'existe pas
+            InvalidUnitDataError: Si les données sont invalides
         """
+        from src.domain.exceptions.business_exceptions import (
+            UnitNotFoundError,
+            InvalidUnitDataError
+        )
+        
         try:
+            # Validation de base des données
+            if not unit_data:
+                raise InvalidUnitDataError("unit_data", "données d'unité vides")
+                
+            # Validation des champs critiques
+            if 'area' in unit_data and unit_data['area'] is not None:
+                try:
+                    area = float(unit_data['area'])
+                    if area < 0:
+                        raise InvalidUnitDataError("area", "ne peut pas être négative")
+                except (ValueError, TypeError):
+                    raise InvalidUnitDataError("area", "doit être un nombre valide")
+            
             # Mettre à jour directement dans la base de données
             success = self.project_repository.update_unit(unit_id, unit_data)
 
@@ -962,11 +1116,10 @@ class ProjectService:
                     'message': f'Unité {unit_id} mise à jour avec succès'
                 }
             else:
-                return {
-                    'success': False,
-                    'error': f'Échec de la mise à jour de l\'unité {unit_id}'
-                }
+                raise UnitNotFoundError(f"Unité avec ID {unit_id} non trouvée ou mise à jour échouée")
 
+        except (UnitNotFoundError, InvalidUnitDataError):
+            raise
         except Exception as e:
             logger.error(f"Erreur lors de la mise à jour de l'unité {unit_id}: {e}")
             return {

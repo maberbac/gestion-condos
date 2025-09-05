@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 from typing import List, Dict, Any, Optional
 from src.domain.entities.user import User, UserRole
 from src.adapters.user_repository_sqlite import UserRepositorySQLite
+from src.domain.exceptions.business_exceptions import UserNotFoundError
 
 class UserService:
     """
@@ -196,6 +197,35 @@ class UserService:
         except Exception as e:
             logger.error(f"Erreur lors de la recherche de l'utilisateur '{username}': {e}")
             return None
+
+    def get_user_by_username_required(self, username: str) -> User:
+        """
+        Récupère un utilisateur par son nom d'utilisateur (requis - lève exception si non trouvé).
+
+        Args:
+            username: Nom d'utilisateur à rechercher
+
+        Returns:
+            Utilisateur trouvé
+
+        Raises:
+            UserNotFoundError: Si l'utilisateur n'est pas trouvé
+        """
+        try:
+            user = self._run_async_operation(
+                self.user_repository.get_user_by_username, username
+            )
+            if not user:
+                raise UserNotFoundError(username)
+            
+            logger.debug(f"Utilisateur '{username}' trouvé")
+            return user
+
+        except UserNotFoundError:
+            raise  # Re-lancer l'exception métier
+        except Exception as e:
+            logger.error(f"Erreur technique lors de la recherche de l'utilisateur '{username}': {e}")
+            raise UserNotFoundError(username, f"Erreur technique: {e}")
 
     def get_user_details_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """

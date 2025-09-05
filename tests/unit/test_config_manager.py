@@ -227,7 +227,7 @@ class TestConfigUtilityFunctions(unittest.TestCase):
             },
             "web": {
                 "host": "localhost",
-                "port": 5000,
+                "port": 8080,
                 "ssl_enabled": False
             }
         }

@@ -19,10 +19,10 @@ Le projet utilise une organisation en trois niveaux de tests pour assurer une co
 **Structure** :
 ```
 unit/
-├── test_file_reader.py     # [CONCEPT] Lecture fichiers
-├── test_functional_ops.py  # [CONCEPT] Programmation fonctionnelle  
-├── test_error_handler.py   # [CONCEPT] Gestion erreurs
-└── test_async_ops.py       # [CONCEPT] Programmation asynchrone
+├── test_file_reader.py     # Lecture fichiers
+├── test_functional_ops.py  # Programmation fonctionnelle  
+├── test_error_handler.py   # Gestion erreurs
+└── test_async_ops.py       # Programmation asynchrone
 ```
 
 ### Tests d'Intégration (`integration/`)

@@ -3,19 +3,19 @@
   "disable_existing_loggers": false,
   "global": {
     "enabled": true,
-    "level": "DEBUG",
+    "level": "ERROR",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     "date_format": "%Y-%m-%d %H:%M:%S"
   },
   "handlers": {
     "console": {
       "enabled": true,
-      "level": "INFO",
+      "level": "ERROR",
       "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     },
     "file": {
       "enabled": true,
-      "level": "DEBUG",
+      "level": "ERROR",
       "filename": "logs/application.log",
       "max_bytes": 10485760,
       "backup_count": 5,
@@ -32,21 +32,21 @@
   },
   "loggers": {
     "app": {
-      "level": "INFO",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"
       ]
     },
     "src.domain.services.authentication_service": {
-      "level": "DEBUG",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"
       ]
     },
     "src.adapters.sqlite_adapter": {
-      "level": "WARNING",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file",
@@ -54,7 +54,7 @@
       ]
     },
     "src.web.condo_app": {
-      "level": "INFO",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"
@@ -67,21 +67,21 @@
       ]
     },
     "run_app": {
-      "level": "INFO",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"
       ]
     },
     "src.infrastructure.config_manager": {
-      "level": "DEBUG",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"
       ]
     },
     "__main__": {
-      "level": "INFO",
+      "level": "ERROR",
       "handlers": [
         "console",
         "file"

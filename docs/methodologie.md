@@ -442,7 +442,6 @@ gestion-condos/
 │   ├── test_error_handler.py   # Tests concept 3
 │   ├── test_async_ops.py       # Tests concept 4
 │   └── test_integration.py     # Tests d'intégration
-├── tmp/                     # Expérimentations
 └── docs/                    # Documentation
 ```
 

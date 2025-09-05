@@ -1,5 +1,10 @@
-# Architecture Hexagonale - Projet Gestion Condos
-
+# Architecture Hexagonale - Projet Gestion C│    - project.py IMPLEMENTÉ                        │ │
+│    - unit.py IMPLEMENTÉ                           │ │
+│    - user.py IMPLEMENTÉ                           │ │
+│  │  - services/                                        │ │
+│    - project_service.py IMPLEMENTÉ                │ │
+│    - financial_service.py IMPLEMENTÉ              │ │
+│    - password_change_service.py IMPLEMENTÉ        │ │
 ## Vue d'Ensemble Architecturale
 
 ### Choix Architectural : Hexagonale (Ports & Adapters)
@@ -24,16 +29,16 @@
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │              COUCHE ADAPTERS                        │ │
 │  │  [CONCEPT: Async] [CONCEPT: Files] [CONCEPT: Errors]│ │
-│  │  - web_adapter.py ✓ IMPLEMENTÉ                      │ │
-│  │  - sqlite_adapter.py ✓ IMPLEMENTÉ                   │ │
-│  │  - user_file_adapter.py ✓ IMPLEMENTÉ                │ │
+│  │  - web_adapter.py IMPLEMENTÉ                      │ │
+│  │  - sqlite_adapter.py IMPLEMENTÉ                   │ │
+│  │  - user_file_adapter.py IMPLEMENTÉ                │ │
 │  │  - api_adapter.py (future)                          │ │
 │  └─────────────────────────────────────────────────────┘ │
 │                           │                             │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │                COUCHE PORTS                         │ │
-│  │  - project_repository_port.py ✓ IMPLEMENTÉ          │ │
-│  │  - user_repository_port.py ✓ IMPLEMENTÉ             │ │
+│  │  - project_repository_port.py IMPLEMENTÉ          │ │
+│  │  - user_repository_port.py IMPLEMENTÉ             │ │
 │  │  - notification_port.py                             │ │
 │  │  - report_generator_port.py                         │ │
 │  └─────────────────────────────────────────────────────┘ │
@@ -42,13 +47,13 @@
 │  │              DOMAINE MÉTIER (CORE)                  │ │
 │  │  [CONCEPT: Functional Programming]                  │ │
 │  │  - entities/                                        │ │
-│  │    - project.py ✓ IMPLEMENTÉ                        │ │
-│  │    - unit.py ✓ IMPLEMENTÉ                           │ │
-│  │    - user.py ✓ IMPLEMENTÉ                           │ │
+│  │    - project.py IMPLEMENTÉ                        │ │
+│  │    - unit.py IMPLEMENTÉ                           │ │
+│  │    - user.py IMPLEMENTÉ                           │ │
 │  │  - services/                                        │ │
-│  │    - project_service.py ✓ IMPLEMENTÉ                │ │
-│  │    - financial_service.py ✓ IMPLEMENTÉ              │ │
-│  │    - password_change_service.py ✓ IMPLEMENTÉ        │ │
+│  │    - project_service.py IMPLEMENTÉ                │ │
+│  │    - financial_service.py IMPLEMENTÉ              │ │
+│  │    - password_change_service.py IMPLEMENTÉ        │ │
 │  │  - use_cases/                                       │ │
 │  │    - manage_projects.py                             │ │
 │  │    - calculate_fees.py                              │ │
@@ -57,7 +62,7 @@
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │           COUCHE INFRASTRUCTURE                     │ │
 │  │  [STANDARDS: Configuration JSON + SQLite]           │ │
-│  │  - config_manager.py ✓ IMPLEMENTÉ                   │ │
+│  │  - config_manager.py IMPLEMENTÉ                   │ │
 │  │  - logging_setup.py                                 │ │
 │  │  - migration_runner.py                              │ │
 │  └─────────────────────────────────────────────────────┘ │
@@ -65,17 +70,17 @@
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │              SYSTÈME DE CONFIGURATION               │ │
 │  │  config/                                            │ │
-│  │    - app.json ✓ IMPLEMENTÉ                          │ │
-│  │    - database.json ✓ IMPLEMENTÉ                     │ │
-│  │    - logging.json ✓ IMPLEMENTÉ                      │ │
-│  │    - schemas/ ✓ VALIDATION JSON                     │ │
+│  │    - app.json IMPLEMENTÉ                          │ │
+│  │    - database.json IMPLEMENTÉ                     │ │
+│  │    - logging.json IMPLEMENTÉ                      │ │
+│  │    - schemas/ VALIDATION JSON                     │ │
 │  └─────────────────────────────────────────────────────┘ │
 │                                                         │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │              BASE DE DONNÉES SQLITE                 │ │
 │  │  data/                                              │ │
-│  │    - condos.db ✓ IMPLEMENTÉ                         │ │
-│  │    - migrations/ ✓ SCRIPTS SQL                      │ │
+│  │    - condos.db IMPLEMENTÉ                         │ │
+│  │    - migrations/ SCRIPTS SQL                      │ │
 │  └─────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -230,7 +235,7 @@ def calculate_fees_functional(units: List[Unit]) -> List[FinancialRecord]:
         filter(lambda u: u.status == UnitStatus.SOLD, units)
     ))
 
-# Dans project_service.py - API Standardisée ✅
+# Dans project_service.py - API Standardisée
 class ProjectService:
     # Méthodes standardisées (ID-based)
     def get_project_statistics(self, project_id: str) -> Dict[str, Any]:
@@ -276,7 +281,7 @@ def dashboard():
         return await asyncio.gather(*tasks)
 ```
 
-## Architecture API Standardisée ✅
+## Architecture API Standardisée
 
 ### Principe de Standardisation (project_id)
 

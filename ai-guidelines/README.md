@@ -20,16 +20,17 @@ ai-guidelines/
 └── project-integration.md       # Guide d'intégration contextuelle
 ```
 
-## Mise à Jour Récente
+## Principe
 
-### Standardisation API Complète
+Ce répertoire contient toutes les instructions et directives spécifiques pour les assistants IA travaillant sur ce projet de gestion de condominiums.
+
+### Standards Appliqués
 - **API project_id standardisée** : Tous les services utilisent project_id comme paramètre principal
 - **Architecture de delegation** : Méthodes de compatibilité qui délèguent vers les méthodes ID-based
-- **Élimination des recherches manuelles** : Routes web refactorisées pour utiliser les services centralisés
-- **351/351 tests passent** : Validation complète sans régression
+- **Services centralisés** : Routes web refactorisées pour utiliser les services centralisés
+- **Tests complets** : Validation complète sans régression
 
-### Consolidation des Guidelines IA
-- **Fusion réalisée** : Intégration des guidelines de `.github/ai-guidelines/` dans ce répertoire
+### Guidelines IA Consolidées
 - **Structure unifiée** : Tous les fichiers d'instructions IA centralisés ici
 - **Standards appliqués** : Respect des directives `.github/copilot-instructions.md`
 
@@ -39,7 +40,7 @@ ai-guidelines/
 - **Tests TDD stricts** : Mocking complet, isolation totale des tests
 - **Séparation HTML/Python** : Templates externes obligatoires
 
-### Nouvelles Guidelines Intégrées
+### Guidelines Intégrées
 - **Development Checklists** : Validation pré/post développement
 - **Documentation Standards** : Normes de documentation et logging
 - **Language Guidelines** : Directives Python spécifiques au projet
@@ -51,7 +52,7 @@ ai-guidelines/
 - **Ce répertoire** : Instructions pour l'IA, comportement, méthodologies
 - **`docs/`** : Documentation du projet, guides utilisateur, spécifications techniques
 
-## Nouveaux Standards Appliqués
+## Standards Appliqués
 
 ### TDD avec Mocking Obligatoire
 - **Cycle Red-Green-Refactor** avec tests écrits en premier
@@ -62,21 +63,21 @@ ai-guidelines/
 ### Validation Automatique
 - **Aucun accès base de données** dans les tests
 - **Tests indépendants** dans n'importe quel ordre
-- **Performance optimisée** sans I/O externe
+- **Performance sans I/O externe**
 
 ## Règles d'utilisation
 
 1. **Tous les fichiers d'instructions IA** doivent être placés ici
 2. **Aucune documentation utilisateur** ne doit être dans ce répertoire
 3. **Références croisées** avec `docs/` autorisées mais séparation maintenue
-4. **Mise à jour automatique** des liens lors de déplacements de fichiers
+4. **Synchronisation automatique** des liens lors de déplacements de fichiers
 
 ## Fichiers actuels
 
-Fichiers déplacés et organisés selon les nouvelles instructions :
+Fichiers organisés selon les instructions :
 - `.github/copilot-instructions.md` - Instructions principales GitHub Copilot
 - `ai-guidelines/` - Toutes les instructions et guidelines IA (ce répertoire)
 
-## Migration
+## Organisation
 
-**Terminée** : Tous les fichiers d'instructions IA ont été migrés vers ce répertoire selon les nouvelles règles d'organisation.
+Tous les fichiers d'instructions IA sont organisés dans ce répertoire selon les règles d'organisation établies.

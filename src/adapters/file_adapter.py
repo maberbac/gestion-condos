@@ -1,8 +1,6 @@
 """
 File Adapter - Implémentation concrète pour la lecture de fichiers.
 
-Cet adapter démontre l'implémentation du concept technique obligatoire
-
 Il implémente les ports FileHandlerPort et CondoRepositoryPort pour
 fournir une persistance basée sur fichiers JSON et CSV.
 """

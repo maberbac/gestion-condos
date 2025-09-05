@@ -76,7 +76,7 @@ class TestProjectService(unittest.TestCase):
         # Assert
         self.assertFalse(result['success'])
         self.assertIn('error', result)
-        self.assertIn('nom du projet', result['error'])
+        self.assertIn('nom', result['error'].lower())
     
     def test_create_project_repository_error(self):
         """Test de gestion d'erreur du repository"""
@@ -161,9 +161,9 @@ class TestProjectService(unittest.TestCase):
         self.assertEqual(stats['occupied_units'], 2)
         self.assertEqual(stats['available_units'], 13)
         self.assertAlmostEqual(stats['occupancy_rate'], (2/15)*100, places=1)
-    
-    def test_programming_functional_concepts(self):
-        """Test des concepts de programmation fonctionnelle dans le service"""
+
+    def test_unit_area_distribution(self):
+        """Test de la distribution des superficies des unités"""
         # Arrange
         project = Project(**self.valid_project_data)
         project.generate_units()
@@ -173,7 +173,7 @@ class TestProjectService(unittest.TestCase):
         for i, unit in enumerate(occupied_units):
             unit.transfer_ownership(f"Propriétaire {i+1}")
         
-        # Act - Utilisation de filter et map (programmation fonctionnelle)
+        # Act - Utilisation de filter et map
         available_units = list(filter(lambda u: u.owner_name is None or u.owner_name == "Disponible", project.units))
         occupied_units_list = list(filter(lambda u: u.owner_name is not None and u.owner_name != "Disponible", project.units))
         unit_areas = list(map(lambda u: u.area, project.units))

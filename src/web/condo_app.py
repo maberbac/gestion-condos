@@ -301,25 +301,32 @@ class SQLiteCondoService:
     def update_condo(self, identifier, condo_data):
         """Met à jour un condo par son ID ou unit_number."""
         try:
+            from src.domain.exceptions.business_exceptions import (
+                UnitNotFoundError,
+                InvalidUnitDataError
+            )
+            
             # D'abord, essayer de trouver l'unité par ID (méthode préférée)
             if identifier.isdigit():
                 unit_id = int(identifier)
                 # Utiliser la nouvelle méthode pour mettre à jour directement par ID
-                result = self.project_service.update_unit_by_id(unit_id, condo_data)
-                if result['success']:
-                    logger.info(f"Unité ID {unit_id} mise à jour avec succès")
-                    return True
-                else:
-                    logger.error(f"Échec mise à jour unité ID {unit_id}: {result['error']}")
-                    return False
+                try:
+                    result = self.project_service.update_unit_by_id(unit_id, condo_data)
+                    if result['success']:
+                        logger.info(f"Unité ID {unit_id} mise à jour avec succès")
+                        return True
+                    else:
+                        logger.error(f"Échec mise à jour unité ID {unit_id}: {result['error']}")
+                        return False
+                except (UnitNotFoundError, InvalidUnitDataError):
+                    raise
 
             # Fallback: recherche par unit_number (moins efficace)
             else:
                 # Récupérer tous les projets
                 projects_result = self.project_service.get_all_projects()
                 if not projects_result['success']:
-                    logger.error(f"Erreur récupération projets: {projects_result['error']}")
-                    return False
+                    raise InvalidUnitDataError("projects", f"erreur récupération projets: {projects_result['error']}")
 
                 # Trouver le projet et l'unité correspondante
                 unit_found = False
@@ -327,24 +334,29 @@ class SQLiteCondoService:
                     for unit in project.units:
                         if unit.unit_number == identifier:
                             # Utiliser la nouvelle méthode avec l'ID de l'unité trouvée
-                            result = self.project_service.update_unit_by_id(unit.id, condo_data)
-                            if result['success']:
-                                logger.info(f"Unité {identifier} (ID {unit.id}) mise à jour avec succès")
-                                return True
-                            else:
-                                logger.error(f"Échec mise à jour unité {identifier}: {result['error']}")
-                                return False
+                            try:
+                                result = self.project_service.update_unit_by_id(unit.id, condo_data)
+                                if result['success']:
+                                    logger.info(f"Unité {identifier} (ID {unit.id}) mise à jour avec succès")
+                                    return True
+                                else:
+                                    logger.error(f"Échec mise à jour unité {identifier}: {result['error']}")
+                                    return False
+                            except (UnitNotFoundError, InvalidUnitDataError):
+                                raise
+                            unit_found = True
+                            break
+                    if unit_found:
+                        break
 
                 if not unit_found:
-                    logger.error(f"Unité {identifier} introuvable")
-                    return False
+                    raise UnitNotFoundError(f"Unité {identifier} introuvable")
 
+        except (UnitNotFoundError, InvalidUnitDataError):
+            raise
         except Exception as e:
             logger.error(f"Erreur lors de la modification du condo {identifier}: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"Erreur lors de la modification du condo {identifier}: {e}")
-            return False
+            raise InvalidUnitDataError("system", f"erreur système lors de la modification: {str(e)}")
 
     def get_statistics(self):
         """Génère les statistiques des condos."""
@@ -378,7 +390,7 @@ class SQLiteCondoService:
             }
 
 def calculate_relative_time(dt):
-    """Calcule le temps relatif par rapport Ã  maintenant."""
+    """Calcule le temps relatif par rapport à maintenant."""
     if not dt:
         return "Jamais"
 
@@ -392,7 +404,7 @@ def calculate_relative_time(dt):
                 except ValueError:
                     continue
             else:
-                return dt  # Retourner la chaÃ®ne originale si parsing échoue
+                return dt  # Retourner la chaine originale si parsing échoue
         except:
             return dt
 
@@ -414,7 +426,7 @@ def calculate_relative_time(dt):
         minutes = diff.seconds // 60
         return f"Il y a {minutes}min"
     else:
-        return "Ã€ l'instant"
+        return "À l'instant"
 
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
@@ -631,7 +643,7 @@ def require_admin(f):
                 'error': 'Droits administrateur requis'
             }), 403
 
-        return render_template('errors/access_denied.html'), 403
+        return render_template('errors/403.html'), 403
     return decorated_function
 
 def require_login(f):
@@ -722,7 +734,7 @@ def require_resident_or_admin(f):
                 'error': 'Droits résident ou administrateur requis'
             }), 403
 
-        return render_template('errors/access_denied.html'), 403
+        return render_template('errors/403.html'), 403
     return decorated_function
 
 # Routes de l'application
@@ -1012,6 +1024,11 @@ def create_condo():
 def edit_condo(identifier):
     """Modification d'un condo existant - Supporte ID et unit_number pour transition."""
     try:
+        from src.domain.exceptions.business_exceptions import (
+            UnitNotFoundError,
+            InvalidUnitDataError
+        )
+        
         ensure_services_initialized()
         # Utiliser la nouvelle méthode qui supporte ID et unit_number
         condo = condo_service.get_condo_by_identifier(identifier)
@@ -1038,15 +1055,19 @@ def edit_condo(identifier):
             'monthly_fees': request.form.get('monthly_fees')
         }
 
-        if condo_service.update_condo(identifier, condo_data):  # CORRECTION: Utiliser identifier au lieu de condo.unit_number
+        try:
+            condo_service.update_condo(identifier, condo_data)
             flash(f"Condo {condo.unit_number or identifier} modifié avec succès", "success")
             # Préserver le project_id dans la redirection si disponible
             if hasattr(condo, 'project_id') and condo.project_id:
                 return redirect(url_for('condos', project_id=condo.project_id))
             else:
                 return redirect(url_for('condos'))
-        else:
-            flash("Erreur lors de la modification", "error")
+        except UnitNotFoundError as e:
+            flash(f"Unité non trouvée: {e.message}", "error")
+            return redirect(url_for('condos'))
+        except InvalidUnitDataError as e:
+            flash(f"Données invalides: {e.message}", "error")
             return render_template('condo_form.html', action='edit', condo=condo)
 
     except Exception as e:
@@ -1193,6 +1214,11 @@ async def create_user_async(username, email, password, full_name, role, condo_un
             init_services()
 
         from src.domain.services.user_creation_service import UserCreationService
+        from src.domain.exceptions.business_exceptions import (
+            UserCreationError, 
+            DuplicateUserError, 
+            InvalidUserDataError
+        )
         user_creation_service = UserCreationService(user_repository)
 
         # Créer l'utilisateur
@@ -1205,8 +1231,17 @@ async def create_user_async(username, email, password, full_name, role, condo_un
             condo_unit=condo_unit if condo_unit else None
         )
 
+    except DuplicateUserError as e:
+        logger.warning(f"Tentative de doublon: {e.message}")
+        raise  # Re-lancer pour gestion spécifique côté appelant
+    except InvalidUserDataError as e:
+        logger.warning(f"Données invalides: {e.message}")
+        raise  # Re-lancer pour gestion spécifique côté appelant
+    except UserCreationError as e:
+        logger.warning(f"Erreur métier création utilisateur: {e.message}")
+        raise  # Re-lancer l'exception métier pour gestion spécifique
     except Exception as e:
-        logger.error(f"Erreur dans create_user_async: {e}")
+        logger.error(f"Erreur technique dans create_user_async: {e}")
         raise
 
 @app.route('/api/user/<username>')
@@ -1860,8 +1895,7 @@ def resident_my_condo():
     """Page condo du résident connecté."""
     user_role_value = session.get('user_role') or session.get('role')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
-        return render_template('errors/access_denied.html',
-                             message="Seuls les résidents peuvent accéder Ã  cette page"), 403
+        return render_template('errors/403.html'), 403
 
     # Données du condo du résident
     condo_data = {
@@ -1880,8 +1914,7 @@ def resident_my_fees():
     """Page des frais pour les résidents."""
     user_role_value = session.get('user_role', 'GUEST')
     if user_role_value not in ['resident', UserRole.RESIDENT.value]:
-        return render_template('errors/access_denied.html',
-                             message="Seuls les résidents peuvent accéder Ã  cette page"), 403
+        return render_template('errors/403.html'), 403
 
     # Données des frais du résident
     fees_data = {
@@ -2148,9 +2181,15 @@ def projets():
 @require_admin
 def create_project():
     """Création d'un nouveau projet avec unités vierges automatiques."""
+    # Importer les exceptions au début pour qu'elles soient accessibles dans les blocs except
+    from src.application.services.project_service import ProjectService
+    from src.domain.exceptions.business_exceptions import (
+        ProjectCreationError,
+        DuplicateProjectError,
+        InvalidProjectDataError
+    )
+    
     try:
-        from src.application.services.project_service import ProjectService
-
         # récupération des données du formulaire
         construction_year = request.form.get('construction_year')
         building_area = request.form.get('building_area')
@@ -2167,21 +2206,22 @@ def create_project():
             flash('Erreur: Nombre d\'unités requis', 'error')
             return redirect(url_for('projets'))
 
+        # Validation supplémentaire côté serveur
+        land_area_value = request.form.get('land_area')
+        if not land_area_value:
+            flash('Erreur: Superficie du terrain requise', 'error')
+            return redirect(url_for('projets'))
+
         project_data = {
             'name': request.form.get('name'),
             'address': request.form.get('address'),
             'constructor': request.form.get('builder_name'),
             'construction_year': int(construction_year),
             'building_area': float(building_area),
+            'land_area': float(land_area_value), 
             'unit_count': int(total_units),  # Utilise total_units du formulaire
             'status': request.form.get('status', 'ACTIVE'),
         }
-
-        # Validation supplémentaire côté serveur
-        land_area_value = request.form.get('land_area')
-        if not land_area_value:
-            flash('Erreur: Superficie du terrain requise', 'error')
-            return redirect(url_for('projets'))
 
         land_area = float(land_area_value)
         building_area_float = float(building_area)
@@ -2201,6 +2241,15 @@ def create_project():
         else:
             flash(f"Erreur lors de la création: {result['error']}", 'error')
 
+    except DuplicateProjectError as e:
+        flash(f"Projet déjà existant: {e.message}", 'error')
+        logger.warning(f"Tentative de création d'un projet en doublon: {e.message}")
+    except InvalidProjectDataError as e:
+        flash(f"Données invalides: {e.message}", 'error')
+        logger.warning(f"Données de projet invalides: {e.message}")
+    except ProjectCreationError as e:
+        flash(f"Erreur de création: {e.message}", 'error')
+        logger.error(f"Erreur de création de projet: {e.message}")
     except ValueError as e:
         flash(f"Données invalides: {str(e)}", 'error')
     except Exception as e:
@@ -2573,6 +2622,105 @@ def edit_unite(identifier):
     else:
         # Pour POST, traiter directement
         return edit_condo(identifier)
+
+# === GESTIONNAIRES D'ERREURS HTTP CENTRALISÉS ===
+
+@app.errorhandler(404)
+def page_not_found(error):
+    """Gestionnaire pour les erreurs 404 - Page non trouvée."""
+    logger.warning(f"Page non trouvée: {request.url}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Ressource non trouvée',
+            'code': 404
+        }), 404
+    
+    # Pour les pages web, afficher template d'erreur
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Gestionnaire pour les erreurs 500 - Erreur serveur interne."""
+    logger.error(f"Erreur serveur interne: {error}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Erreur serveur interne',
+            'code': 500
+        }), 500
+    
+    # Pour les pages web, afficher template d'erreur
+    return render_template('errors/500.html'), 500
+
+@app.errorhandler(403)
+def access_forbidden(error):
+    """Gestionnaire pour les erreurs 403 - Accès interdit."""
+    logger.warning(f"Accès interdit: {request.url} - Utilisateur: {session.get('user_id', 'anonyme')}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Accès interdit',
+            'code': 403
+        }), 403
+    
+    # Pour les pages web, utiliser le template existant
+    return render_template('errors/403.html'), 403
+
+@app.errorhandler(401)
+def unauthorized(error):
+    """Gestionnaire pour les erreurs 401 - Non autorisé."""
+    logger.warning(f"Accès non autorisé: {request.url}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Authentification requise',
+            'code': 401
+        }), 401
+    
+    # Pour les pages web, rediriger vers login
+    return redirect(url_for('login'))
+
+@app.errorhandler(400)
+def bad_request(error):
+    """Gestionnaire pour les erreurs 400 - Requête invalide."""
+    logger.warning(f"Requête invalide: {request.url} - Erreur: {error}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Requête invalide',
+            'code': 400
+        }), 400
+    
+    # Pour les pages web, afficher template d'erreur
+    return render_template('errors/400.html'), 400
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Gestionnaire pour les erreurs 405 - Méthode non autorisée."""
+    logger.warning(f"Méthode non autorisée: {request.method} {request.url}")
+    
+    # Pour les requêtes API, retourner JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'Méthode HTTP non autorisée',
+            'code': 405,
+            'allowed_methods': error.description if hasattr(error, 'description') else None
+        }), 405
+    
+    # Pour les pages web, afficher template d'erreur
+    return render_template('errors/405.html'), 405
 
 # Application Flask pour export
 flask_app = app

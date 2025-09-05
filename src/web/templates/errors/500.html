@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Erreur serveur{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon">
+            <div class="icon-500">500</div>
+        </div>
+        
+        <div class="error-content">
+            <h1 class="error-title">Erreur serveur</h1>
+            <p class="error-message">
+                Une erreur technique s'est produite. Nos équipes ont été notifiées et travaillent à résoudre le problème.
+            </p>
+            
+            <div class="error-actions">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    Retour à l'accueil
+                </a>
+                
+                <button class="btn btn-secondary" onclick="window.location.reload()">
+                    Réessayer
+                </button>
+            </div>
+            
+            <div class="error-help">
+                <p class="help-text">
+                    Si le problème persiste, veuillez contacter l'administrateur système.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-card {
+    background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+    border-radius: 25px;
+    padding: 3rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    border: 2px solid #fed7d7;
+}
+
+.error-icon {
+    margin-bottom: 2rem;
+}
+
+.icon-500 {
+    font-size: 6rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.error-title {
+    font-size: 2rem;
+    color: #c53030;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.error-message {
+    color: #744210;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.error-help {
+    padding-top: 1.5rem;
+    border-top: 1px solid #fed7d7;
+}
+
+.help-text {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #495057;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .error-card {
+        padding: 2rem;
+        margin: 1rem;
+    }
+    
+    .icon-500 {
+        font-size: 4rem;
+    }
+    
+    .error-title {
+        font-size: 1.5rem;
+    }
+    
+    .error-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

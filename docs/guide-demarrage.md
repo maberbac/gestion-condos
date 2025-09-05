@@ -46,7 +46,7 @@ Au premier démarrage, l'application initialise automatiquement la base de donn�
 ```
 
 ### 3. Accès à l'interface web
-- **URL** : http://127.0.0.1:5000
+- **URL** : http://127.0.0.1:8080
 - Le navigateur s'ouvrira automatiquement
 - **Temps de démarrage** : < 10 secondes
 
@@ -173,7 +173,7 @@ L'interface adapte automatiquement les fonctionnalités disponibles selon le rô
 ## En cas de problème
 
 ### Port déjà utilisé
-Si le port 5000 est occupé, modifiez le port dans `run_app.py` :
+Si le port 8080 est occupé, modifiez le port dans `run_app.py` :
 ```python
 flask_app.run(host='127.0.0.1', port=5001)  # Changer 5001 par un port libre
 ```

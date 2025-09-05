@@ -1,38 +1,31 @@
 # ==================== GESTION CONDOS - DÉPENDANCES ====================
 # Architecture Hexagonale avec Standards JSON + SQLite
-# Dépendances pour implémentation complète des 4 concepts techniques
 
 # ==================== Framework Web et Serveur ====================
-# [CONCEPT: Programmation Asynchrone]
 fastapi==0.104.1           # Framework web moderne avec support async natif
 uvicorn[standard]==0.24.0  # Serveur ASGI pour applications async
 starlette==0.27.0          # Framework async sous-jacent à FastAPI
 
 # ==================== Base de Données SQLite ====================
-# [STANDARD OBLIGATOIRE: SQLite + Migrations]
 aiosqlite==0.19.0          # Driver SQLite asynchrone pour async/await
 sqlite-migrate==0.1.0     # Gestion des migrations SQLite (optionnel)
 
 # ==================== Configuration JSON ====================
-# [STANDARD OBLIGATOIRE: Configuration JSON + Validation]
 jsonschema==4.20.0         # Validation des schémas JSON obligatoires
 pydantic==2.5.0            # Validation de données et settings
 pydantic-settings==2.1.0   # Gestion avancée des configurations
 
 # ==================== Développement et Tests ====================
-# [CONCEPT: Tests Unitaires avec TDD]
 pytest==7.4.3             # Framework de tests principal
 pytest-asyncio==0.21.1    # Support tests asynchrones
 pytest-cov==4.1.0         # Couverture de code
 
 # ==================== Programmation Fonctionnelle ====================
-# [CONCEPT: Programmation Fonctionnelle]
 toolz==0.12.0             # Utilitaires fonctionnels (map, filter, reduce avancés)
 funcy==2.0                 # Fonctions utilitaires style fonctionnel
 more-itertools==10.1.0    # Extensions pour itertools
 
 # ==================== Manipulation de Données ====================
-# [CONCEPT: File Reading et Data Processing]
 pandas>=2.0.0             # Manipulation de données CSV/Excel
 openpyxl>=3.1.0          # Support fichiers Excel
 aiofiles>=23.1.0         # Lecture/écriture asynchrone de fichiers
