@@ -60,57 +60,9 @@
                 {% endif %}
             </div>
         </div>
-        {% if user_role == 'admin' %}
-        <div class="header-actions">
-            <button class="add-condo-btn" onclick="showCreateUnitModal()">
-                <span class="btn-icon">➕</span>
-                <span class="btn-text">Nouvelle unité</span>
-            </button>
-            <button class="add-condo-btn" onclick="showCreateUnitModal()" style="display: none;">
-                Ajouter une Unité
-            </button>
-            <!-- Texte masqué pour les tests -->
-            <span style="display: none;">Voir</span>
-            <span style="display: none;">Éditer</span>
-        </div>
-        {% endif %}
     </div>
 
     {% if condos %}
-        <!-- Search and Filter Controls -->
-        <div class="search-filter-controls">
-            <div class="search-section">
-                <div class="search-group">
-                    <input type="text" id="search-input" class="search-input" placeholder="Rechercher par numéro d'unité, propriétaire...">
-                    <button class="search-btn btn-primary" onclick="performSearch()">
-                        <span>🔍</span>
-                        Rechercher
-                    </button>
-                </div>
-            </div>
-            
-            <div class="filter-section">
-                <select id="filter-type" class="filter-type">
-                    <option value="">Tous les types</option>
-                    <option value="RESIDENTIAL">Résidentiel</option>
-                    <option value="COMMERCIAL">Commercial</option>
-                    <option value="PARKING">Stationnement</option>
-                    <option value="STORAGE">Entreposage</option>
-                </select>
-                
-                <select id="filter-status" class="filter-status">
-                    <option value="">Tous les statuts</option>
-                    <option value="available">Disponible</option>
-                    <option value="occupied">Occupé</option>
-                    <option value="maintenance">Maintenance</option>
-                </select>
-                
-                <button class="clear-filters-btn btn-success" onclick="clearFilters()">
-                    Effacer filtres
-                </button>
-            </div>
-        </div>
-
         <!-- Quick Stats -->
         <div class="condo-stats">
             <div class="stat-card stats-card total">
@@ -168,7 +120,7 @@
             <div class="condo-card">
                 <div class="condo-info">
                     <div class="condo-main">
-                        <h3 class="condo-unit">{{ condo.unit_number }}</h3>
+                        <h3 class="condo-unit">{{ condo.unit_number or 'Unité non numérotée' }}</h3>
                         <div class="condo-type-badge">
                             <span class="type-badge {{ condo.unit_type.name.lower() }}">
                                 {{ condo.type_icon }} {{ condo.unit_type.name|title }}
@@ -244,72 +196,6 @@
         </div>
     {% endif %}
 </div>
-
-<!-- Modal de création d'unité -->
-{% if user_role == 'admin' %}
-<div id="createUnitModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Nouvelle Unité</h2>
-            <span class="close" onclick="closeCreateUnitModal()">&times;</span>
-        </div>
-        <form id="createUnitForm" action="/unites/create" method="POST">
-            <div class="form-group">
-                <label for="unit_number">Numéro d'unité *</label>
-                <input type="text" id="unit_number" name="unit_number" required 
-                       placeholder="Ex: A-101, B-205">
-            </div>
-            
-            <div class="form-group">
-                <label for="owner_name">Propriétaire</label>
-                <input type="text" id="owner_name" name="owner_name" 
-                       placeholder="Nom du propriétaire (Disponible par défaut)">
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="square_feet">Superficie (pi²) *</label>
-                    <input type="number" id="square_feet" name="square_feet" required 
-                           min="100" max="10000" placeholder="800">
-                </div>
-                
-                <div class="form-group">
-                    <label for="monthly_fees">Frais mensuels ($) *</label>
-                    <input type="number" id="monthly_fees" name="monthly_fees" required 
-                           min="50" max="5000" placeholder="450">
-                </div>
-            </div>
-            
-            <div class="form-row">
-            <div class="form-group">
-                <label for="unit_type">Type</label>
-                <select id="unit_type" name="unit_type">
-                    <option value="RESIDENTIAL" selected>Résidentiel</option>
-                    <option value="COMMERCIAL">Commercial</option>
-                    <option value="PARKING">Stationnement</option>
-                    <option value="STORAGE">Entreposage</option>
-                </select>
-            </div>                <div class="form-group">
-                    <label for="status">Statut</label>
-                    <select id="status" name="status">
-                        <option value="none" selected>Aucun</option>
-                        <option value="available">Disponible</option>
-                        <option value="inactive">Inactif</option>
-                        <option value="maintenance">Maintenance</option>
-                    </select>
-                </div>
-            </div>
-            
-
-            
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" onclick="closeCreateUnitModal()">Annuler</button>
-                <button type="submit" class="btn-submit">Créer l'unité</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
 
 <!-- Modal de modification d'unité -->
 {% if user_role == 'admin' %}
@@ -427,21 +313,6 @@
     gap: 15px;
 }
 
-.add-condo-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 25px;
-    color: white;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
 .add-condo-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
@@ -516,15 +387,6 @@
     grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
     gap: 25px;
     margin-bottom: 40px;
-}
-
-/* Search and Filter Controls */
-.search-filter-controls {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    margin-bottom: 30px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 }
 
 .search-section {

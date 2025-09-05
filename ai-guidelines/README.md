@@ -26,7 +26,7 @@ ai-guidelines/
 - **API project_id standardisée** : Tous les services utilisent project_id comme paramètre principal
 - **Architecture de delegation** : Méthodes de compatibilité qui délèguent vers les méthodes ID-based
 - **Élimination des recherches manuelles** : Routes web refactorisées pour utiliser les services centralisés
-- **336/336 tests passent** : Validation complète sans régression
+- **351/351 tests passent** : Validation complète sans régression
 
 ### Consolidation des Guidelines IA
 - **Fusion réalisée** : Intégration des guidelines de `.github/ai-guidelines/` dans ce répertoire

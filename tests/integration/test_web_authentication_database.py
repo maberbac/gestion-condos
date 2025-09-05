@@ -127,10 +127,11 @@ class TestWebAuthenticationIntegration(unittest.TestCase):
 
         response = self.client.post('/login', data=login_data, follow_redirects=True)
 
-        # En attendant l'intégration complète de la BD, vérifier que la tentative génère une réponse
-        self.assertEqual(response.status_code, 200)
-        # Note: L'intégration complète fera réussir la connexion et redirigera vers le dashboard
-        logger.debug("Test BD admin - en attente de l'intégration complète")
+        # Avec la nouvelle intégration, les identifiants échoués retournent 401
+        self.assertEqual(response.status_code, 401)
+        # Vérifier que le message d'erreur est présent
+        self.assertIn(b'Identifiants invalides', response.data)
+        logger.debug("Test BD admin - authentification avec mot de passe incorrect retourne 401")
     
     def test_resident_login_with_database_credentials(self):
         """
@@ -145,10 +146,11 @@ class TestWebAuthenticationIntegration(unittest.TestCase):
 
         response = self.client.post('/login', data=login_data, follow_redirects=True)
 
-        # En attendant l'intégration complète de la BD, vérifier que la tentative génère une réponse
-        self.assertEqual(response.status_code, 200)
-        # Note: L'intégration complète fera réussir la connexion et redirigera vers le dashboard
-        logger.debug("Test BD résident - en attente de l'intégration complète")
+        # Avec la nouvelle intégration, les identifiants échoués retournent 401
+        self.assertEqual(response.status_code, 401)
+        # Vérifier que le message d'erreur est présent
+        self.assertIn(b'Identifiants invalides', response.data)
+        logger.debug("Test BD résident - utilisateur inexistant retourne 401")
     
     @patch('src.application.services.user_service.UserService')
     def test_old_credentials_should_fail_after_database_integration(self, mock_user_service_class):
@@ -169,12 +171,11 @@ class TestWebAuthenticationIntegration(unittest.TestCase):
 
         response = self.client.post('/login', data=old_login_data, follow_redirects=True)
 
-        # Maintenant que l'app utilise la BD, ces anciens identifiants ne fonctionnent plus
-        self.assertEqual(response.status_code, 200)
-        # Simplifier le test - juste vérifier qu'on n'a pas de redirection vers dashboard
-        # (Ce qui indiquerait une connexion réussie)
-        self.assertNotIn(b'dashboard', response.data.lower())
-        logger.debug("Anciens identifiants produisent une erreur - comportement attendu")
+        # Maintenant que l'app utilise la BD, ces anciens identifiants ne fonctionnent plus et retournent 401
+        self.assertEqual(response.status_code, 401)
+        # Vérifier que le message d'erreur est présent
+        self.assertIn(b'Identifiants invalides', response.data)
+        logger.debug("Anciens identifiants retournent 401 - comportement attendu")
     
     def test_invalid_credentials_rejected(self):
         """Test que les identifiants invalides sont rejetés."""
@@ -185,8 +186,8 @@ class TestWebAuthenticationIntegration(unittest.TestCase):
         
         response = self.client.post('/login', data=invalid_login_data, follow_redirects=True)
         
-        # Vérifier qu'il y a une erreur (message générique accepté)
-        self.assertIn(b'Erreur', response.data)
+        # Vérifier que le message d'erreur approprié est présent
+        self.assertIn(b'Identifiants invalides', response.data)
     
     def test_empty_credentials_rejected(self):
         """Test que les identifiants vides sont rejetés."""

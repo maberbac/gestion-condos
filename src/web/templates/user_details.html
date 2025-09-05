@@ -13,7 +13,6 @@
                     {% elif user.role == 'resident' %}🏠
                     {% else %}👤{% endif %}
                 </div>
-                <div class="user-status {% if user.last_login and user.last_login != 'Jamais connecté' %}active{% else %}inactive{% endif %}"></div>
             </div>
             <div class="header-info">
                 <h1>{{ user.full_name }}</h1>

@@ -30,14 +30,36 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
             sess['role'] = 'admin'
         
         # Mock users pour les tests
-        self.mock_users = [
-            Mock(spec=User, username='admin', email='admin@condos.com', 
-                 role=UserRole.ADMIN, full_name='Jean Admin', is_active=True),
-            Mock(spec=User, username='resident1', email='resident1@example.com', 
-                 role=UserRole.RESIDENT, full_name='Marie Resident', condo_unit='A-101', is_active=True),
-            Mock(spec=User, username='guest1', email='guest1@example.com', 
-                 role=UserRole.GUEST, full_name='Paul Guest', is_active=True)
-        ]
+        from datetime import datetime
+        mock_last_login = Mock()
+        mock_last_login.strftime.return_value = "01 Jan 2025 12:00"
+        
+        admin_mock = Mock(spec=User)
+        admin_mock.username = 'admin'
+        admin_mock.email = 'admin@condos.com'
+        admin_mock.role = UserRole.ADMIN
+        admin_mock.full_name = 'Jean Admin'
+        admin_mock.is_active = True
+        admin_mock.last_login = mock_last_login
+        
+        resident_mock = Mock(spec=User)
+        resident_mock.username = 'resident1'
+        resident_mock.email = 'resident1@example.com'
+        resident_mock.role = UserRole.RESIDENT
+        resident_mock.full_name = 'Marie Resident'
+        resident_mock.condo_unit = 'A-101'
+        resident_mock.is_active = True
+        resident_mock.last_login = mock_last_login
+        
+        guest_mock = Mock(spec=User)
+        guest_mock.username = 'guest1'
+        guest_mock.email = 'guest1@example.com'
+        guest_mock.role = UserRole.GUEST
+        guest_mock.full_name = 'Paul Guest'
+        guest_mock.is_active = True
+        guest_mock.last_login = mock_last_login
+        
+        self.mock_users = [admin_mock, resident_mock, guest_mock]
 
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')
     def test_users_page_loads_with_mocked_users(self, mock_get_all):
@@ -69,7 +91,7 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
         # Vérifier que les détails des utilisateurs sont affichés
         self.assertIn(b'admin@condos.com', response.data)
         self.assertIn(b'resident1@example.com', response.data)
-        self.assertIn(b'A-101', response.data)
+        # Note: condo_unit n'est plus affiché dans la liste des utilisateurs, seulement dans les formulaires
         mock_get_all.assert_called_once()
 
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')

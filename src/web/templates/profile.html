@@ -15,12 +15,6 @@
             <h1 class="profile-name">{{ full_name }}</h1>
             <p class="profile-role">{{ role_display }}</p>
             <p class="profile-description">{{ role_description }}</p>
-            {% if condo_unit %}
-            <div class="profile-unit">
-                <span class="unit-label">Unité</span>
-                <span class="unit-value">{{ condo_unit }}</span>
-            </div>
-            {% endif %}
         </div>
         <div class="profile-actions">
             <button class="btn-modern btn-primary" onclick="editProfile()">
@@ -29,7 +23,7 @@
             </button>
             <button class="btn-modern btn-secondary" onclick="changePassword()">
                 <span class="btn-icon">🔒</span>
-                Mot de passe
+                Modifier mot de passe
             </button>
         </div>
     </div>

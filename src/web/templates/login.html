@@ -18,12 +18,19 @@
 
         <!-- Formulaire de connexion -->
         <div class="login-form-container">
+            <!-- Message d'erreur si présent -->
+            {% if error_message %}
+            <div class="alert alert-error login-error">
+                <span class="error-icon">⚠️</span>
+                <span class="error-message">{{ error_message }}</span>
+            </div>
+            {% endif %}
+            
             <form method="POST" class="login-form">
                 <div class="form-group">
                     <div class="input-wrapper">
                         <span class="input-icon">👤</span>
                         <input type="text" id="username" name="username" placeholder="Nom d'utilisateur" required autofocus aria-label="Nom d'utilisateur" aria-describedby="username-help">
-                        <label for="username">Nom d'utilisateur</label>
                     </div>
                 </div>
                 
@@ -31,7 +38,6 @@
                     <div class="input-wrapper">
                         <span class="input-icon">🔒</span>
                         <input type="password" id="password" name="password" placeholder="Mot de passe" required aria-label="Mot de passe" aria-describedby="password-help">
-                        <label for="password">Mot de passe</label>
                     </div>
                 </div>
 
@@ -168,6 +174,40 @@
 
     .login-form-container {
         padding: 40px 30px;
+    }
+
+    .login-error {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border: 1px solid #f1aeb5;
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .error-icon {
+        font-size: 1.2rem;
+        color: #721c24;
+    }
+
+    .error-message {
+        color: #721c24;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .form-group {

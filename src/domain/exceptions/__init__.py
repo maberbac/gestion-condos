@@ -12,7 +12,7 @@ from .business_exceptions import (
 
 __all__ = [
     'BusinessException',
-    'UserCreationError', 
+    'UserCreationError',
     'UserNotFoundError',
     'DuplicateUserError',
     'InvalidUserDataError'

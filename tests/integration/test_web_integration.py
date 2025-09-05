@@ -180,7 +180,7 @@ class TestWebIntegration(unittest.TestCase):
         }, follow_redirects=True)
         
         # Assert
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
         self.assertIn(b'Identifiants invalides', response.data)
     
     def test_logout_workflow(self):

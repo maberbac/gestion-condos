@@ -1,5 +1,5 @@
 """
-Module application - Couche application de l'architecture hexagonale
+
 """
 
 from . import services

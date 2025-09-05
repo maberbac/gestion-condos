@@ -47,14 +47,6 @@
                     <div class="stat-label">Invités</div>
                 </div>
             </div>
-            
-            <div class="stat-card assigned">
-                <div class="stat-icon">🔗</div>
-                <div class="stat-content">
-                    <div class="stat-number">{{ users|selectattr('condo_unit')|list|length }}</div>
-                    <div class="stat-label">Unités assignées</div>
-                </div>
-            </div>
         </div>
 
         <!-- Users Grid -->
@@ -77,11 +69,6 @@
                         <div class="detail-item">
                             <span class="detail-icon">📧</span>
                             <span class="detail-text">{{ user.email }}</span>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <span class="detail-icon">🏠</span>
-                            <span class="detail-text">{{ user.condo_unit }}</span>
                         </div>
                         
                         <div class="detail-item">
@@ -1095,11 +1082,6 @@
         
         if (userData.password.length < 6) {
             alert('Le mot de passe doit contenir au moins 6 caractères.');
-            return;
-        }
-        
-        if (userData.role === 'resident' && !userData.condo_unit) {
-            alert('L\'unité de condo est requise pour les résidents.');
             return;
         }
         
