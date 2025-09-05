@@ -642,6 +642,67 @@ CREATE TABLE feature_flags (
 );
 ```
 
+#### SystemConfigService (Service de Configuration Système)  SÉCURITÉ ADMINISTRATIVE
+**Responsabilité** : Gestion sécurisée de la configuration système et du setup administrateur initial
+
+**Fichier** : `src/application/services/system_config_service.py`
+
+**Fonctionnalités implémentées et validées** :
+- `is_admin_password_changed()` : Vérification du changement de mot de passe admin initial
+- `mark_admin_password_changed()` : Marquage du setup administrateur comme terminé
+- `get_system_setup_status()` : État complet du setup du système
+- `validate_system_security()` : Rapport de sécurité avec recommandations
+- `reset_admin_password_status()` : Remise à zéro pour nouveau setup
+- Gestion des configurations booléennes et string avec types explicites
+- Fallback sécurisé en cas d'erreur (assume setup non terminé)
+
+**Architecture Service Validée** :
+```python
+class SystemConfigService:
+    def __init__(self, system_config_repository):
+        self.system_config_repository = system_config_repository
+    
+    def is_admin_password_changed(self) -> bool:
+        """Vérifie si l'admin a changé son mot de passe par défaut"""
+        
+    def mark_admin_password_changed(self) -> bool:
+        """Marque le setup admin comme terminé en base"""
+        
+    def get_system_setup_status(self) -> dict:
+        """État complet du setup système"""
+        
+    def validate_system_security(self) -> dict:
+        """Rapport sécurité avec niveau et recommandations"""
+        
+    def get_all_system_configs(self) -> dict:
+        """Toutes les configurations système formatées"""
+```
+
+**Sécurité par défaut** :
+- **Principe de sécurité** : En cas d'erreur, assume que le setup n'est PAS terminé
+- **Protection des routes** : Intégration avec décorateur `@require_admin`
+- **Validation continue** : Vérification à chaque accès administrateur
+- **Persistance sécurisée** : Stockage en base de données SQLite avec types explicites
+
+**Base de données system_config** :
+```sql
+CREATE TABLE system_config (
+    config_key TEXT PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    config_type TEXT NOT NULL DEFAULT 'string',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Workflow de sécurisation administrative** :
+1. **Installation** : Configuration `admin_password_changed = false` par défaut
+2. **Premier accès admin** : Redirection forcée vers `/admin/setup-password`
+3. **Changement mot de passe** : Validation + persistance de `admin_password_changed = true`
+4. **Accès autorisé** : Toutes les routes administratives deviennent accessibles
+5. **Validation continue** : Chaque requête admin vérifie le statut de configuration
+
 #### FinancialService (Service Financier)  PROGRAMMATION FONCTIONNELLE
 **Responsabilité** : Calculs financiers purs avec programmation fonctionnelle
 
@@ -670,6 +731,55 @@ CREATE TABLE feature_flags (
 - Opérations CRUD asynchrones
 - Requêtes SQL optimisées
 - Gestion des connexions database
+
+#### SystemConfigRepositorySQLite
+**Responsabilité** : Persistance sécurisée des configurations système en base de données SQLite
+
+**Fichier** : `src/infrastructure/repositories/system_config_repository_sqlite.py`
+
+**Fonctionnalités implémentées et validées** :
+- `get_config_value(key)` : Récupération de valeurs de configuration par clé
+- `set_config_value(key, value, config_type, description)` : Écriture sécurisée avec types
+- `get_boolean_config(key, default)` : Gestion spécialisée des configurations booléennes
+- `set_boolean_config(key, value, description)` : Écriture booléenne avec conversion automatique
+- `get_all_configs()` : Récupération complète pour diagnostics et export
+- Gestion robuste des erreurs avec fallback sécurisé
+- Conversion automatique des types (boolean ↔ string)
+
+**Architecture Repository Validée** :
+```python
+class SystemConfigRepositorySQLite:
+    def __init__(self, sqlite_adapter):
+        self.sqlite_adapter = sqlite_adapter
+    
+    def get_config_value(self, config_key: str) -> Optional[str]:
+        """Récupération valeur brute avec gestion d'erreurs"""
+        
+    def set_config_value(self, config_key: str, config_value: str, 
+                        config_type: str = 'string', description: str = '') -> bool:
+        """Écriture avec UPSERT et metadata complète"""
+        
+    def get_boolean_config(self, config_key: str, default_value: bool = False) -> bool:
+        """Spécialisé pour booléens avec conversion automatique"""
+        
+    def set_boolean_config(self, config_key: str, config_value: bool, 
+                          description: str = '') -> bool:
+        """Écriture booléenne avec conversion string automatique"""
+```
+
+**Sécurité des données** :
+- **UPSERT SQL** : INSERT ou UPDATE automatique selon existence de la clé
+- **Types explicites** : Stockage du type de donnée avec la valeur
+- **Descriptions obligatoires** : Documentation de chaque configuration
+- **Timestamps automatiques** : Traçabilité des modifications (created_at, updated_at)
+- **Validation des types** : Contrôle de cohérence entre type stocké et valeur
+- **Gestion d'erreurs robuste** : Fallback sécurisé en cas d'échec base de données
+
+**Support multi-types** :
+- `string` : Texte libre, URLs, chemins de fichiers
+- `boolean` : Flags de configuration avec conversion automatique
+- `integer` : Nombres entiers pour limites et compteurs
+- `json` : Structures complexes sérialisées
 
 #### FileAdapter  
 **Responsabilité** : Lecture/écriture de fichiers JSON/CSV
@@ -1202,10 +1312,64 @@ Authorization: Session basée avec contrôle d'accès
 - Mots de passe hashés (bcrypt)
 - Expiration automatique des sessions
 
+### Configuration Sécurisée du Système
+Le système intègre un mécanisme de configuration initiale sécurisée obligatoire pour l'administrateur.
+
+#### Changement Forcé du Mot de Passe Administrateur
+**Principe de sécurité** : Lors de la première installation, l'administrateur est forcé de changer son mot de passe par défaut avant d'accéder à toute fonctionnalité administrative.
+
+**Architecture du système** :
+- **SystemConfigService** : Service de gestion des configurations système
+- **SystemConfigRepositorySQLite** : Persistance des configurations en base de données
+- **Table system_config** : Stockage des paramètres de configuration du système
+
+**Workflow de sécurisation** :
+1. **Installation initiale** : Le système crée un compte admin avec mot de passe par défaut
+2. **Premier accès** : L'administrateur ne peut accéder à aucune route protégée
+3. **Redirection forcée** : Automatique vers `/admin/setup-password` 
+4. **Changement obligatoire** : Nouveau mot de passe sécurisé requis (minimum 6 caractères)
+5. **Marquage en base** : Configuration `admin_password_changed = true` persistée
+6. **Accès autorisé** : Toutes les fonctions administratives deviennent accessibles
+
+**Composants techniques** :
+```python
+# Service de configuration système
+SystemConfigService:
+  - is_admin_password_changed() -> bool
+  - mark_admin_password_changed() -> bool
+  - get_system_setup_status() -> dict
+  - validate_system_security() -> dict
+
+# Repository de persistance
+SystemConfigRepositorySQLite:
+  - get_boolean_config(key, default) -> bool
+  - set_boolean_config(key, value, description) -> bool
+  - get_all_configs() -> dict
+```
+
+**Sécurité par défaut** :
+- **Fallback sécurisé** : En cas d'erreur, le système assume que le mot de passe n'a PAS été changé
+- **Protection des routes** : Le décorateur `@require_admin` vérifie automatiquement le statut
+- **Validation continue** : Chaque accès admin vérifie la configuration de sécurité
+- **Interface dédiée** : Page spécialisée pour le changement initial (`admin_setup_password.html`)
+
+**Base de données** :
+```sql
+CREATE TABLE system_config (
+    config_key TEXT PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    config_type TEXT NOT NULL DEFAULT 'string',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ### Autorisation
 - Rôles utilisateurs : admin, gestionnaire, résident
 - Permissions granulaires par endpoint
 - Validation des droits d'accès
+- Protection renforcée des routes administratives avec vérification de setup
 
 ### Protection des données
 - Validation stricte des entrées

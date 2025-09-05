@@ -35,8 +35,9 @@ class TestCondoRoutesIntegration(unittest.TestCase):
             sess['username'] = 'admin'
             sess['user_role'] = 'admin'
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service')
-    def test_condos_list_get(self, mock_condo_service):
+    def test_condos_list_get(self, mock_service, mock_admin_password_changed):
         """Test de récupération de la liste des condos."""
         # Mock du service pour retourner une liste de condos
         mock_condos = [
@@ -49,8 +50,8 @@ class TestCondoRoutesIntegration(unittest.TestCase):
                 'unit_type': 'residential'
             }
         ]
-        mock_condo_service.get_all_condos.return_value = mock_condos
-        mock_condo_service.get_statistics.return_value = {
+        mock_service.get_all_condos.return_value = mock_condos
+        mock_service.get_statistics.return_value = {
             'total_condos': 1,
             'occupied': 1,
             'vacant': 0,
@@ -66,8 +67,9 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Gestion des Unit\xc3\xa9s', response.data)
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service')
-    def test_condo_details_existing_unit(self, mock_condo_service):
+    def test_condo_details_existing_unit(self, mock_service, mock_admin_password_changed):
         """Test accès aux détails d'un condo existant."""
         # Mock du service pour retourner une unité avec la structure dictionnaire attendue
         mock_condo = {
@@ -82,8 +84,8 @@ class TestCondoRoutesIntegration(unittest.TestCase):
             'status_icon': '✅'
         }
         
-        mock_condo_service.get_condo_by_unit_number.return_value = mock_condo
-        mock_condo_service.get_all_condos.return_value = [mock_condo]
+        mock_service.get_condo_by_unit_number.return_value = mock_condo
+        mock_service.get_all_condos.return_value = [mock_condo]
         
         response = self.client.get('/condos/TEST-001/details')
 
@@ -92,19 +94,21 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         # Vérifier que les détails sont affichés
         self.assertIn(b'Test Owner', response.data)
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
-    def test_condo_details_nonexistent_unit(self, mock_get_condo_by_unit_number):
+    def test_condo_details_nonexistent_unit(self, mock_service, mock_admin_password_changed):
         """Test accès aux détails d'un condo inexistant."""
         # Mock du service pour retourner None
-        mock_get_condo_by_unit_number.return_value = None
+        mock_service.return_value = None
         
         response = self.client.get('/condos/INEXISTANT-999')
 
         # Peut être une redirection vers la liste des condos ou une erreur 404
         self.assertIn(response.status_code, [302, 404])
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service')
-    def test_edit_condo_get_form_existing(self, mock_condo_service):
+    def test_edit_condo_get_form_existing(self, mock_service, mock_admin_password_changed):
         """Test de récupération du formulaire d'édition pour un condo existant."""
         # Mock du service pour retourner un objet Unit
         mock_unit = Mock(spec=Unit)
@@ -115,28 +119,30 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         mock_unit.status = UnitStatus.AVAILABLE
         mock_unit.calculated_monthly_fees = 450
         
-        mock_condo_service.get_condo_by_identifier.return_value = mock_unit
+        mock_service.get_condo_by_identifier.return_value = mock_unit
         
         response = self.client.get('/condos/TEST-001/edit')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'TEST-001', response.data)
-        mock_condo_service.get_condo_by_identifier.assert_called_once_with('TEST-001')
+        mock_service.get_condo_by_identifier.assert_called_once_with('TEST-001')
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service.get_condo_by_unit_number')
-    def test_edit_condo_get_form_nonexistent(self, mock_get_condo_by_unit_number):
+    def test_edit_condo_get_form_nonexistent(self, mock_service, mock_admin_password_changed):
         """Test de récupération du formulaire d'édition pour un condo inexistant."""
         # Mock du service pour retourner None
-        mock_get_condo_by_unit_number.return_value = None
+        mock_service.return_value = None
         
         response = self.client.get('/condos/INEXISTANT-999/edit')
 
         # Doit rediriger ou retourner une erreur
         self.assertIn(response.status_code, [302, 404])
 
-    @patch('src.web.condo_app.condo_service.get_condo_by_identifier')
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service.update_condo')
-    def test_edit_condo_post_valid_data(self, mock_update_condo, mock_get_condo_by_identifier):
+    @patch('src.web.condo_app.condo_service.get_condo_by_identifier')
+    def test_edit_condo_post_valid_data(self, mock_get_condo_by_identifier, mock_update_condo, mock_admin_password_changed):
         """Test de soumission du formulaire d'édition avec données valides."""
         # Mock du service pour retourner un objet Unit
         mock_unit = Mock(spec=Unit)
@@ -161,8 +167,9 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_update_condo.assert_called_once()
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service.get_condo_by_identifier')
-    def test_edit_condo_post_invalid_data(self, mock_get_condo_by_identifier):
+    def test_edit_condo_post_invalid_data(self, mock_service, mock_admin_password_changed):
         """Test de soumission du formulaire d'édition avec données invalides."""
         # Mock du service pour retourner un objet Unit
         mock_unit = Mock(spec=Unit)
@@ -172,7 +179,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         mock_unit.unit_type = UnitType.RESIDENTIAL
         mock_unit.status = UnitStatus.AVAILABLE
         
-        mock_get_condo_by_identifier.return_value = mock_unit
+        mock_service.return_value = mock_unit
         
         form_data = {
             'owner_name': '',  # Nom vide - invalide
@@ -186,10 +193,11 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         # Doit retourner le formulaire avec erreurs ou rediriger
         self.assertIn(response.status_code, [200, 302])
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.condo_service')
-    def test_add_condo_post_valid_data(self, mock_condo_service):
+    def test_add_condo_post_valid_data(self, mock_service, mock_admin_password_changed):
         """Test d'ajout d'un nouveau condo avec données valides."""
-        mock_condo_service.create_condo.return_value = True
+        mock_service.create_condo.return_value = True
         
         form_data = {
             'unit_number': 'NEW-001',
@@ -202,7 +210,7 @@ class TestCondoRoutesIntegration(unittest.TestCase):
         response = self.client.post('/condos/create', data=form_data, follow_redirects=True)
 
         self.assertEqual(response.status_code, 200)
-        mock_condo_service.create_condo.assert_called_once()
+        mock_service.create_condo.assert_called_once()
 
     def test_add_condo_post_invalid_data(self):
         """Test d'ajout d'un nouveau condo avec données invalides."""

@@ -200,6 +200,48 @@ logger.debug(f"Debug: variable = {value}")
 - Configuration par module : `python configure_logging.py --level DEBUG --module nom_module`
 - Désactivation complète : `python configure_logging.py --disable`
 
+## INTERDICTION STRICTE DES COMMANDES PYTHON -C
+
+### Règle Anti-Commandes Inline
+- **JAMAIS** utiliser des commandes `python -c "code"` pour exécuter du code Python inline
+- **JAMAIS** utiliser `python -c` même pour des vérifications simples ou des tests rapides
+- **JAMAIS** créer des one-liners Python via `python -c` dans le terminal
+- **TOUJOURS** créer des scripts Python dédiés même pour des tâches temporaires
+
+### Scripts Python Obligatoires
+- **CRÉER un fichier .py** dans le répertoire `tmp/` pour tout code d'analyse ou de vérification
+- **NOMMER explicitement** les scripts selon leur fonction (ex: `tmp/check_database.py`, `tmp/analyze_logs.py`)
+- **DOCUMENTER** le script avec des commentaires expliquant son objectif
+- **UTILISER le logger** approprié même dans les scripts temporaires
+
+### Exemples de Remplacement Obligatoires
+```python
+# INTERDIT
+python -c "import sys; print(sys.version)"
+python -c "from src.models import User; print(User.query.count())"
+python -c "import os; print(os.environ.get('DEBUG'))"
+
+# OBLIGATOIRE - Créer tmp/check_version.py
+from src.infrastructure.logger_manager import get_logger
+logger = get_logger(__name__)
+
+import sys
+logger.info(f"Version Python: {sys.version}")
+```
+
+### Avantages des Scripts Dédiés
+- **Traçabilité** : Historique des analyses et vérifications effectuées
+- **Réutilisabilité** : Scripts conservés pour usage futur si nécessaire
+- **Débogage** : Possibilité d'ajouter du logging et des points d'arrêt
+- **Documentation** : Code commenté et explicite sur l'objectif
+- **Maintenabilité** : Modification et amélioration possible du script
+
+### Gestion des Scripts Temporaires
+- **Placement obligatoire** : Tous les scripts d'analyse dans `tmp/`
+- **Nommage descriptif** : `tmp/analyze_[objectif].py`, `tmp/check_[element].py`
+- **Nettoyage** : Supprimer les scripts après usage si plus nécessaires
+- **Archivage** : Conserver les scripts utiles avec documentation appropriée
+
 ## Contexte Automatique du Projet
 
 ### Fichiers de Contexte Obligatoires
@@ -735,6 +777,10 @@ Avant toute implémentation de code, vérifier :
 - [ ] **VÉRIFIER qu'aucun print() n'est utilisé - UTILISER logger approprié**
 - [ ] **IMPORTER le logger: `from src.infrastructure.logger_manager import get_logger`**
 - [ ] **UTILISER les niveaux appropriés: debug/info/warning/error/critical**
+- [ ] **INTERDICTION ABSOLUE: Aucune commande `python -c` utilisée dans le terminal**
+- [ ] **CRÉER des scripts Python dédiés dans `tmp/` pour toute analyse ou vérification**
+- [ ] **NOMMER explicitement les scripts temporaires selon leur fonction**
+- [ ] **DOCUMENTER les scripts avec commentaires et logger approprié**
 - [ ] **S'assurer que toute configuration utilise des fichiers JSON**
 - [ ] **Vérifier que la persistance utilise SQLite comme base de données**
 - [ ] **VÉRIFIER que TOUT le HTML est dans des fichiers .html séparés**
@@ -786,6 +832,9 @@ Après toute implémentation de code, s'assurer que :
 - [ ] **AUCUN EMOJI n'a été ajouté dans la documentation, code, ou commentaires (sauf .html UI)**
 - [ ] **AUCUN PRINT() n'a été utilisé - Tous les messages passent par le logger**
 - [ ] **VALIDATION FINALE: Scanner tous les fichiers modifiés pour emojis ET prints interdits**
+- [ ] **INTERDICTION PYTHON -C: Aucune commande `python -c` utilisée - Scripts dédiés créés dans tmp/**
+- [ ] **SCRIPTS TEMPORAIRES: Vérifier que tous les scripts d'analyse sont nommés explicitement dans tmp/**
+- [ ] **DOCUMENTATION SCRIPTS: S'assurer que les scripts temporaires ont commentaires et logger**
 - [ ] **Vérifier que les modifications sont stockées dans des fichiers JSON avec schémas**
 - [ ] **La persistance utilise SQLite avec structure de données appropriée**
 - [ ] **VÉRIFIER que l'application N'A PAS été démarrée inutilement pour validation**

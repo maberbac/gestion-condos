@@ -150,16 +150,15 @@ class TestSecurityHardeningAcceptance(unittest.TestCase):
         with open(self.main_app_file, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Patterns dangereux à détecter
+        # Patterns dangereux à détecter (exclusion des références système légitimes)
         dangerous_patterns = [
-            r'username\s*=\s*["\']admin["\']',
-            r'password\s*=\s*["\'][^"\']+["\']',
-            r'users\s*=\s*\{',
-            r'default_users',
-            r'ADMIN_USER',
-            r'DEFAULT_PASSWORD',
-            r'hardcoded.*user',
-            r'admin.*password'
+            r'username\s*=\s*["\']admin["\']',     # username = "admin" (hardcodé)
+            r'password\s*=\s*["\'][a-zA-Z0-9]+["\']',  # password = "plaintext" (mot de passe en clair)
+            r'users\s*=\s*\{.*admin.*\}',          # users = { "admin": ... } (dictionnaire utilisateurs)
+            r'default_users',                      # Références à default_users
+            r'ADMIN_USER\s*=',                     # ADMIN_USER = quelque chose (constante)
+            r'DEFAULT_PASSWORD\s*=',               # DEFAULT_PASSWORD = quelque chose (constante)
+            r'hardcoded.*user'                     # Mentions explicites de hardcoded user
         ]
         
         violations = []

@@ -61,11 +61,12 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
         
         self.mock_users = [admin_mock, resident_mock, guest_mock]
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')
-    def test_users_page_loads_with_mocked_users(self, mock_get_all):
+    def test_users_page_loads_with_mocked_users(self, mock_service, mock_admin_password_changed):
         """Test que la page utilisateurs se charge avec des utilisateurs mockés."""
         # Arrange
-        mock_get_all.return_value = self.mock_users
+        mock_service.return_value = self.mock_users
         
         # Act
         response = self.client.get('/users')
@@ -75,13 +76,14 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
         self.assertIn(b'admin', response.data)
         self.assertIn(b'resident1', response.data)
         self.assertIn(b'guest1', response.data)
-        mock_get_all.assert_called_once()
+        mock_service.assert_called_once()
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')
-    def test_users_page_displays_user_details_mocked(self, mock_get_all):
+    def test_users_page_displays_user_details_mocked(self, mock_service, mock_admin_password_changed):
         """Test que la page affiche les détails des utilisateurs mockés."""
         # Arrange
-        mock_get_all.return_value = self.mock_users
+        mock_service.return_value = self.mock_users
         
         # Act
         response = self.client.get('/users')
@@ -92,26 +94,28 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
         self.assertIn(b'admin@condos.com', response.data)
         self.assertIn(b'resident1@example.com', response.data)
         # Note: condo_unit n'est plus affiché dans la liste des utilisateurs, seulement dans les formulaires
-        mock_get_all.assert_called_once()
+        mock_service.assert_called_once()
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')
-    def test_users_page_handles_empty_list_mocked(self, mock_get_all):
+    def test_users_page_handles_empty_list_mocked(self, mock_service, mock_admin_password_changed):
         """Test que la page gère une liste vide d'utilisateurs mockés."""
         # Arrange
-        mock_get_all.return_value = []
+        mock_service.return_value = []
         
         # Act
         response = self.client.get('/users')
         
         # Assert
         self.assertEqual(response.status_code, 200)
-        mock_get_all.assert_called_once()
+        mock_service.assert_called_once()
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.infrastructure.repositories.user_repository.UserRepository.get_all_users')
-    def test_users_page_handles_repository_error_mocked(self, mock_get_all):
+    def test_users_page_handles_repository_error_mocked(self, mock_service, mock_admin_password_changed):
         """Test que la page gère les erreurs du repository mockées."""
         # Arrange
-        mock_get_all.side_effect = Exception("Erreur de repository")
+        mock_service.side_effect = Exception("Erreur de repository")
         
         # Act
         response = self.client.get('/users')
@@ -119,10 +123,11 @@ class TestUserPageIntegrationMocked(unittest.TestCase):
         # Assert
         # La page devrait gérer l'erreur gracieusement
         self.assertIn(response.status_code, [200, 500])  # Selon la gestion d'erreur
-        mock_get_all.assert_called_once()
+        mock_service.assert_called_once()
 
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.user_service')
-    def test_user_detail_page_mocked(self, mock_service):
+    def test_user_detail_page_mocked(self, mock_service, mock_admin_password_changed):
         """Test de la page de détail d'un utilisateur avec mocking."""
         # Arrange
         mock_user = self.mock_users[0]  # admin user

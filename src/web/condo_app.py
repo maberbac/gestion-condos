@@ -106,6 +106,7 @@ condo_service = None
 project_service = None
 user_service = None
 feature_flag_service = None
+system_config_service = None
 logger = get_logger(__name__)
 
 # Fonction helper pour les templates
@@ -417,7 +418,7 @@ def calculate_relative_time(dt):
 
 def init_services():
     """Initialise les services de domaine avec gestion d'erreurs."""
-    global auth_service, repository, user_repository, condo_service, project_service, user_service, feature_flag_service
+    global auth_service, repository, user_repository, condo_service, project_service, user_service, feature_flag_service, system_config_service
     try:
         repository = SQLiteAdapter('data/condos.db')
         user_repository = UserRepositorySQLite()
@@ -440,14 +441,18 @@ def init_services():
         feature_flag_repository = FeatureFlagRepositorySQLite()
         feature_flag_service = FeatureFlagService(feature_flag_repository)
 
-        logger.info("Services initialisés avec succès (avec SQLite, authentification BD et feature flags)")
+        # Initialiser le service de configuration système
+        from src.application.services.system_config_service import SystemConfigService
+        system_config_service = SystemConfigService()
+
+        logger.info("Services initialisés avec succès (avec SQLite, authentification BD, feature flags et config système)")
     except Exception as e:
         logger.error(f"Erreur initialisation services: {e}")
         raise
 
 def ensure_services_initialized():
     """S'assure que les services sont initialisés, notamment pour les tests."""
-    global condo_service, user_service, project_service, feature_flag_service
+    global condo_service, user_service, project_service, feature_flag_service, system_config_service
     if condo_service is None:
         try:
             init_services()
@@ -584,6 +589,38 @@ def require_admin(f):
         logger.debug(f"Role utilisateur: {user_role_value}")
 
         if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+            # L'utilisateur est admin, vérifier maintenant si le setup est terminé
+            global system_config_service
+            try:
+                if system_config_service is None:
+                    ensure_services_initialized()
+                
+                # Vérifier si l'admin a changé son mot de passe
+                if system_config_service and not system_config_service.is_admin_password_changed():
+                    logger.info(f"Redirection admin vers setup de mot de passe pour {f.__name__}")
+                    # Rediriger vers la page de setup de mot de passe
+                    if request.path.startswith('/api/'):
+                        return jsonify({
+                            'success': False,
+                            'error': 'Setup administrateur requis',
+                            'redirect': url_for('admin_setup_password')
+                        }), 403
+                    # Ne pas rediriger si on est déjà sur la page de setup
+                    if request.endpoint != 'admin_setup_password':
+                        return redirect(url_for('admin_setup_password'))
+                
+            except Exception as e:
+                logger.error(f"Erreur lors de la vérification du setup admin: {e}")
+                # En cas d'erreur, forcer la redirection vers setup (sécurité renforcée)
+                if request.path.startswith('/api/'):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Erreur système - Setup administrateur requis',
+                        'redirect': url_for('admin_setup_password')
+                    }), 403
+                if request.endpoint != 'admin_setup_password':
+                    return redirect(url_for('admin_setup_password'))
+            
             logger.debug(f"Accès autorisé pour {f.__name__}")
             return f(*args, **kwargs)
 
@@ -642,6 +679,39 @@ def require_resident_or_admin(f):
         logger.debug(f"Role utilisateur: {user_role_value}")
 
         if user_role_value in ['admin', 'resident'] or user_role_value in [UserRole.ADMIN.value, UserRole.RESIDENT.value]:
+            # Si c'est un admin, vérifier le setup avant d'autoriser l'accès
+            if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+                global system_config_service
+                try:
+                    if system_config_service is None:
+                        ensure_services_initialized()
+                    
+                    # Vérifier si l'admin a changé son mot de passe
+                    if system_config_service and not system_config_service.is_admin_password_changed():
+                        logger.info(f"Redirection admin vers setup de mot de passe pour {f.__name__}")
+                        # Rediriger vers la page de setup de mot de passe
+                        if request.path.startswith('/api/'):
+                            return jsonify({
+                                'success': False,
+                                'error': 'Setup administrateur requis',
+                                'redirect': url_for('admin_setup_password')
+                            }), 403
+                        # Ne pas rediriger si on est déjà sur la page de setup
+                        if request.endpoint != 'admin_setup_password':
+                            return redirect(url_for('admin_setup_password'))
+                    
+                except Exception as e:
+                    logger.error(f"Erreur lors de la vérification du setup admin: {e}")
+                    # En cas d'erreur, forcer la redirection vers setup (sécurité renforcée)
+                    if request.path.startswith('/api/'):
+                        return jsonify({
+                            'success': False,
+                            'error': 'Erreur système - Setup administrateur requis',
+                            'redirect': url_for('admin_setup_password')
+                        }), 403
+                    if request.endpoint != 'admin_setup_password':
+                        return redirect(url_for('admin_setup_password'))
+            
             logger.debug(f"Accès autorisé pour {f.__name__}")
             return f(*args, **kwargs)
 
@@ -728,6 +798,8 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     """Tableau de bord personnalisé selon le rÃ´le utilisateur."""
+    global system_config_service
+    
     # récupérer le rÃ´le utilisateur depuis la session avec gestion de None
     user_role_value = session.get('user_role') or session.get('role')
     user_name = session.get('user_name') or session.get('user_id')
@@ -735,6 +807,20 @@ def dashboard():
     if user_role_value is None or user_name is None:
         # Rediriger vers la page de login si pas de rÃ´le en session
         return redirect(url_for('login'))
+
+    # Vérification spéciale pour les admins : setup requis
+    if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+        try:
+            if system_config_service is None:
+                ensure_services_initialized()
+            
+            if system_config_service and not system_config_service.is_admin_password_changed():
+                logger.info(f"Redirection admin vers setup de mot de passe depuis dashboard")
+                return redirect(url_for('admin_setup_password'))
+        except Exception as e:
+            logger.error(f"Erreur lors de la vérification setup admin depuis dashboard: {e}")
+            # En cas d'erreur, forcer la redirection vers setup
+            return redirect(url_for('admin_setup_password'))
 
     # Normaliser le rÃ´le
     if user_role_value == 'admin':
@@ -1371,10 +1457,26 @@ def api_update_profile():
 @require_login
 def profile():
     """Page de profil utilisateur."""
+    global system_config_service
+    
     # récupérer les informations de session
     username = session.get('user_id')  # Le vrai username pour la recherche en base
     user_display_name = session.get('user_name')  # Le nom d'affichage (full_name)
     user_role_value = session.get('user_role') or session.get('role')
+
+    # Vérification spéciale pour les admins : setup requis
+    if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+        try:
+            if system_config_service is None:
+                ensure_services_initialized()
+            
+            if system_config_service and not system_config_service.is_admin_password_changed():
+                logger.info(f"Redirection admin vers setup de mot de passe depuis profile")
+                return redirect(url_for('admin_setup_password'))
+        except Exception as e:
+            logger.error(f"Erreur lors de la vérification setup admin depuis profile: {e}")
+            # En cas d'erreur, forcer la redirection vers setup
+            return redirect(url_for('admin_setup_password'))
 
     # Initialiser les services si nécessaire
     global user_repository
@@ -1459,6 +1561,23 @@ def profile():
 @require_login
 def change_password():
     """Page de modification du mot de passe."""
+    global system_config_service
+    
+    # Vérification spéciale pour les admins : setup requis
+    user_role_value = session.get('user_role') or session.get('role')
+    if user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value:
+        try:
+            if system_config_service is None:
+                ensure_services_initialized()
+            
+            if system_config_service and not system_config_service.is_admin_password_changed():
+                logger.info(f"Redirection admin vers setup de mot de passe depuis change_password")
+                return redirect(url_for('admin_setup_password'))
+        except Exception as e:
+            logger.error(f"Erreur lors de la vérification setup admin depuis change_password: {e}")
+            # En cas d'erreur, forcer la redirection vers setup
+            return redirect(url_for('admin_setup_password'))
+    
     if request.method == 'GET':
         return render_template('change_password.html')
 
@@ -1535,6 +1654,96 @@ def change_password():
         logger.error(f"Erreur lors du changement de mot de passe pour {username}: {e}")
         return render_template('change_password.html',
                              error="Une erreur systÃ¨me s'est produite. réessayez plus tard.")
+
+@app.route('/admin/setup-password', methods=['GET', 'POST'])
+def admin_setup_password():
+    """Page de setup du mot de passe administrateur - accessible seulement si admin connecté mais setup non terminé."""
+    global auth_service, user_repository, system_config_service
+    
+    # Vérifier que l'utilisateur est connecté comme admin
+    user_role_value = session.get('user_role') or session.get('role')
+    if not (user_role_value == 'admin' or user_role_value == UserRole.ADMIN.value):
+        return redirect(url_for('login'))
+    
+    if request.method == 'GET':
+        return render_template('admin_setup_password.html')
+
+    # Traitement POST - changement de mot de passe setup
+    try:
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        # Validation côté serveur
+        if not current_password:
+            return render_template('admin_setup_password.html',
+                                 error="Le mot de passe actuel est requis")
+
+        if not new_password:
+            return render_template('admin_setup_password.html',
+                                 error="Le nouveau mot de passe est requis")
+
+        if new_password != confirm_password:
+            return render_template('admin_setup_password.html',
+                                 error="Les nouveaux mots de passe ne correspondent pas")
+
+        if len(new_password) < 6:
+            return render_template('admin_setup_password.html',
+                                 error="Le nouveau mot de passe doit contenir au moins 6 caractères")
+
+        # Récupérer le nom d'utilisateur de la session
+        username = session.get('user_id') or session.get('username')
+        if not username:
+            logger.error("Session expirée lors du setup admin")
+            return redirect(url_for('login'))
+
+        # Initialiser les services si nécessaire
+        if not auth_service or not user_repository or not system_config_service:
+            logger.warning("Services non initialisés pour setup admin, réinitialisation...")
+            init_services()
+
+        if not auth_service or not user_repository:
+            logger.error("Impossible d'initialiser les services pour setup admin")
+            return render_template('admin_setup_password.html',
+                                 error="Service non disponible. Réessayez plus tard.")
+
+        # Utiliser le service de changement de mot de passe
+        from src.domain.services.password_change_service import PasswordChangeService, PasswordChangeError
+        password_service = PasswordChangeService(
+            user_repository=user_repository,
+            authentication_service=auth_service
+        )
+
+        # Exécuter le changement de mot de passe de manière asynchrone
+        async def change_password_async():
+            return await password_service.change_password(
+                username, current_password, new_password
+            )
+
+        result = asyncio.run(change_password_async())
+
+        if result:
+            # Marquer que l'admin a changé son mot de passe
+            if system_config_service:
+                system_config_service.mark_admin_password_changed()
+                logger.info(f"Setup administrateur terminé pour {username}")
+            
+            # Rediriger vers le dashboard admin
+            return render_template('success.html',
+                                 title="Configuration Administrative Terminée",
+                                 message="Votre mot de passe administrateur a été configuré avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités administrateur.",
+                                 return_url=url_for('admin_dashboard'),
+                                 return_text="Accéder au tableau de bord admin")
+        else:
+            return render_template('admin_setup_password.html',
+                                 error="Échec de la configuration du mot de passe")
+
+    except PasswordChangeError as e:
+        return render_template('admin_setup_password.html', error=str(e))
+    except Exception as e:
+        logger.error(f"Erreur lors du setup admin pour {username}: {e}")
+        return render_template('admin_setup_password.html',
+                             error="Une erreur système s'est produite. Réessayez plus tard.")
 
 # === ROUTES ADMIN ===
 @app.route('/admin')

@@ -71,8 +71,9 @@ class TestWebIntegration(unittest.TestCase):
     @patch('src.adapters.project_repository_sqlite.ProjectRepositorySQLite.__init__')
     @patch('src.web.condo_app.SQLiteAdapter')
     @patch('src.web.condo_app.UserRepositorySQLite')  
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.AuthenticationService')
-    def test_service_initialization_integration(self, mock_auth_service, mock_user_repository, mock_adapter, mock_project_init):
+    def test_service_initialization_integration(self, mock_param1, mock_param2, mock_param3, mock_param4, mock_param5):
         """Test intégration initialisation des services avec mocking complet des constructeurs"""
         # Arrange
         mock_user_repository_instance = Mock()
@@ -95,11 +96,11 @@ class TestWebIntegration(unittest.TestCase):
         }
         
         # Mock le constructeur ProjectRepositorySQLite pour éviter les migrations SQL
-        mock_project_init.return_value = None
+        mock_param5.return_value = None
         
-        mock_user_repository.return_value = mock_user_repository_instance
-        mock_auth_service.return_value = mock_auth_instance
-        mock_adapter.return_value = mock_adapter_instance
+        mock_param1.return_value = mock_auth_instance
+        mock_param3.return_value = mock_user_repository_instance
+        mock_param4.return_value = mock_adapter_instance
         
         # Act - Appeler init_services avec les mocks en place
         result = None
@@ -130,8 +131,9 @@ class TestWebIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'login', response.data.lower())
     
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.auth_service')
-    def test_login_workflow_success(self, mock_auth_service):
+    def test_login_workflow_success(self, mock_service, mock_admin_password_changed):
         """Test workflow de connexion réussie"""
         # Arrange - Créer un mock user avec les bonnes propriétés
         mock_user = Mock()
@@ -149,8 +151,8 @@ class TestWebIntegration(unittest.TestCase):
                 return mock_user
             return None
         
-        mock_auth_service.authenticate = mock_authenticate
-        mock_auth_service.create_session.return_value = 'mock-session-token'
+        mock_service.authenticate = mock_authenticate
+        mock_service.create_session.return_value = 'mock-session-token'
         
         # Act
         response = self.client.post('/login', data={
@@ -164,14 +166,15 @@ class TestWebIntegration(unittest.TestCase):
         with self.client.session_transaction() as sess:
             self.assertIn('user_id', sess)
     
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.auth_service')
-    def test_login_workflow_failure(self, mock_auth_service):
+    def test_login_workflow_failure(self, mock_service, mock_admin_password_changed):
         """Test workflow de connexion échouée"""
         # Arrange
         async def mock_authenticate(username, password):
             return None  # Authentification échouée
         
-        mock_auth_service.authenticate = mock_authenticate
+        mock_service.authenticate = mock_authenticate
         
         # Act
         response = self.client.post('/login', data={
@@ -210,7 +213,8 @@ class TestWebIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 302)  # Redirection vers login
         self.assertIn('/login', response.location)
     
-    def test_protected_route_with_auth(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_protected_route_with_auth(self, mock_admin_password_changed):
         """Test accès route protégée avec authentification"""
         # Arrange - Simuler utilisateur connecté
         with self.client.session_transaction() as sess:
@@ -237,7 +241,8 @@ class TestWebIntegration(unittest.TestCase):
         # Assert
         self.assertEqual(response.status_code, 403)  # Accès refusé
     
-    def test_role_based_access_admin_allowed(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_role_based_access_admin_allowed(self, mock_admin_password_changed):
         """Test accès basé sur les rôles - admin autorisé"""
         # Arrange - Utilisateur admin
         with self.client.session_transaction() as sess:
@@ -260,8 +265,9 @@ class TestWebIntegration(unittest.TestCase):
         # Assert
         self.assertEqual(response.status_code, 404)
     
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.auth_service')
-    def test_async_operations_in_web_context(self, mock_auth_service):
+    def test_async_operations_in_web_context(self, mock_service, mock_admin_password_changed):
         """Test opérations asynchrones dans contexte web"""
         # Arrange - Créer un mock user avec les bonnes propriétés  
         mock_user = Mock()
@@ -279,8 +285,8 @@ class TestWebIntegration(unittest.TestCase):
                 return mock_user
             return None
         
-        mock_auth_service.authenticate = mock_authenticate
-        mock_auth_service.create_session.return_value = 'session-token'
+        mock_service.authenticate = mock_authenticate
+        mock_service.create_session.return_value = 'session-token'
         
         # Act
         response = self.client.post('/login', data={
@@ -292,7 +298,8 @@ class TestWebIntegration(unittest.TestCase):
         # Vérifier que l'opération async a été gérée correctement
         self.assertIn(response.status_code, [200, 302])
     
-    def test_session_persistence_across_requests(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_session_persistence_across_requests(self, mock_admin_password_changed):
         """Test persistance session entre requêtes"""
         # Arrange - Première requête pour établir session
         with self.client.session_transaction() as sess:
@@ -343,8 +350,9 @@ class TestWebIntegration(unittest.TestCase):
         # Peut retourner 404 si le fichier n'existe pas, mais ne doit pas crasher
         self.assertIn(response.status_code, [200, 404])
     
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
     @patch('src.web.condo_app.auth_service')
-    def test_concurrent_user_sessions(self, mock_auth_service):
+    def test_concurrent_user_sessions(self, mock_service, mock_admin_password_changed):
         """Test sessions utilisateur concurrentes"""
         # Arrange
         def create_mock_user(username, role):

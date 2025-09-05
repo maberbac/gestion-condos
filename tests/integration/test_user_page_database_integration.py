@@ -27,7 +27,8 @@ class TestUserPageIntegration(unittest.TestCase):
             sess['username'] = 'admin'
             sess['role'] = 'admin'
 
-    def test_users_page_loads_with_database_users(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_loads_with_database_users(self, mock_admin_password_changed):
         """La page utilisateurs doit charger les utilisateurs depuis la base de données"""
         response = self.client.get('/users')
         
@@ -40,14 +41,16 @@ class TestUserPageIntegration(unittest.TestCase):
         self.assertNotIn(b'jean.dupont', response.data)
         self.assertNotIn(b'marie.martin', response.data)
 
-    def test_users_page_displays_real_admin_user(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_displays_real_admin_user(self, mock_admin_password_changed):
         """La page doit afficher le vrai utilisateur admin de la base"""
         response = self.client.get('/users')
         
         # L'utilisateur admin de la base doit être affiché
         self.assertIn(b'admin', response.data)  # Username admin existe dans la base
 
-    def test_users_page_shows_correct_user_statistics(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_shows_correct_user_statistics(self, mock_admin_password_changed):
         """La page doit afficher les vraies statistiques des utilisateurs"""
         response = self.client.get('/users')
         
@@ -69,7 +72,8 @@ class TestUserPageIntegration(unittest.TestCase):
         # Doit rediriger vers login ou afficher erreur d'accès
         self.assertIn(response.status_code, [302, 403])
 
-    def test_users_page_handles_empty_user_list(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_handles_empty_user_list(self, mock_admin_password_changed):
         """La page doit gérer correctement une liste d'utilisateurs vide"""
         with patch('src.application.services.user_service.UserService.get_users_for_web_display') as mock_users:
             mock_users.return_value = []
@@ -80,7 +84,8 @@ class TestUserPageIntegration(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'Gestion des Utilisateurs', response.data)
 
-    def test_users_page_displays_user_roles_correctly(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_displays_user_roles_correctly(self, mock_admin_password_changed):
         """La page doit afficher correctement les rôles des utilisateurs"""
         response = self.client.get('/users')
         
@@ -94,7 +99,8 @@ class TestUserPageIntegration(unittest.TestCase):
             'administrateur' in response_text.lower()
         )
 
-    def test_users_page_integrates_with_user_repository(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_integrates_with_user_repository(self, mock_admin_password_changed):
         """La page doit utiliser le repository utilisateur pour récupérer les données"""
         with patch('src.application.services.user_service.UserService.get_users_for_web_display') as mock_get_users:
             # Simuler des utilisateurs de test formatés pour le web
@@ -116,7 +122,8 @@ class TestUserPageIntegration(unittest.TestCase):
             mock_get_users.assert_called_once()
             self.assertEqual(response.status_code, 200)
 
-    def test_users_page_template_receives_correct_data_structure(self):
+    @patch('src.application.services.system_config_service.SystemConfigService.is_admin_password_changed', return_value=True)
+    def test_users_page_template_receives_correct_data_structure(self, mock_admin_password_changed):
         """Le template doit recevoir les données dans le bon format"""
         response = self.client.get('/users')
         

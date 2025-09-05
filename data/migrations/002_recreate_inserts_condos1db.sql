@@ -27,8 +27,8 @@ INSERT INTO feature_flags (id, flag_name, is_enabled, description, created_at, u
 -- 5 lignes à insérer
 
 -- Insertion des données dans users
-INSERT INTO users (id, username, email, password_hash, role, full_name, condo_unit, phone, is_active, created_at, last_login) VALUES (1, 'admin', 'admin@condos.com', 'a34cc6b0a57411071d7a6af751dbc010c8c54fe92f1260a28a0346827e08bd5c:ab335d935fa1d87595ac1f48943089ba', 'admin', 'Administrateur Principal', '', NULL, 1, '2025-08-29 23:35:44', '2025-09-04T21:05:50.691590');
--- users: 1 ligne insérée au total (Utilisateur initial)
+INSERT INTO users (id, username, email, password_hash, role, full_name, condo_unit, phone, is_active, created_at, last_login) VALUES (1, 'admin', 'admin@condos.com', 'a34cc6b0a57411071d7a6af751dbc010c8c54fe92f1260a28a0346827e08bd5c:ab335d935fa1d87595ac1f48943089ba', 'admin', 'Administrateur Principal', '', NULL, 1, '2025-08-29 23:35:44', NULL);
+-- users: 1 ligne insérée au total
 
 -- ==================== DONNÉES TABLE: projects ====================
 -- 2 lignes à insérer
